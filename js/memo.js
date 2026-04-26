@@ -12,6 +12,9 @@ function createMemo() {
   const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString() };
   memos.unshift(memo);
   activeMemoId = memo.id;
+  // New memos open in edit mode so the user can start typing immediately
+  memoMode = 'edit';
+  save('memo_mode', 'edit');
   saveMemos();
   renderMemoList();
   renderMemoEditor();
@@ -116,9 +119,33 @@ function renderMemoEditor() {
   const charCount = memo.content.length;
   const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
 
-  // Live mode is the only editing mode now — toggle/split/preview removed.
-  const livePart = `<div class="bear-editor" contenteditable="true" id="bear-editor-${memo.id}" spellcheck="false"></div>`;
-  const bodyHtml = `<div class="memo-body-wrap">${livePart}</div>`;
+  // Mode-based editor: 'view' (default, rendered markdown) or 'edit'
+  // (desktop = split textarea+preview, mobile = textarea only).
+  // This replaces the contenteditable live editor — native textarea is
+  // reliable for cursor position, undo/redo, and avoids the image-flicker
+  // problem caused by re-rendering on every keystroke.
+  const isMobile = window.innerWidth < 769;
+  const isEdit = memoMode === 'edit';
+  const renderedHtml = memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">내용을 추가하려면 편집 모드로 전환하세요</div>';
+
+  let bodyHtml;
+  if (!isEdit) {
+    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body" id="memo-preview">${renderedHtml}</div></div>`;
+  } else if (isMobile) {
+    bodyHtml = `<div class="memo-body-wrap edit-only">
+      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
+    </div>`;
+  } else {
+    bodyHtml = `<div class="memo-body-wrap split">
+      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
+      <div class="markdown-body" id="memo-preview">${renderedHtml}</div>
+    </div>`;
+  }
+
+  const editLabel = isEdit ? '뷰어' : '편집';
+  const editIcon = isEdit
+    ? `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+    : `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
@@ -127,6 +154,10 @@ function renderMemoEditor() {
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-toolbar-spacer"></div>
+      <button class="memo-icon-btn ${isEdit ? 'active' : ''}" onclick="toggleMemoMode()" title="${editLabel} 모드">
+        ${editIcon}
+        <span class="label-text">${editLabel}</span>
+      </button>
       <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
       </button>
@@ -147,26 +178,14 @@ function renderMemoEditor() {
     </div>
     ${bodyHtml}
   `;
-  setTimeout(() => {
-    const ed = document.getElementById('bear-editor-' + memo.id);
-    if (ed) {
-      setupBearEditor(ed, memo.content, (newContent) => {
-        memo.content = newContent;
-        memo.date = new Date().toISOString();
-        saveMemos();
-        const meta = document.querySelector('.memo-meta');
-        if (meta) {
-          const date = new Date(memo.date);
-          const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-          const wc = newContent.trim().split(/\s+/).filter(Boolean).length;
-          meta.querySelector('span:nth-child(1)').textContent = dateStr;
-          meta.querySelector('span:nth-child(3)').textContent = `${newContent.length}자 · ${wc}단어`;
-        }
-        clearTimeout(window._memoListTimer);
-        window._memoListTimer = setTimeout(renderMemoList, 500);
-      });
-    }
-  }, 0);
+
+  if (isEdit) setupSplitScrollSync();
+}
+
+// Toggle between viewer and edit. View is default; first-time tap on the
+// edit button enters edit mode. From edit, tap "뷰어" to render.
+function toggleMemoMode() {
+  setMemoMode(memoMode === 'edit' ? 'view' : 'edit');
 }
 
 
@@ -552,16 +571,31 @@ function setupBearEditor(editor, content, onChange) {
   });
 }
 
-let memoMode = load('memo_mode', 'live'); // live (Bear-style WYSIWYG) | split | preview
+// Default mode is 'view' — markdown is rendered. Toggling enters 'edit'
+// mode (split on desktop, textarea-only on mobile). Migrate any prior
+// 'live' / 'split' / 'preview' values from older builds.
+let memoMode = load('memo_mode', 'view');
+if (memoMode !== 'view' && memoMode !== 'edit') memoMode = 'view';
 function setMemoMode(mode) {
   memoMode = mode;
   save('memo_mode', mode);
   renderMemoEditor();
+  // When entering edit mode, focus the textarea so the keyboard pops on mobile
+  if (mode === 'edit') {
+    setTimeout(() => {
+      const ta = document.getElementById('memo-textarea');
+      if (ta) {
+        ta.focus();
+        // Move caret to end so the user can keep typing
+        const len = ta.value.length;
+        try { ta.setSelectionRange(len, len); } catch {}
+      }
+    }, 30);
+  }
 }
 
 // Sync scroll between textarea and preview in split mode (proportional)
 function setupSplitScrollSync() {
-  if (memoMode !== 'split') return;
   const wrap = document.querySelector('.memo-body-wrap.split');
   if (!wrap) return;
   const ta = wrap.querySelector('textarea');
@@ -592,24 +626,27 @@ function updateMemoTitle(val) {
 
 function updateMemoContent(val) {
   const memo = memos.find(m => m.id === activeMemoId);
-  if (memo) {
-    memo.content = val;
-    memo.date = new Date().toISOString();
-    saveMemos();
-    const meta = document.querySelector('.memo-meta');
-    if (meta) {
-      const date = new Date(memo.date);
-      const dateStr = `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-      meta.textContent = `${dateStr} · ${val.length}자 · 마크다운 (.md)`;
-    }
-    // Live preview in split mode
-    if (memoMode === 'split') {
-      const preview = document.querySelector('.memo-body-wrap.split .markdown-body');
-      if (preview) preview.innerHTML = val.trim() ? md2html(val) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>';
-    }
-    clearTimeout(window._memoListTimer);
-    window._memoListTimer = setTimeout(renderMemoList, 500);
+  if (!memo) return;
+  memo.content = val;
+  memo.date = new Date().toISOString();
+  saveMemos();
+  // Update char/word count in meta row without re-rendering the editor
+  const meta = document.querySelector('.memo-meta');
+  if (meta) {
+    const date = new Date(memo.date);
+    const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+    const wc = val.trim().split(/\s+/).filter(Boolean).length;
+    const spans = meta.querySelectorAll('span');
+    if (spans[0]) spans[0].textContent = dateStr;
+    if (spans[2]) spans[2].textContent = `${val.length}자 · ${wc}단어`;
   }
+  // Live preview in desktop split mode
+  const preview = document.querySelector('.memo-body-wrap.split #memo-preview');
+  if (preview) {
+    preview.innerHTML = val.trim() ? md2html(val) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>';
+  }
+  clearTimeout(window._memoListTimer);
+  window._memoListTimer = setTimeout(renderMemoList, 500);
 }
 
 function filterMemos() { renderMemoList(); }
@@ -640,35 +677,38 @@ async function uploadImageToDrive(blob) {
   }
 }
 
-// Insert markdown into the active memo. Works with the Bear editor
-// (contenteditable) — there's no longer a textarea to target. Inserts at
-// the current caret offset when possible, otherwise appends.
+// Insert markdown into the active memo at the textarea caret. If the user
+// is in viewer mode, switch to edit mode and append at the end.
 function insertIntoActiveMemo(insertText) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return false;
-  const editor = document.querySelector('.bear-editor');
-  let offset = (memo.content || '').length;
-  if (editor) {
-    try {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
-        offset = bearGetCaretOffset(editor);
-      }
-    } catch {}
+  const ta = document.getElementById('memo-textarea');
+  if (ta && memoMode === 'edit') {
+    // Native insert preserves undo history
+    const start = ta.selectionStart ?? ta.value.length;
+    const end = ta.selectionEnd ?? ta.value.length;
+    const before = ta.value.slice(0, start);
+    const after = ta.value.slice(end);
+    ta.value = before + insertText + after;
+    const caret = start + insertText.length;
+    try { ta.setSelectionRange(caret, caret); } catch {}
+    ta.focus();
+    updateMemoContent(ta.value);
+    return true;
   }
-  const text = memo.content || '';
-  memo.content = text.slice(0, offset) + insertText + text.slice(offset);
+  // Viewer mode (or no textarea yet) — append and re-render in edit mode
+  memo.content = (memo.content || '') + insertText;
   memo.date = new Date().toISOString();
   saveMemos();
-  renderMemoEditor();
-  // Restore caret right after the inserted text so the user can keep typing
+  setMemoMode('edit');
   setTimeout(() => {
-    const newEditor = document.querySelector('.bear-editor');
-    if (newEditor) {
-      newEditor.focus();
-      bearSetCaretOffset(newEditor, offset + insertText.length);
+    const newTa = document.getElementById('memo-textarea');
+    if (newTa) {
+      const len = newTa.value.length;
+      try { newTa.setSelectionRange(len, len); } catch {}
+      newTa.focus();
     }
-  }, 30);
+  }, 50);
   return true;
 }
 
@@ -745,11 +785,7 @@ async function handleImageInsert(blob) {
 
 document.addEventListener('paste', (e) => {
   const ae = document.activeElement;
-  // Active editor is the contenteditable Bear editor (or fallback textarea)
-  const inEditor = ae && (
-    ae.classList?.contains('bear-editor') ||
-    (ae.tagName === 'TEXTAREA' && ae.closest('.memo-editor'))
-  );
+  const inEditor = ae && ae.tagName === 'TEXTAREA' && ae.closest('.memo-editor');
   if (!inEditor) return;
   const items = e.clipboardData?.items || [];
   for (const item of items) {

@@ -3661,11 +3661,594 @@ body[data-theme="leather"] .header { background: var(--bg); }
    keeping its prior width because flex:1 alone wasn't reasserting full
    width across some browsers. Force full-width grow + redraw the canvas
    when collapse toggles. */
-.mindmap-page.list-collapsed .mindmap-list { display: none !important; }
+.mindmap-page.list-collapsed .mindmap-list,
+.timeblock-page.list-collapsed .timeblock-list,
+.memo-page.list-collapsed .memo-list { display: none !important; }
 .mindmap-page.list-collapsed .mm-canvas-wrap,
-.mindmap-page.list-collapsed .tb-main,
+.timeblock-page.list-collapsed .tb-main,
 .memo-page.list-collapsed .memo-editor {
-  flex: 1 1 100%;
+  flex: 1 1 100% !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* ============================================================ */
+/* === Panel-reopen icon: make SVG visible ==================== */
+/* ============================================================ */
+/* The SVG had no explicit width/height, so it rendered at the
+   intrinsic 300x150 SVG default which got clipped/squished inside
+   the 28px square button. Match the panel-collapse-btn icon size. */
+.panel-reopen-btn {
+  color: var(--text) !important;
+}
+.panel-reopen-btn svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text);
+  display: block;
+}
+/* The reopen button only matters when list is collapsed — give it a
+   little extra weight there so it reads as a clear affordance. */
+.mindmap-page.list-collapsed .panel-reopen-btn,
+.timeblock-page.list-collapsed .panel-reopen-btn,
+.memo-page.list-collapsed .panel-reopen-btn {
+  display: flex !important;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+/* ============================================================ */
+/* === "+ 새 마인드맵" / "오늘로 이동" CTA — refined size ===== */
+/* ============================================================ */
+/* The today-jump-btn in the list header was inheriting a chunky
+   default. Tighten font/padding so it sits naturally next to the
+   smaller list-title row. */
+.mm-list-header .today-jump-btn,
+.tb-list-header .today-jump-btn {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  padding: 8px 12px;
+  height: 34px;
+  border-radius: 9px;
+  gap: 6px;
+}
+.mm-list-header .today-jump-btn .icon-sm,
+.tb-list-header .today-jump-btn .icon-sm {
+  width: 13px;
+  height: 13px;
+}
+
+/* ============================================================ */
+/* === BEAR — iOS app full redesign (final override) ========== */
+/* ============================================================ */
+/* Bear's signature look: clean white-ish paper bg, crimson red
+   accent, strong type contrast, hairline borders, lots of
+   whitespace. This block is the FINAL override on top of the
+   Moleskine Journey palette earlier in the file. */
+
+:root {
+  --bg: #faf8f3;                /* warm off-white paper */
+  --bg-grad: none;
+  --surface: #ffffff;
+  --surface2: #f6f3ec;
+  --surface3: #ece8de;
+  --border: #e6e1d4;
+  --border-light: #cfc8b5;
+  --text: #1c1c1e;              /* near-black, iOS label */
+  --text-dim: #5e5d5b;
+  --text-mute: #98968f;
+  --accent: #e0354b;            /* Bear's signature crimson */
+  --accent2: #ff5b6e;
+  --accent-glow: rgba(224,53,75,0.18);
+  --primary: #1c1c1e;
+  --green: #2fa37e;
+  --orange: #f08a3c;
+  --red: #e0354b;
+  --blue: #0a7aff;
+  --pink: #e8538c;
+  --cyan: #1aa6b1;
+  --code-color: #b8336a;
+  --shadow-1: 0 1px 2px rgba(20,15,10,0.04), 0 1px 3px rgba(20,15,10,0.04);
+  --shadow-2: 0 2px 8px rgba(20,15,10,0.05), 0 6px 18px rgba(20,15,10,0.05);
+  --shadow-card: 0 1px 3px rgba(20,15,10,0.04);
+  --radius: 14px;
+  --radius-sm: 10px;
+  color-scheme: light;
+}
+
+body[data-theme="leather"] {
+  --bg: #1d1f23;                /* Bear "Graphite" */
+  --bg-grad: none;
+  --surface: #24272d;
+  --surface2: #2c3037;
+  --surface3: #363b44;
+  --border: #34383f;
+  --border-light: #4a4f59;
+  --text: #ebe9e2;
+  --text-dim: #b8b3a5;
+  --text-mute: #7d7a6f;
+  --accent: #ff3b50;
+  --accent2: #ff7385;
+  --accent-glow: rgba(255,59,80,0.25);
+  --primary: #ebe9e2;
+  --green: #4ec59c;
+  --orange: #ff9b4a;
+  --red: #ff3b50;
+  --blue: #4ea3ff;
+  --pink: #ff6fa6;
+  --cyan: #5ad1dc;
+  --code-color: #ff7e9d;
+  color-scheme: dark;
+}
+
+/* Bear-style typography: clean SF Pro / Avenir feel, refined sizing */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+               'Avenir Next', 'Helvetica Neue', 'Apple SD Gothic Neo', system-ui,
+               'Segoe UI', sans-serif;
+  background: var(--bg);
+  background-image: none;
+  letter-spacing: -0.01em;
+}
+
+/* Editor body: same SF stack, slightly larger reading size */
+.memo-editor textarea,
+.markdown-body,
+.bear-editor,
+.memo-editor-header input {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Avenir Next',
+               'Helvetica Neue', 'Apple SD Gothic Neo', system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.01em;
+}
+
+/* List panel surfaces — opaque white cards, no glass blur */
+.memo-list,
+.mindmap-list,
+.timeblock-list,
+.sidebar,
+.header,
+.mindmap-toolbar,
+.memo-editor-toolbar,
+.timeblock-header,
+.tb-list-header,
+.memo-list-header,
+.mm-list-header,
+.modal,
+.drawing-modal,
+.drawing-toolbar {
+  background: var(--surface);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Page bg behind the panels */
+.app-content,
+.content,
+.page,
+.memo-page,
+.mindmap-page,
+.timeblock-page,
+.ledger-page,
+.memo-editor,
+.mm-canvas-area,
+.tb-main {
+  background: var(--bg);
+}
+
+/* Header — clean, slim hairline border, strong title */
+.header {
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+.header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--text);
+}
+.header .subtitle {
+  font-size: 12px;
+  color: var(--text-mute);
+  letter-spacing: 0;
+}
+
+/* Sidebar (desktop) */
+@media (min-width: 769px) {
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+  }
+  .sidebar .nav-btn {
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+  }
+  .sidebar .nav-btn:hover {
+    background: var(--surface2);
+    color: var(--text);
+  }
+  .sidebar .nav-btn.active {
+    background: var(--surface3);
+    color: var(--accent);
+  }
+  .sidebar .nav-btn.active .icon-wrap,
+  .sidebar .nav-btn.active svg { color: var(--accent); }
+}
+
+/* List title row */
+.memo-list-title-row .title,
+.mm-list-title,
+.tb-list-header .memo-list-title-row .title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+.memo-list-title-row .count,
+.mm-list-title-row .count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface2);
+  color: var(--text-mute);
+  border: 1px solid var(--border);
+  padding: 2px 9px;
+  border-radius: 100px;
+}
+
+/* List items — flat cards, hairline border, accent border on active */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin: 4px 8px;
+  padding: 12px 14px;
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.memo-item:hover,
+.mindmap-item:hover,
+.tb-list-item:hover {
+  background: var(--surface2);
+  border-color: var(--border-light);
+  transform: none;
+  box-shadow: none;
+}
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: var(--surface);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active {
+  background: var(--surface2);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.memo-item-title,
+.mm-name,
+.tb-list-date {
+  font-size: 14.5px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text);
+}
+.memo-item-preview {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.memo-item-meta,
+.mm-meta,
+.tb-list-meta {
+  font-size: 11px;
+  color: var(--text-mute);
+  margin-top: 6px;
+}
+
+/* Memo editor body — clean white page with subtle hairline */
+.memo-editor {
+  background: var(--surface);
+}
+.memo-editor-header {
+  padding: 22px 28px 6px;
+}
+.memo-editor-header input {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.7px;
+  color: var(--text);
+  background: transparent;
+  border: none;
   width: 100%;
+}
+.memo-editor-header input::placeholder {
+  color: var(--text-mute);
+  font-weight: 700;
+}
+.memo-meta {
+  padding: 0 28px 14px;
+  font-size: 11.5px;
+  color: var(--text-mute);
+  letter-spacing: 0.1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.memo-meta .dot {
+  width: 3px; height: 3px;
+  background: var(--text-mute);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.memo-body-wrap { background: var(--surface); }
+.memo-editor textarea {
+  background: var(--surface);
+  color: var(--text);
+  border: none;
+  outline: none;
+  font-size: 15.5px;
+  line-height: 1.7;
+  padding: 12px 28px 28px;
+  resize: none;
+  width: 100%;
+  height: 100%;
+  caret-color: var(--accent);
+  -webkit-user-select: text;
+  user-select: text;
+}
+.memo-body-wrap.split textarea {
+  width: 50%;
+  border-right: 1px solid var(--border);
+  background: var(--surface);
+}
+.memo-body-wrap.split .markdown-body {
+  width: 50%;
+  background: var(--surface2);
+}
+.memo-body-wrap.edit-only textarea {
+  width: 100%;
+  height: 100%;
+}
+
+/* Markdown preview body — Bear style refined */
+.markdown-body {
+  padding: 12px 28px 28px;
+  font-size: 15.5px;
+  line-height: 1.7;
+  color: var(--text);
+  -webkit-user-select: text;
+  user-select: text;
+  overflow-y: auto;
+}
+.markdown-body h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  margin: 22px 0 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  color: var(--text);
+}
+.markdown-body h2 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin: 20px 0 10px;
+  color: var(--text);
+}
+.markdown-body h3 {
+  font-size: 17.5px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  margin: 16px 0 8px;
+  color: var(--text);
+}
+.markdown-body p {
+  margin: 10px 0;
+  color: var(--text);
+}
+.markdown-body strong { color: var(--text); font-weight: 700; }
+.markdown-body em { font-style: italic; color: var(--text-dim); }
+.markdown-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent-glow); }
+.markdown-body a:hover { border-bottom-color: var(--accent); }
+.markdown-body code {
+  background: var(--surface3);
+  color: var(--code-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 13.5px;
+}
+.markdown-body pre {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+.markdown-body pre code {
+  background: transparent;
+  color: var(--text);
+  padding: 0;
+}
+.markdown-body blockquote {
+  border-left: 3px solid var(--accent);
+  padding: 4px 14px;
+  margin: 12px 0;
+  color: var(--text-dim);
+  background: var(--surface2);
+  border-radius: 4px;
+}
+.markdown-body ul, .markdown-body ol { margin: 10px 0 10px 22px; }
+.markdown-body li { margin: 4px 0; }
+.markdown-body img {
   max-width: 100%;
+  border-radius: var(--radius-sm);
+  margin: 8px 0;
+}
+.markdown-empty {
+  color: var(--text-mute);
+  font-style: italic;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Mode toggle button — active state in crimson */
+.memo-icon-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  border-radius: 8px;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.memo-icon-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+.memo-icon-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.memo-icon-btn.active:hover {
+  background: var(--accent2);
+  color: #fff;
+}
+.memo-icon-btn.danger:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.memo-icon-btn .label-text { font-size: 12.5px; font-weight: 600; }
+@media (max-width: 768px) {
+  .memo-icon-btn .label-text { display: none; }
+  .memo-icon-btn { padding: 7px 9px; }
+}
+
+/* Tab/sidebar bottom nav highlight */
+.bottom-nav .nav-btn.active,
+.sidebar .nav-btn.active {
+  color: var(--accent);
+}
+.bottom-nav .nav-btn.active svg,
+.sidebar .nav-btn.active svg { color: var(--accent); }
+
+/* Primary buttons — crimson fill where appropriate (CTA) */
+.modal-actions button.primary,
+.memo-search-wrap .new-btn,
+.tb-list-header .today-jump-btn,
+.mm-list-header .today-jump-btn,
+.ledger-add-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  box-shadow: none;
+}
+.modal-actions button.primary:hover,
+.memo-search-wrap .new-btn:hover,
+.tb-list-header .today-jump-btn:hover,
+.mm-list-header .today-jump-btn:hover,
+.ledger-add-btn:hover {
+  background: var(--accent2);
+  transform: none;
+}
+
+/* Color dots in mindmap toolbar — keep saturated */
+.color-dot {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+}
+.color-dot:hover { transform: scale(1.15); }
+.color-dot.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+/* Mindmap toolbar buttons — clean ghost */
+.tb-btn,
+.nav-arrow,
+.draw-tool,
+.panel-collapse-btn,
+.panel-reopen-btn,
+.tb-back-btn,
+.memo-back,
+.mm-list-toggle,
+.header-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+.tb-btn:hover,
+.nav-arrow:hover,
+.draw-tool:hover,
+.panel-collapse-btn:hover,
+.panel-reopen-btn:hover,
+.header-btn:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+}
+.tb-btn.danger:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Modal — clean white card */
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-2);
+}
+.modal h2,
+.modal h3 {
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+/* Search input */
+.memo-search-wrap input.search-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 9px;
+}
+.memo-search-wrap input.search-input::placeholder {
+  color: var(--text-mute);
+}
+.memo-search-wrap input.search-input:focus {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* Small mobile nudges */
+@media (max-width: 768px) {
+  .memo-editor-header { padding: 16px 18px 4px; }
+  .memo-editor-header input { font-size: 24px; }
+  .memo-meta { padding: 0 18px 12px; }
+  .memo-editor textarea { padding: 10px 18px 24px; font-size: 16px; }
+  .markdown-body { padding: 10px 18px 24px; font-size: 16px; }
 }
