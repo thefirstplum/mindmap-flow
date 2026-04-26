@@ -1,15 +1,35 @@
 // =================== LEDGER (가계부) ===================
-// Quick-entry household ledger. Each entry: { id, type, amount, note, date }.
-// Synced together with the rest of app data via _mindflow-app.json
-// (sync.js reads/writes ledger from localStorage).
+// Quick-entry household ledger. Each entry: { id, type, amount, category, note, date }.
+// Synced together with the rest of app data via _mindflow-app.json.
 
 let ledgerEntries = load('ledger', []);
 let ledgerIdCounter = load('ledger_idcounter', 1);
 let ledgerType = 'expense'; // current quick-add type
 
+const LEDGER_CATEGORIES = {
+  expense: ['식비', '카페', '교통', '쇼핑', '주거', '통신', '의료', '문화', '경조사', '기타'],
+  income:  ['월급', '부수입', '용돈', '투자', '기타']
+};
+
 function saveLedger() {
   save('ledger', ledgerEntries);
   save('ledger_idcounter', ledgerIdCounter);
+}
+
+function todayLocalISODate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function updateCategoryOptions() {
+  const sel = document.getElementById('ledger-category');
+  if (!sel) return;
+  const previous = sel.value;
+  const cats = LEDGER_CATEGORIES[ledgerType] || [];
+  sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  // Try to keep selection if still valid; otherwise pick first
+  if (cats.includes(previous)) sel.value = previous;
+  else sel.value = cats[0] || '';
 }
 
 function setLedgerType(type) {
@@ -17,6 +37,7 @@ function setLedgerType(type) {
   document.querySelectorAll('.ledger-type-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.type === type);
   });
+  updateCategoryOptions();
 }
 
 function formatWon(n) {
@@ -26,6 +47,8 @@ function formatWon(n) {
 function addLedgerEntry() {
   const amountInput = document.getElementById('ledger-amount');
   const noteInput = document.getElementById('ledger-note');
+  const dateInput = document.getElementById('ledger-date');
+  const catInput = document.getElementById('ledger-category');
   const raw = (amountInput?.value || '').replace(/[^0-9]/g, '');
   const amount = parseInt(raw, 10);
   if (!amount || amount <= 0) {
@@ -33,16 +56,23 @@ function addLedgerEntry() {
     amountInput?.focus();
     return;
   }
+  const dateStr = dateInput?.value || todayLocalISODate();
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const now = new Date();
+  const entryDate = new Date(y, m - 1, d, now.getHours(), now.getMinutes(), now.getSeconds());
+
   ledgerEntries.unshift({
     id: ledgerIdCounter++,
     type: ledgerType,
     amount,
+    category: (catInput?.value || '').trim(),
     note: (noteInput?.value || '').trim(),
-    date: new Date().toISOString()
+    date: entryDate.toISOString()
   });
   saveLedger();
   if (amountInput) amountInput.value = '';
   if (noteInput) noteInput.value = '';
+  // Keep date and category as-is — likely the user will add another entry for same context
   renderLedger();
   toast(`${ledgerType === 'income' ? '수입' : '지출'} ${formatWon(amount)} 추가됨`, 'success');
   amountInput?.focus();
@@ -119,9 +149,11 @@ function renderLedger() {
     const items = groups.get(k).map(e => {
       const time = e.date.slice(11, 16);
       const sign = e.type === 'income' ? '+' : '-';
+      const catBadge = e.category ? `<span class="ledger-cat-badge">${escapeHtml(e.category)}</span>` : '';
+      const noteText = e.note || (e.category ? '' : (e.type === 'income' ? '수입' : '지출'));
       return `<div class="ledger-item" data-id="${e.id}">
         <div class="ledger-item-time">${time}</div>
-        <div class="ledger-item-note">${escapeHtml(e.note) || (e.type === 'income' ? '수입' : '지출')}</div>
+        <div class="ledger-item-note">${catBadge}${escapeHtml(noteText)}</div>
         <div class="ledger-item-amount ${e.type}">${sign}${formatWon(e.amount)}</div>
         <button class="ledger-item-delete" onclick="deleteLedgerEntry(${e.id})" title="삭제">✕</button>
       </div>`;
@@ -136,10 +168,15 @@ function renderLedger() {
   }).join('');
 }
 
-// Init: render on load (in case ledger page is the active page)
+// Init: render on load (in case ledger page is the active page) and seed
+// the date input with today + populate the category dropdown
 function initLedger() {
-  // Defer so DOM is ready
-  setTimeout(renderLedger, 0);
+  setTimeout(() => {
+    const dateInput = document.getElementById('ledger-date');
+    if (dateInput && !dateInput.value) dateInput.value = todayLocalISODate();
+    updateCategoryOptions();
+    renderLedger();
+  }, 0);
 }
 
 // Allow Enter in the amount field to submit

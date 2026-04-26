@@ -2888,3 +2888,107 @@ body[data-theme="leather"] .sidebar {
 .settings-toggle input[type="checkbox"]:checked::after {
   transform: translateX(18px);
 }
+
+/* ============================================================ */
+/* === Misc fixes ============================================ */
+/* ============================================================ */
+
+/* Mindmap 2-pane: list-header had a fading gradient that didn't match the
+   solid surface of the mindmap-toolbar. Make both flat surfaces with the
+   same border-bottom so the two columns read as one continuous strip. */
+.mm-list-header,
+.memo-list-header,
+.tb-list-header {
+  background: var(--surface) !important;
+}
+
+/* And give the mindmap toolbar the same height as the list header so the
+   two tops line up at the top of the canvas. */
+.mindmap-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Ledger: category select + date input (Soft Dashboard look) */
+.ledger-select,
+.ledger-date-input {
+  height: 38px;
+  padding: 0 12px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ledger-select:focus,
+.ledger-date-input:focus {
+  background: var(--surface);
+  border-color: var(--text);
+}
+.ledger-select { min-width: 90px; }
+.ledger-date-input {
+  font-variant-numeric: tabular-nums;
+  min-width: 130px;
+}
+.ledger-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+.ledger-date-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+.ledger-cat-badge {
+  display: inline-block;
+  background: var(--surface3);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 8px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 768px) {
+  .ledger-quick-row { flex-wrap: wrap; gap: 8px; }
+  .ledger-select, .ledger-date-input { flex: 1 1 0; min-width: 0; }
+  .ledger-type-toggle { flex: 1 1 100%; }
+  .ledger-type-toggle button { flex: 1; }
+}
+
+/* Light-theme text contrast belt-and-suspenders — make sure every
+   text element reads against the white surfaces */
+:root .header h1,
+:root .memo-item-title,
+:root .tb-list-date,
+:root .mm-name,
+:root .ledger-stat .value,
+:root .ledger-day-date,
+:root .ledger-item-note,
+:root .day-summary .stat .value,
+:root .modal h3,
+:root .settings-toggle-title { color: var(--text); }
+:root .header .subtitle,
+:root .memo-item-preview,
+:root .tb-list-meta,
+:root .mm-meta,
+:root .ledger-stat .label,
+:root .day-summary .stat .label,
+:root .modal-desc,
+:root .settings-toggle-desc { color: var(--text-dim); }
+
+/* Ensure SVG icons in buttons inherit text color (was sometimes invisible
+   on light theme due to currentColor not propagating from a hidden parent
+   class) */
+:root .header-btn svg,
+:root .nav-btn svg,
+:root .tb-btn svg,
+:root .draw-tool svg,
+:root .panel-collapse-btn svg,
+:root .panel-reopen-btn svg { color: var(--text); }
+
+/* Settings modal toggle row spacing for newly-added rows */
+.settings-toggle:first-of-type { margin-top: 6px; }

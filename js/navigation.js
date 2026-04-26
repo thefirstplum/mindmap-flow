@@ -32,8 +32,15 @@ document.querySelectorAll('.sidebar .nav-btn[data-page]').forEach(btn => {
     if (page === 'timeblock') renderTimeBlocks();
     if (page === 'ledger') {
       renderLedger();
-      // Auto-focus the amount field — user said "들어가면 금액만 바로 넣고"
-      setTimeout(() => document.getElementById('ledger-amount')?.focus(), 50);
+      // iOS Safari only opens the keyboard if focus happens SYNCHRONOUSLY
+      // inside a user-gesture handler. setTimeout breaks that chain — so
+      // focus directly here (the page is already display:flex by now).
+      const amt = document.getElementById('ledger-amount');
+      if (amt) {
+        amt.focus();
+        // Some iOS versions need a click to actually summon the keypad
+        try { amt.click(); } catch {}
+      }
     }
   });
 });
