@@ -806,13 +806,14 @@
   .block-title { display: flex; align-items: flex-start; gap: 0; }
   .block-title-text { flex: 1; min-width: 0; }
 
-  .tb-color-green { background: linear-gradient(135deg, #10b981, #059669); }
-  .tb-color-orange { background: linear-gradient(135deg, #f59e0b, #d97706); color: #1a1300; }
-  .tb-color-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-  .tb-color-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-  .tb-color-pink { background: linear-gradient(135deg, #ec4899, #db2777); }
-  .tb-color-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
-  .tb-color-accent { background: linear-gradient(135deg, #7c6cf5, #5e4ce0); }
+  /* Moleskine Journey block palette — warm muted tones, paper-friendly */
+  .tb-color-accent { background: linear-gradient(135deg, #d99e1f, #b27e10); color: #1d1a14; }
+  .tb-color-green  { background: linear-gradient(135deg, #6a8c4f, #51703a); color: #fff; }
+  .tb-color-orange { background: linear-gradient(135deg, #c97a2c, #a45f1d); color: #fff; }
+  .tb-color-red    { background: linear-gradient(135deg, #b44236, #8e3024); color: #fff; }
+  .tb-color-blue   { background: linear-gradient(135deg, #4a6c8a, #38566e); color: #fff; }
+  .tb-color-pink   { background: linear-gradient(135deg, #b85577, #94445e); color: #fff; }
+  .tb-color-cyan   { background: linear-gradient(135deg, #4d7d8f, #3a6271); color: #fff; }
 
   /* ============== MODAL ============== */
   .modal-overlay {
@@ -3623,4 +3624,48 @@ body[data-theme="leather"] .header { background: var(--bg); }
   background: var(--surface);
   border-color: var(--text);
   box-shadow: none;
+}
+
+/* ============================================================ */
+/* === Mobile bottom tab — breathing room ==================== */
+/* ============================================================ */
+@media (max-width: 768px) {
+  .sidebar .nav-btn {
+    height: 56px;            /* was 50px — give more vertical space */
+    padding: 6px 0 4px;
+    gap: 5px;                /* was 3 — separates icon and label */
+  }
+  .sidebar .nav-btn .icon { width: 22px; height: 22px; margin-bottom: 2px; }
+  .sidebar .nav-btn .label {
+    font-size: 10.5px;
+    line-height: 1.2;
+    margin-top: 2px;
+  }
+  .sidebar .nav-btn.active::before {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    bottom: -1px;            /* was 3 — drop further so it's clearly below the label */
+    top: auto;
+    background: var(--accent);
+  }
+  .sidebar {
+    /* Slightly taller so 56px buttons + safe-area + indicator fit */
+    padding: 6px 0 calc(8px + var(--safe-bot));
+  }
+}
+
+/* ============================================================ */
+/* === Mindmap list collapse → expand canvas ================== */
+/* ============================================================ */
+/* When .list-collapsed hides the mindmap-list, the mm-canvas-wrap was
+   keeping its prior width because flex:1 alone wasn't reasserting full
+   width across some browsers. Force full-width grow + redraw the canvas
+   when collapse toggles. */
+.mindmap-page.list-collapsed .mindmap-list { display: none !important; }
+.mindmap-page.list-collapsed .mm-canvas-wrap,
+.mindmap-page.list-collapsed .tb-main,
+.memo-page.list-collapsed .memo-editor {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: 100%;
 }
