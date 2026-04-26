@@ -1041,8 +1041,17 @@
   /* Markdown rendered preview */
   .memo-body-wrap { flex: 1; display: flex; min-height: 0; }
   .memo-body-wrap.split { display: flex; }
-  .memo-body-wrap.split textarea { width: 50%; border-right: 1px solid var(--border); }
-  .memo-body-wrap.split .markdown-body { width: 50%; }
+  .memo-body-wrap.split textarea {
+    width: 50%;
+    border-right: 1px solid var(--border);
+    background: rgba(11,13,20,0.45);
+    color: var(--text);
+  }
+  .memo-body-wrap.split .markdown-body {
+    width: 50%;
+    background: var(--bg);
+  }
+  .memo-body-wrap.split textarea:focus { background: rgba(124,108,245,0.04); }
   .markdown-body {
     flex: 1;
     padding: 24px;
@@ -2957,13 +2966,36 @@ function renderMemoEditor() {
     </div>
     ${bodyHtml}
   `;
+  // Wire scroll sync once the new DOM exists
+  setTimeout(setupSplitScrollSync, 0);
 }
 
-let memoMode = load('memo_mode', 'edit'); // edit | preview | split
+let memoMode = load('memo_mode', 'split'); // edit | preview | split (default: split = 편집+미리보기 동시)
 function setMemoMode(mode) {
   memoMode = mode;
   save('memo_mode', mode);
   renderMemoEditor();
+}
+
+// Sync scroll between textarea and preview in split mode (proportional)
+function setupSplitScrollSync() {
+  if (memoMode !== 'split') return;
+  const wrap = document.querySelector('.memo-body-wrap.split');
+  if (!wrap) return;
+  const ta = wrap.querySelector('textarea');
+  const preview = wrap.querySelector('.markdown-body');
+  if (!ta || !preview) return;
+  let syncing = false;
+  const link = (from, to) => {
+    if (syncing) return;
+    syncing = true;
+    const fromMax = Math.max(1, from.scrollHeight - from.clientHeight);
+    const toMax = Math.max(0, to.scrollHeight - to.clientHeight);
+    to.scrollTop = (from.scrollTop / fromMax) * toMax;
+    requestAnimationFrame(() => { syncing = false; });
+  };
+  ta.addEventListener('scroll', () => link(ta, preview));
+  preview.addEventListener('scroll', () => link(preview, ta));
 }
 
 function updateMemoTitle(val) {
