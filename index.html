@@ -3218,6 +3218,7 @@ let driveLastModifiedTime = null; // server-side mtime of folder for change dete
 let isLoadingFromDrive = false;
 let isPushingToDrive = false;
 let driveDirty = false; // local has unpushed changes
+let driveUserEmail = null;
 let driveStatus = 'idle';
 let driveAutoSaveTimer = null;
 const DRIVE_POLL_INTERVAL = 15_000;
@@ -3385,6 +3386,11 @@ async function driveConnect() {
 
   try {
     await driveAuth(true);
+    // Get user email so user can verify same account is used on all devices
+    try {
+      const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
+      driveUserEmail = about.user?.emailAddress || null;
+    } catch {}
     driveFolderId = await driveFindOrCreateFolder(DRIVE_FOLDER_NAME, null);
     save('drive_folder_id', driveFolderId);
     driveAssetsFolderId = await driveFindOrCreateFolder(DRIVE_ASSETS_NAME, driveFolderId);
@@ -3519,9 +3525,10 @@ async function drivePushAll() {
 
     driveLastPushAt = Date.now();
     driveLastSyncAt = driveLastPushAt;
+    // Update mtime sentinel to MAX CHILD mtime so the next poll won't re-pull our own write
     try {
-      const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
-      driveLastModifiedTime = meta.modifiedTime;
+      const after = await driveListInFolder(driveFolderId);
+      driveLastModifiedTime = after.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
     } catch {}
 
     driveStatus = 'saved';
@@ -3532,6 +3539,7 @@ async function drivePushAll() {
     driveStatus = 'error';
     updateDriveStatus();
     toast('Drive 동기화 실패: ' + e.message, 'error');
+    throw e; // let scheduleDriveSave see failure to keep dirty=true
   } finally {
     isPushingToDrive = false;
   }
@@ -3619,10 +3627,8 @@ async function drivePullAll(skipConfirm = false) {
     const list = await driveListInFolder(driveFolderId);
     await applyDriveData(list.files);
     driveLastSyncAt = Date.now();
-    try {
-      const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
-      driveLastModifiedTime = meta.modifiedTime;
-    } catch {}
+    // Track max child mtime so next poll won't re-pull what we just got
+    driveLastModifiedTime = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
     driveStatus = 'saved';
     updateDriveStatus();
     toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
@@ -3645,16 +3651,13 @@ async function drivePoll(force = false) {
     if (inEditor) return;
   }
   try {
-    // Cheap check: folder modifiedTime
-    const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
-    if (driveLastModifiedTime && meta.modifiedTime === driveLastModifiedTime) return;
+    // Always list children — folder modifiedTime does NOT change when child file
+    // contents change in Drive, so we must check max child mtime to detect updates
     const list = await driveListInFolder(driveFolderId);
-    // Also compare per-file: maybe folder mtime didn't change but a child did
     const latestChild = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
-    const sentinel = meta.modifiedTime > latestChild ? meta.modifiedTime : latestChild;
-    if (driveLastModifiedTime === sentinel) return;
+    if (driveLastModifiedTime && latestChild === driveLastModifiedTime) return;
     await applyDriveData(list.files);
-    driveLastModifiedTime = sentinel;
+    driveLastModifiedTime = latestChild;
     driveLastSyncAt = Date.now();
     driveStatus = 'saved';
     updateDriveStatus();
@@ -3696,8 +3699,12 @@ function scheduleDriveSave() {
   driveDirty = true;
   clearTimeout(driveAutoSaveTimer);
   driveAutoSaveTimer = setTimeout(async () => {
-    await drivePushAll();
-    driveDirty = false;
+    try {
+      await drivePushAll();
+      driveDirty = false; // only clear on success — failure keeps dirty so poll won't overwrite local edits
+    } catch (e) {
+      console.warn('Drive push failed; will retry on next change:', e);
+    }
   }, 2000);
 }
 
@@ -3721,10 +3728,11 @@ function updateDriveStatus() {
         `${Math.floor(ago/3600)}시간 전 동기화`;
       statusText = `✓ 연결됨 · 15초마다 폴링${agoText ? ' · ' + agoText : ''}`;
     }
+    const acct = driveUserEmail ? ` · <span style="color:var(--accent2)">${escapeHtml(driveUserEmail)}</span>` : '';
     el.innerHTML = `
       <div class="icon-circle" style="background:#1a73e8;color:#fff;font-size:14px;font-weight:700;">G</div>
       <div class="text-area">
-        <div class="name">Drive 연결됨 · ${escapeHtml(DRIVE_FOLDER_NAME)} 폴더</div>
+        <div class="name">Drive 연결됨 · ${escapeHtml(DRIVE_FOLDER_NAME)} 폴더${acct}</div>
         <div class="desc">${statusText}</div>
       </div>
     `;
@@ -3751,6 +3759,10 @@ async function initDrive() {
     updateDriveStatus();
     try {
       await driveAuth(false);
+      try {
+        const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
+        driveUserEmail = about.user?.emailAddress || null;
+      } catch {}
       await drivePullAll(true);
       driveStartPolling();
     } catch (e) {
