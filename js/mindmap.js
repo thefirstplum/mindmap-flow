@@ -36,7 +36,7 @@ let connectingFrom = null;
 let isConnecting = false;
 let isDraggingConnection = false;
 let connDragPos = { x: 0, y: 0 };
-let currentNodeColor = '#d99e1f';
+let currentNodeColor = '#b58900';
 let isPanning = false;
 let lastMouse = { x: 0, y: 0 };
 let pinchStart = null;
@@ -266,8 +266,8 @@ function drawMindMap() {
     const my = (from.y + to.y) / 2 - 30;
     ctx.quadraticCurveTo(mx, my, to.x, to.y);
     const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
-    grad.addColorStop(0, hexA(from.color || '#d99e1f', 0.6));
-    grad.addColorStop(1, hexA(to.color || '#d99e1f', 0.6));
+    grad.addColorStop(0, hexA(from.color || '#b58900', 0.6));
+    grad.addColorStop(1, hexA(to.color || '#b58900', 0.6));
     ctx.strokeStyle = grad;
     ctx.lineWidth = 2.5;
     ctx.stroke();
@@ -280,7 +280,7 @@ function drawMindMap() {
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
       ctx.lineTo(mp.x, mp.y);
-      ctx.strokeStyle = hexA(from.color || '#d99e1f', 0.85);
+      ctx.strokeStyle = hexA(from.color || '#b58900', 0.85);
       ctx.lineWidth = 3;
       ctx.setLineDash([8, 5]);
       ctx.stroke();
@@ -288,7 +288,7 @@ function drawMindMap() {
       // Endpoint dot
       ctx.beginPath();
       ctx.arc(mp.x, mp.y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = hexA(from.color || '#d99e1f', 0.85);
+      ctx.fillStyle = hexA(from.color || '#b58900', 0.85);
       ctx.fill();
     }
   }
@@ -300,15 +300,15 @@ function drawMindMap() {
     const w = Math.max(textWidth + 40, 90);
     const h = 44;
 
-    ctx.shadowColor = hexA(n.color || '#d99e1f', 0.5);
+    ctx.shadowColor = hexA(n.color || '#b58900', 0.5);
     ctx.shadowBlur = isSelected ? 24 : 14;
     ctx.shadowOffsetY = 4;
 
     ctx.beginPath();
     ctx.roundRect(n.x - w/2, n.y - h/2, w, h, 12);
     const grad = ctx.createLinearGradient(n.x - w/2, n.y - h/2, n.x + w/2, n.y + h/2);
-    grad.addColorStop(0, lightenColor(n.color || '#d99e1f', 0.1));
-    grad.addColorStop(1, n.color || '#d99e1f');
+    grad.addColorStop(0, lightenColor(n.color || '#b58900', 0.1));
+    grad.addColorStop(1, n.color || '#b58900');
     ctx.fillStyle = grad;
     ctx.fill();
 
@@ -332,11 +332,11 @@ function drawMindMap() {
       ctx.beginPath();
       ctx.arc(hx, hy, 11, 0, Math.PI * 2);
       ctx.fillStyle = '#fff';
-      ctx.shadowColor = hexA(n.color || '#d99e1f', 0.6);
+      ctx.shadowColor = hexA(n.color || '#b58900', 0.6);
       ctx.shadowBlur = 10;
       ctx.fill();
       ctx.shadowColor = 'transparent';
-      ctx.strokeStyle = n.color || '#d99e1f';
+      ctx.strokeStyle = n.color || '#b58900';
       ctx.lineWidth = 2.5;
       ctx.stroke();
       ctx.beginPath();
@@ -344,7 +344,7 @@ function drawMindMap() {
       ctx.lineTo(hx + 5, hy);
       ctx.moveTo(hx, hy - 5);
       ctx.lineTo(hx, hy + 5);
-      ctx.strokeStyle = n.color || '#d99e1f';
+      ctx.strokeStyle = n.color || '#b58900';
       ctx.lineWidth = 2.5;
       ctx.lineCap = 'round';
       ctx.stroke();

@@ -125,13 +125,14 @@
                 삭제
               </button>
               <div class="sep"></div>
-              <div class="color-dot active" style="background:#d99e1f" data-color="#d99e1f" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#6a8c4f" data-color="#6a8c4f" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#c97a2c" data-color="#c97a2c" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#b44236" data-color="#b44236" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#4a6c8a" data-color="#4a6c8a" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#b85577" data-color="#b85577" onclick="setNodeColor(this)"></div>
-              <div class="color-dot" style="background:#4d7d8f" data-color="#4d7d8f" onclick="setNodeColor(this)"></div>
+              <div class="color-dot active" style="background:#b58900" data-color="#b58900" onclick="setNodeColor(this)" title="옐로우"></div>
+              <div class="color-dot" style="background:#cb4b16" data-color="#cb4b16" onclick="setNodeColor(this)" title="오렌지"></div>
+              <div class="color-dot" style="background:#dc322f" data-color="#dc322f" onclick="setNodeColor(this)" title="레드"></div>
+              <div class="color-dot" style="background:#d33682" data-color="#d33682" onclick="setNodeColor(this)" title="마젠타"></div>
+              <div class="color-dot" style="background:#6c71c4" data-color="#6c71c4" onclick="setNodeColor(this)" title="바이올렛"></div>
+              <div class="color-dot" style="background:#268bd2" data-color="#268bd2" onclick="setNodeColor(this)" title="블루"></div>
+              <div class="color-dot" style="background:#2aa198" data-color="#2aa198" onclick="setNodeColor(this)" title="시안"></div>
+              <div class="color-dot" style="background:#859900" data-color="#859900" onclick="setNodeColor(this)" title="그린"></div>
               <div class="sep"></div>
               <button class="tb-btn" onclick="zoomIn()" title="확대">+</button>
               <button class="tb-btn" onclick="zoomOut()" title="축소">−</button>
@@ -259,13 +260,14 @@
     <textarea id="tb-desc" placeholder="추가 설명..."></textarea>
     <label>색상</label>
     <div class="modal-colors">
-      <div class="mc active" style="background:linear-gradient(135deg,#d99e1f,#b27e10)" data-color="accent" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#6a8c4f,#51703a)" data-color="green" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#c97a2c,#a45f1d)" data-color="orange" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#b44236,#8e3024)" data-color="red" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#4a6c8a,#38566e)" data-color="blue" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#b85577,#94445e)" data-color="pink" onclick="setTbColor(this)"></div>
-      <div class="mc" style="background:linear-gradient(135deg,#4d7d8f,#3a6271)" data-color="cyan" onclick="setTbColor(this)"></div>
+      <div class="mc active" style="background:linear-gradient(135deg,#b58900,#8a6800)" data-color="yellow" onclick="setTbColor(this)" title="옐로우"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#cb4b16,#9c3a10)" data-color="orange" onclick="setTbColor(this)" title="오렌지"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#dc322f,#a52623)" data-color="red" onclick="setTbColor(this)" title="레드"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#d33682,#a32865)" data-color="magenta" onclick="setTbColor(this)" title="마젠타"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#6c71c4,#525695)" data-color="violet" onclick="setTbColor(this)" title="바이올렛"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#268bd2,#1c6aa3)" data-color="blue" onclick="setTbColor(this)" title="블루"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#2aa198,#1f7a73)" data-color="cyan" onclick="setTbColor(this)" title="시안"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#859900,#5e6c00)" data-color="green" onclick="setTbColor(this)" title="그린"></div>
     </div>
     <label style="display:flex;align-items:center;gap:10px;margin-top:18px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:14px;color:var(--text);font-weight:500;">
       <input type="checkbox" id="tb-done" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
@@ -457,11 +459,14 @@
       </button>
       <div class="draw-sep"></div>
       <div class="draw-color active" data-color="#1d1a14" style="background:#1d1a14" onclick="setDrawColor('#1d1a14',this)" title="잉크 검정"></div>
-      <div class="draw-color" data-color="#d99e1f" style="background:#d99e1f" onclick="setDrawColor('#d99e1f',this)" title="앰버"></div>
-      <div class="draw-color" data-color="#b44236" style="background:#b44236" onclick="setDrawColor('#b44236',this)" title="빨강"></div>
-      <div class="draw-color" data-color="#6a8c4f" style="background:#6a8c4f" onclick="setDrawColor('#6a8c4f',this)" title="올리브"></div>
-      <div class="draw-color" data-color="#4a6c8a" style="background:#4a6c8a" onclick="setDrawColor('#4a6c8a',this)" title="슬레이트"></div>
-      <div class="draw-color" data-color="#b85577" style="background:#b85577" onclick="setDrawColor('#b85577',this)" title="더스티 핑크"></div>
+      <div class="draw-color" data-color="#b58900" style="background:#b58900" onclick="setDrawColor('#b58900',this)" title="옐로우"></div>
+      <div class="draw-color" data-color="#cb4b16" style="background:#cb4b16" onclick="setDrawColor('#cb4b16',this)" title="오렌지"></div>
+      <div class="draw-color" data-color="#dc322f" style="background:#dc322f" onclick="setDrawColor('#dc322f',this)" title="레드"></div>
+      <div class="draw-color" data-color="#d33682" style="background:#d33682" onclick="setDrawColor('#d33682',this)" title="마젠타"></div>
+      <div class="draw-color" data-color="#6c71c4" style="background:#6c71c4" onclick="setDrawColor('#6c71c4',this)" title="바이올렛"></div>
+      <div class="draw-color" data-color="#268bd2" style="background:#268bd2" onclick="setDrawColor('#268bd2',this)" title="블루"></div>
+      <div class="draw-color" data-color="#2aa198" style="background:#2aa198" onclick="setDrawColor('#2aa198',this)" title="시안"></div>
+      <div class="draw-color" data-color="#859900" style="background:#859900" onclick="setDrawColor('#859900',this)" title="그린"></div>
       <div class="draw-sep"></div>
       <div class="draw-width-control">
         <span>굵기</span>
