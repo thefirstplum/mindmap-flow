@@ -3,6 +3,15 @@ function togglePanel(pageId) {
   const el = document.getElementById(pageId);
   if (!el) return;
   el.classList.toggle('list-collapsed');
+  // Mindmap canvas pixels are sized in JS — once the wrapper width changes,
+  // the canvas needs a redraw at the new dimensions or it appears clipped.
+  if (pageId === 'mindmap-page-root' && typeof resizeCanvas === 'function') {
+    // Allow the layout to settle first (one frame) so getBoundingClientRect
+    // returns the post-collapse width
+    requestAnimationFrame(() => requestAnimationFrame(resizeCanvas));
+  }
+  // Memo editor's bear contenteditable might also need a layout nudge — no
+  // action required since it's pure DOM, but trigger a render in case
 }
 
 // Generic touch swipe handler — apply to any container with .swipe-row children.

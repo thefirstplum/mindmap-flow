@@ -226,13 +226,11 @@ function bearInline(html) {
   // backspace deletes the whole block atomically.
   html = html.replace(/IMG(\d+)/g, (_m, idx) => {
     const t = imgs[parseInt(idx)];
-    const safeUrl = String(t.url).replace(/"/g, '&quot;');
-    return `<span class="md-image-block" contenteditable="false">` +
-           `<span class="md-marker">!</span><span class="md-marker">[</span>` +
-           `<span class="md-marker">${t.alt}</span><span class="md-marker">]</span>` +
-           `<span class="md-marker">(</span><span class="md-marker">${t.url}</span>` +
-           `<span class="md-marker">)</span>` +
-           `<img class="md-img" src="${safeUrl}" alt="${t.alt}" loading="lazy">` +
+    const _attrEsc = (s) => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    const safeUrl = _attrEsc(t.url);
+    const dataMd = _attrEsc(`![${t.alt}](${t.url})`);
+    return `<span class="md-image-block" contenteditable="false" data-md="${dataMd}">` +
+           `<img class="md-img" src="${safeUrl}" alt="${_attrEsc(t.alt)}" loading="lazy">` +
            `</span>`;
   });
   return html;
@@ -249,11 +247,30 @@ function bearRenderContent(text) {
 // the same way — counting +1 per block boundary. This is fully
 // deterministic and doesn't depend on browser-specific Range.toString()
 // quirks around <br>/block-element line breaks.
+// Walk a line div and reconstruct the markdown source. Elements that carry
+// a data-md attribute (image blocks, etc.) contribute their stored source
+// instead of textContent — this preserves the markdown even when the live
+// DOM doesn't render the markers as text.
+function bearLineToSource(div) {
+  let source = '';
+  function walk(node) {
+    if (node.nodeType === 1) {
+      if (node.dataset && node.dataset.md != null) {
+        source += node.dataset.md;
+        return;
+      }
+      for (const child of node.childNodes) walk(child);
+    } else if (node.nodeType === 3) {
+      source += node.textContent || '';
+    }
+  }
+  walk(div);
+  return source.replace(/​/g, '');
+}
+
 function bearGetText(editor) {
   if (!editor.children.length) return editor.textContent.replace(/​/g, '');
-  return [...editor.children]
-    .map(c => (c.textContent || '').replace(/​/g, ''))
-    .join('\n');
+  return [...editor.children].map(bearLineToSource).join('\n');
 }
 
 function bearGetCaretOffset(editor) {
@@ -262,15 +279,36 @@ function bearGetCaretOffset(editor) {
   const range = sel.getRangeAt(0);
   if (!editor.contains(range.startContainer)) return 0;
 
+  function sourceUpTo(div, endContainer, endOffset) {
+    let source = '';
+    let stopped = false;
+    function walk(node) {
+      if (stopped) return;
+      if (node === endContainer) {
+        if (node.nodeType === 3) source += (node.textContent || '').slice(0, endOffset);
+        stopped = true;
+        return;
+      }
+      if (node.nodeType === 1) {
+        if (node.dataset && node.dataset.md != null) {
+          source += node.dataset.md;
+          return;
+        }
+        for (const c of node.childNodes) { walk(c); if (stopped) return; }
+        return;
+      }
+      if (node.nodeType === 3) source += node.textContent || '';
+    }
+    walk(div);
+    return source.replace(/​/g, '').length;
+  }
+
   let pos = 0;
   for (const child of editor.children) {
     if (child === range.startContainer || child.contains(range.startContainer)) {
-      const r = document.createRange();
-      r.selectNodeContents(child);
-      r.setEnd(range.startContainer, range.startOffset);
-      return pos + (r.toString() || '').replace(/​/g, '').length;
+      return pos + sourceUpTo(child, range.startContainer, range.startOffset);
     }
-    pos += (child.textContent || '').replace(/​/g, '').length + 1;
+    pos += bearLineToSource(child).length + 1;
   }
   return Math.max(0, pos - 1);
 }
@@ -287,34 +325,12 @@ function bearSetCaretOffset(editor, target) {
   }
   let pos = 0;
   for (const child of editor.children) {
-    const childTextLen = (child.textContent || '').replace(/​/g, '').length;
-    if (target <= pos + childTextLen) {
-      const offsetInChild = target - pos;
-      // Walk text nodes inside child
-      const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
-      let chars = 0;
-      let node;
-      while ((node = walker.nextNode())) {
-        const len = node.length;
-        if (chars + len >= offsetInChild) {
-          const r = document.createRange();
-          r.setStart(node, Math.max(0, Math.min(node.length, offsetInChild - chars)));
-          r.collapse(true);
-          sel.removeAllRanges();
-          sel.addRange(r);
-          return;
-        }
-        chars += len;
-      }
-      // Empty block (no text node): place caret at start of block
-      const r = document.createRange();
-      r.setStart(child, 0);
-      r.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(r);
+    const childSourceLen = bearLineToSource(child).length;
+    if (target <= pos + childSourceLen) {
+      placeCaretInLine(child, target - pos);
       return;
     }
-    pos += childTextLen + 1;
+    pos += childSourceLen + 1;
   }
   // Past end
   const r = document.createRange();
@@ -322,6 +338,66 @@ function bearSetCaretOffset(editor, target) {
   r.collapse(false);
   sel.removeAllRanges();
   sel.addRange(r);
+}
+
+// Place caret at a source-character offset within a line div, treating
+// elements with data-md as atomic units (caret can land before/after,
+// not inside).
+function placeCaretInLine(div, target) {
+  const sel = window.getSelection();
+  let chars = 0;
+  let placed = false;
+  function walk(node) {
+    if (placed) return;
+    if (node.nodeType === 1) {
+      if (node.dataset && node.dataset.md != null) {
+        const len = node.dataset.md.length;
+        if (target <= chars) {
+          const r = document.createRange();
+          r.setStartBefore(node);
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+          placed = true;
+          return;
+        }
+        if (target <= chars + len) {
+          const r = document.createRange();
+          r.setStartAfter(node);
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+          placed = true;
+          return;
+        }
+        chars += len;
+        return;
+      }
+      for (const c of node.childNodes) { walk(c); if (placed) return; }
+      return;
+    }
+    if (node.nodeType === 3) {
+      const len = node.length;
+      if (chars + len >= target) {
+        const r = document.createRange();
+        r.setStart(node, Math.max(0, Math.min(len, target - chars)));
+        r.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(r);
+        placed = true;
+        return;
+      }
+      chars += len;
+    }
+  }
+  for (const c of div.childNodes) { walk(c); if (placed) return; }
+  if (!placed) {
+    const r = document.createRange();
+    r.selectNodeContents(div);
+    r.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
 }
 
 function setupBearEditor(editor, content, onChange) {
