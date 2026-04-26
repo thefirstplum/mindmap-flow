@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0f1117">
 <title>MindFlow — 마인드맵 · 타임블록 · 메모</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   :root {
@@ -1566,7 +1567,56 @@
       옵시디언처럼 폴더를 지정하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
     </div>
 
-    <label>☁️ GitHub Gist 자동 동기화 <span style="color:var(--green);font-weight:600;font-size:10px;">iOS · Android · Desktop</span></label>
+    <label>🅖 Google Drive 자동 동기화 <span style="background:var(--accent);color:#fff;font-weight:700;font-size:10px;padding:2px 7px;border-radius:4px;">추천</span></label>
+    <div class="folder-status" id="drive-status">
+      <div class="icon-circle" style="background:var(--surface3)">G</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">Google Drive 연결되지 않음</div>
+        <div class="desc">메모·마인드맵·이미지를 Drive 폴더에 자동 동기화 (모든 기기)</div>
+      </div>
+    </div>
+    <input type="text" id="drive-client-id-input" placeholder="OAuth Client ID (xxx.apps.googleusercontent.com)" style="margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;">
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="tb-btn" onclick="driveConnect()" style="flex:1;min-width:100px;justify-content:center;">
+        🔗 Google 연결
+      </button>
+      <button class="tb-btn" onclick="driveSyncNow()" id="drive-sync-now-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        🔄 지금 동기화
+      </button>
+      <button class="tb-btn" onclick="drivePullAll()" id="drive-pull-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        ⬇ 가져오기
+      </button>
+      <button class="tb-btn danger" onclick="driveDisconnect()" id="drive-disconnect-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        ✕ 연결 해제
+      </button>
+    </div>
+    <details style="margin-top:8px;font-size:11px;color:var(--text-dim);">
+      <summary style="cursor:pointer;color:var(--accent2);font-weight:600;">📖 OAuth Client ID 만드는 법 (10분)</summary>
+      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;">
+        <strong style="color:var(--text);">1.</strong> <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent2);text-decoration:underline;">console.cloud.google.com</a> 접속<br>
+        <strong style="color:var(--text);">2.</strong> 프로젝트 만들기 → 이름: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code><br>
+        <strong style="color:var(--text);">3.</strong> 좌측 메뉴 → <strong>API 및 서비스 → 라이브러리</strong> → "Google Drive API" 검색 → <strong style="color:var(--green);">사용 설정</strong><br>
+        <strong style="color:var(--text);">4.</strong> <strong>API 및 서비스 → OAuth 동의 화면</strong>:<br>
+        &nbsp;&nbsp;&nbsp;• User Type: <strong>외부(External)</strong> 선택<br>
+        &nbsp;&nbsp;&nbsp;• 앱 이름: MindFlow / 사용자 지원 이메일·개발자 이메일에 본인 메일 입력<br>
+        &nbsp;&nbsp;&nbsp;• 범위(Scopes)는 비워두고 저장<br>
+        &nbsp;&nbsp;&nbsp;• <strong>테스트 사용자</strong>에 본인 이메일 추가 (중요!)<br>
+        <strong style="color:var(--text);">5.</strong> <strong>API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID</strong>:<br>
+        &nbsp;&nbsp;&nbsp;• 애플리케이션 유형: <strong>웹 애플리케이션</strong><br>
+        &nbsp;&nbsp;&nbsp;• 승인된 JavaScript 원본: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">https://thefirstplum.github.io</code> 추가<br>
+        &nbsp;&nbsp;&nbsp;• <strong>로컬 테스트 시</strong>: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">http://localhost:8000</code> 도 추가<br>
+        &nbsp;&nbsp;&nbsp;• 만들기 → <strong style="color:var(--accent2);">클라이언트 ID 복사</strong><br>
+        <strong style="color:var(--text);">6.</strong> 위 입력란에 붙여넣고 <strong>[🔗 Google 연결]</strong> → 첫 로그인 시 "확인되지 않은 앱" 경고 → <strong>고급 → 진행</strong> (본인 앱이라 안전)<br>
+        <br>
+        💡 다른 기기에서도 같은 Client ID + 같은 Google 계정으로 로그인하면 자동 동기화<br>
+        💡 앱이 만든 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code> 폴더만 접근 (drive.file 스코프 — 안전)<br>
+        💡 이미지 업로드는 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow/assets/</code>에 자동 저장
+      </div>
+    </details>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
+
+    <label>☁️ GitHub Gist 자동 동기화 <span style="color:var(--text-mute);font-weight:500;font-size:10px;">대안 (이미지 미지원)</span></label>
     <div class="folder-status" id="gist-status">
       <div class="icon-circle" style="background:var(--surface3)">☁</div>
       <div class="text-area">
@@ -1749,6 +1799,7 @@ function save(key, data) {
     localStorage.setItem('mindflow_' + key, JSON.stringify(data));
     scheduleAutoSave();
     scheduleGistSave();
+    scheduleDriveSave();
   } catch (e) { toast('저장 실패: 저장 공간 부족', 'error'); }
 }
 function load(key, def) {
@@ -2887,6 +2938,9 @@ function renderMemoEditor() {
         <button class="${memoMode==='preview'?'active':''}" onclick="setMemoMode('preview')">${eyeIcon}<span class="label-text">미리보기</span></button>
       </div>
       <div class="memo-toolbar-spacer"></div>
+      <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      </button>
       <button class="memo-icon-btn danger" onclick="deleteMemo(${memo.id})" title="메모 삭제">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
       </button>
@@ -3006,7 +3060,8 @@ function openSyncModal() {
     document.getElementById('share-btn').style.display = 'none';
   }
 
-  // Update Gist & folder status
+  // Update Drive, Gist & folder status
+  updateDriveStatus();
   updateGistStatus();
   updateFolderStatus();
   if (!isFsApiSupported()) {
@@ -3081,6 +3136,632 @@ function importData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// =================== GOOGLE DRIVE SYNC (data + images, all platforms) ===================
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_FOLDER_NAME = 'MindFlow';
+const DRIVE_ASSETS_NAME = 'assets';
+const DRIVE_APP_FILENAME = '_mindflow-app.json';
+
+let driveClientId = load('drive_client_id', null);
+let driveAccessToken = null;
+let driveTokenExpires = 0;
+let driveFolderId = load('drive_folder_id', null);
+let driveAssetsFolderId = load('drive_assets_folder_id', null);
+let driveTokenClient = null;
+let drivePollTimer = null;
+let driveLastPushAt = 0;
+let driveLastSyncAt = null;
+let driveLastModifiedTime = null; // server-side mtime of folder for change detection
+let isLoadingFromDrive = false;
+let driveStatus = 'idle';
+let driveAutoSaveTimer = null;
+const DRIVE_POLL_INTERVAL = 15_000;
+
+function ensureGsiLoaded() {
+  return new Promise((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) return resolve();
+    let attempts = 0;
+    const check = setInterval(() => {
+      if (window.google?.accounts?.oauth2) { clearInterval(check); resolve(); return; }
+      if (++attempts > 80) { clearInterval(check); reject(new Error('Google 인증 라이브러리를 불러오지 못했습니다 (네트워크 확인)')); }
+    }, 100);
+  });
+}
+
+async function driveAuth(promptUser = false) {
+  if (!driveClientId) throw new Error('Client ID 미설정');
+  await ensureGsiLoaded();
+  return new Promise((resolve, reject) => {
+    try {
+      driveTokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: driveClientId,
+        scope: DRIVE_SCOPE,
+        prompt: promptUser ? 'consent' : '',
+        callback: (resp) => {
+          if (resp.error) return reject(new Error(resp.error_description || resp.error));
+          driveAccessToken = resp.access_token;
+          driveTokenExpires = Date.now() + (resp.expires_in - 60) * 1000;
+          resolve();
+        },
+        error_callback: (err) => reject(new Error(err.message || '인증 거부됨'))
+      });
+      driveTokenClient.requestAccessToken();
+    } catch (e) { reject(e); }
+  });
+}
+
+async function ensureDriveToken() {
+  if (driveAccessToken && Date.now() < driveTokenExpires) return;
+  await driveAuth(false);
+}
+
+async function driveApi(method, path, body, query = {}) {
+  await ensureDriveToken();
+  const url = new URL('https://www.googleapis.com/drive/v3' + path);
+  Object.entries(query).forEach(([k, v]) => url.searchParams.set(k, String(v)));
+  const headers = { 'Authorization': 'Bearer ' + driveAccessToken };
+  let bodyToSend = body;
+  if (body && typeof body === 'object' && !(body instanceof Blob)) {
+    headers['Content-Type'] = 'application/json';
+    bodyToSend = JSON.stringify(body);
+  }
+  const r = await fetch(url, { method, headers, body: bodyToSend });
+  if (!r.ok) {
+    let msg = `Drive ${r.status}`;
+    try { const j = await r.json(); if (j.error?.message) msg = j.error.message; } catch {}
+    throw new Error(msg);
+  }
+  if (r.status === 204) return null;
+  return r.json();
+}
+
+async function driveDownloadFile(fileId) {
+  await ensureDriveToken();
+  const r = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+    headers: { 'Authorization': 'Bearer ' + driveAccessToken }
+  });
+  if (!r.ok) throw new Error('다운로드 실패');
+  return r.text();
+}
+
+async function driveUploadFile(name, content, mimeType, parentId) {
+  await ensureDriveToken();
+  const metadata = { name, mimeType };
+  if (parentId) metadata.parents = [parentId];
+  const boundary = '----mfb' + Math.random().toString(36).slice(2);
+  const isBlob = content instanceof Blob;
+  if (isBlob) {
+    // Two-step for binary: create then upload media (simpler than multipart with binary)
+    const created = await driveApi('POST', '/files', metadata);
+    const r = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${created.id}?uploadType=media`, {
+      method: 'PATCH',
+      headers: { 'Authorization': 'Bearer ' + driveAccessToken, 'Content-Type': mimeType },
+      body: content
+    });
+    if (!r.ok) throw new Error('업로드 실패: ' + await r.text());
+    return r.json();
+  } else {
+    const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n${content}\r\n--${boundary}--`;
+    const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,modifiedTime', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + driveAccessToken,
+        'Content-Type': `multipart/related; boundary=${boundary}`
+      },
+      body
+    });
+    if (!r.ok) throw new Error('업로드 실패: ' + await r.text());
+    return r.json();
+  }
+}
+
+async function driveUpdateFile(fileId, content, mimeType) {
+  await ensureDriveToken();
+  const r = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media&fields=id,name,modifiedTime`, {
+    method: 'PATCH',
+    headers: { 'Authorization': 'Bearer ' + driveAccessToken, 'Content-Type': mimeType },
+    body: content instanceof Blob ? content : new Blob([content], { type: mimeType })
+  });
+  if (!r.ok) throw new Error('수정 실패: ' + await r.text());
+  return r.json();
+}
+
+async function driveDeleteFile(fileId) {
+  await ensureDriveToken();
+  await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + driveAccessToken }
+  });
+}
+
+async function driveListInFolder(folderId) {
+  return driveApi('GET', '/files', null, {
+    q: `'${folderId}' in parents and trashed = false`,
+    fields: 'files(id,name,mimeType,modifiedTime,size)',
+    pageSize: 1000
+  });
+}
+
+async function driveFindOrCreateFolder(name, parentId) {
+  const escaped = name.replace(/'/g, "\\'");
+  const q = parentId
+    ? `name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and '${parentId}' in parents and trashed = false`
+    : `name = '${escaped}' and mimeType = 'application/vnd.google-apps.folder' and 'root' in parents and trashed = false`;
+  const list = await driveApi('GET', '/files', null, { q, fields: 'files(id,name)' });
+  if (list.files.length > 0) return list.files[0].id;
+  const folder = await driveApi('POST', '/files', {
+    name,
+    mimeType: 'application/vnd.google-apps.folder',
+    parents: parentId ? [parentId] : []
+  });
+  return folder.id;
+}
+
+async function driveMakePublic(fileId) {
+  try {
+    await driveApi('POST', `/files/${fileId}/permissions`, { role: 'reader', type: 'anyone' });
+  } catch (e) { console.warn('Make public failed:', e); }
+}
+
+async function driveConnect() {
+  const cidInput = document.getElementById('drive-client-id-input');
+  const cid = (cidInput?.value || driveClientId || '').trim();
+  if (!cid) { toast('Google OAuth Client ID를 입력하세요', 'error'); return; }
+  if (!cid.endsWith('.apps.googleusercontent.com')) {
+    toast('Client ID 형식이 잘못된 것 같습니다 (...apps.googleusercontent.com)', 'error');
+    return;
+  }
+  driveClientId = cid;
+  save('drive_client_id', cid);
+
+  driveStatus = 'saving';
+  updateDriveStatus();
+  toast('Google 인증 중...');
+
+  try {
+    await driveAuth(true);
+    driveFolderId = await driveFindOrCreateFolder(DRIVE_FOLDER_NAME, null);
+    save('drive_folder_id', driveFolderId);
+    driveAssetsFolderId = await driveFindOrCreateFolder(DRIVE_ASSETS_NAME, driveFolderId);
+    save('drive_assets_folder_id', driveAssetsFolderId);
+    updateDriveStatus();
+
+    const list = await driveListInFolder(driveFolderId);
+    const remoteHasMd = list.files.some(f => f.name.toLowerCase().endsWith('.md'));
+    const remoteHasApp = list.files.some(f => f.name === DRIVE_APP_FILENAME);
+    const remoteHasData = remoteHasMd || remoteHasApp;
+    const localHasData = memos.length > 0 || mindmaps.some(m => m.nodes.length > 0) || Object.keys(load('tb_blocks', {})).length > 0;
+
+    if (remoteHasData && localHasData) {
+      if (confirm('Drive 폴더에 이미 데이터가 있습니다.\n\n[확인] 가져오기 — Drive 데이터로 로컬을 덮어씁니다\n[취소] 로컬 유지 — 다음 저장 시 Drive를 로컬로 덮어씁니다')) {
+        await drivePullAll(true);
+      } else {
+        await drivePushAll();
+      }
+    } else if (remoteHasData) {
+      await drivePullAll(true);
+    } else {
+      await drivePushAll();
+    }
+    if (cidInput) cidInput.value = '';
+    driveStartPolling();
+    toast('Google Drive 연결 완료', 'success');
+  } catch (e) {
+    console.error(e);
+    driveStatus = 'error';
+    updateDriveStatus();
+    let detail = '';
+    if (/popup|blocked/i.test(e.message)) detail = '\n\n팝업 차단을 해제하고 다시 시도하세요.';
+    else if (/access_denied|denied/i.test(e.message)) detail = '\n\n동의 화면에서 권한을 허용해 주세요.';
+    else if (/origin/i.test(e.message)) detail = '\n\nGoogle Cloud Console에서 OAuth Client의\n"승인된 JavaScript 원본"에 https://thefirstplum.github.io 추가했는지 확인';
+    alert('❌ 연결 실패\n\n' + e.message + detail);
+  }
+}
+
+async function driveDisconnect() {
+  if (!confirm('Drive 연결을 해제하시겠습니까? 로컬 데이터는 그대로 유지됩니다.\n(Drive 폴더는 그대로 남아있습니다)')) return;
+  driveStopPolling();
+  driveAccessToken = null;
+  driveTokenExpires = 0;
+  driveFolderId = null;
+  driveAssetsFolderId = null;
+  driveLastModifiedTime = null;
+  save('drive_folder_id', null);
+  save('drive_assets_folder_id', null);
+  // Keep client_id for easy re-connect
+  updateDriveStatus();
+  toast('연결 해제됨');
+}
+
+function sanitizeDriveName(s) {
+  return (s || 'untitled').replace(/[\/\\?%*:|"<>]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'untitled';
+}
+
+async function drivePushAll() {
+  if (!driveFolderId || isLoadingFromDrive) return;
+  try {
+    driveStatus = 'saving';
+    updateDriveStatus();
+
+    // Get current files in folder
+    const current = await driveListInFolder(driveFolderId);
+    const byName = {};
+    for (const f of current.files) {
+      if (f.name === DRIVE_ASSETS_NAME) continue; // skip subfolder
+      byName[f.name] = f;
+    }
+
+    // App data
+    const appData = {
+      version: 2,
+      app: 'mindflow',
+      exportedAt: new Date().toISOString(),
+      mindmaps: load('mindmaps', []),
+      activeMindmapId: load('mm_active', null),
+      timeBlocks: load('tb_blocks', {})
+    };
+    const appJson = JSON.stringify(appData, null, 2);
+    if (byName[DRIVE_APP_FILENAME]) {
+      await driveUpdateFile(byName[DRIVE_APP_FILENAME].id, appJson, 'application/json');
+    } else {
+      await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
+    }
+
+    // Memos as .md
+    const desired = new Set([DRIVE_APP_FILENAME]);
+    for (const memo of memos) {
+      let base = sanitizeDriveName(memo.title);
+      let fname = base + '.md';
+      let n = 2;
+      while (desired.has(fname)) { fname = `${base} (${n}).md`; n++; }
+      desired.add(fname);
+      const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
+      if (byName[fname]) {
+        await driveUpdateFile(byName[fname].id, content, 'text/markdown');
+      } else {
+        await driveUploadFile(fname, content, 'text/markdown', driveFolderId);
+      }
+    }
+
+    // Delete orphan .md files
+    for (const [name, f] of Object.entries(byName)) {
+      if (!desired.has(name) && name.toLowerCase().endsWith('.md')) {
+        try { await driveDeleteFile(f.id); } catch {}
+      }
+    }
+
+    driveLastPushAt = Date.now();
+    driveLastSyncAt = driveLastPushAt;
+    // Update mtime so the next poll doesn't pull our own write
+    try {
+      const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
+      driveLastModifiedTime = meta.modifiedTime;
+    } catch {}
+
+    driveStatus = 'saved';
+    updateDriveStatus();
+    setTimeout(() => { if (driveStatus === 'saved') { driveStatus = 'idle'; updateDriveStatus(); } }, 1800);
+  } catch (e) {
+    console.error('Drive push failed:', e);
+    driveStatus = 'error';
+    updateDriveStatus();
+    toast('Drive 동기화 실패: ' + e.message, 'error');
+  }
+}
+
+async function applyDriveData(files) {
+  isLoadingFromDrive = true;
+  try {
+    const ae = document.activeElement;
+    const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
+      ? activeMemoId : null;
+
+    // App data
+    const appFile = files.find(f => f.name === DRIVE_APP_FILENAME);
+    if (appFile) {
+      try {
+        const text = await driveDownloadFile(appFile.id);
+        const app = JSON.parse(text);
+        if (app.app === 'mindflow') {
+          if (app.mindmaps) {
+            mindmaps = app.mindmaps;
+            activeMindmapId = app.activeMindmapId || (mindmaps[0]?.id ?? null);
+            localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+            localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+            bindActiveMap();
+          }
+          if (app.timeBlocks) {
+            timeBlocks = app.timeBlocks;
+            localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+          }
+        }
+      } catch (e) { console.warn(e); }
+    }
+
+    // Memos
+    const newMemos = [];
+    let maxId = 0;
+    const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
+    for (const f of mdFiles) {
+      try {
+        const text = await driveDownloadFile(f.id);
+        const memo = parseFrontmatter(text, f.name, Date.now());
+        if (!memo.id) memo.id = ++maxId + 100000;
+        else if (memo.id > maxId) maxId = memo.id;
+        newMemos.push(memo);
+      } catch (e) { console.warn('Memo parse failed:', f.name, e); }
+    }
+    newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (editingMemoId != null) {
+      const local = memos.find(m => m.id === editingMemoId);
+      if (local) {
+        const idx = newMemos.findIndex(m => m.id === editingMemoId);
+        if (idx >= 0) newMemos[idx] = local;
+        else newMemos.unshift(local);
+      }
+    }
+
+    memos = newMemos;
+    memoIdCounter = Math.max(maxId, memos.length) + 1;
+    localStorage.setItem('mindflow_memos', JSON.stringify(memos));
+    localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
+    if (!memos.find(m => m.id === activeMemoId)) {
+      activeMemoId = memos[0]?.id || null;
+    }
+
+    renderMindmapList();
+    drawMindMap();
+    renderMemoList();
+    if (editingMemoId == null) renderMemoEditor();
+    renderTimeBlocks();
+    renderTimeblockList();
+  } finally {
+    isLoadingFromDrive = false;
+  }
+}
+
+async function drivePullAll(skipConfirm = false) {
+  if (!driveFolderId) { toast('먼저 Drive를 연결하세요'); return; }
+  if (!skipConfirm && !confirm('Drive의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
+
+  try {
+    driveStatus = 'saving';
+    updateDriveStatus();
+    const list = await driveListInFolder(driveFolderId);
+    await applyDriveData(list.files);
+    driveLastSyncAt = Date.now();
+    try {
+      const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
+      driveLastModifiedTime = meta.modifiedTime;
+    } catch {}
+    driveStatus = 'saved';
+    updateDriveStatus();
+    toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
+    setTimeout(() => { if (driveStatus === 'saved') { driveStatus = 'idle'; updateDriveStatus(); } }, 1800);
+  } catch (e) {
+    driveStatus = 'error';
+    updateDriveStatus();
+    toast('가져오기 실패: ' + e.message, 'error');
+  }
+}
+
+async function drivePoll(force = false) {
+  if (!driveFolderId || isLoadingFromDrive) return;
+  if (!force && document.hidden) return;
+  if (!force && Date.now() - driveLastPushAt < 4000) return;
+  if (!force) {
+    const ae = document.activeElement;
+    const inEditor = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header')));
+    if (inEditor) return;
+  }
+  try {
+    // Cheap check: folder modifiedTime
+    const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
+    if (driveLastModifiedTime && meta.modifiedTime === driveLastModifiedTime) return;
+    const list = await driveListInFolder(driveFolderId);
+    // Also compare per-file: maybe folder mtime didn't change but a child did
+    const latestChild = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+    const sentinel = meta.modifiedTime > latestChild ? meta.modifiedTime : latestChild;
+    if (driveLastModifiedTime === sentinel) return;
+    await applyDriveData(list.files);
+    driveLastModifiedTime = sentinel;
+    driveLastSyncAt = Date.now();
+    driveStatus = 'saved';
+    updateDriveStatus();
+    setTimeout(() => { if (driveStatus === 'saved') { driveStatus = 'idle'; updateDriveStatus(); } }, 1500);
+  } catch (e) {
+    console.warn('Drive poll error:', e);
+  }
+}
+
+function driveStartPolling() {
+  if (drivePollTimer) clearInterval(drivePollTimer);
+  if (!driveFolderId) return;
+  drivePollTimer = setInterval(() => drivePoll(false), DRIVE_POLL_INTERVAL);
+}
+
+function driveStopPolling() {
+  if (drivePollTimer) { clearInterval(drivePollTimer); drivePollTimer = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && driveFolderId) drivePoll(false);
+});
+
+async function driveSyncNow() {
+  if (!driveFolderId) { toast('먼저 Drive를 연결하세요'); return; }
+  try {
+    clearTimeout(driveAutoSaveTimer);
+    toast('동기화 중...');
+    await drivePushAll();
+    await drivePoll(true);
+    toast('동기화 완료', 'success');
+  } catch (e) {
+    toast('동기화 실패: ' + e.message, 'error');
+  }
+}
+
+function scheduleDriveSave() {
+  if (!driveFolderId || isLoadingFromDrive) return;
+  clearTimeout(driveAutoSaveTimer);
+  driveAutoSaveTimer = setTimeout(drivePushAll, 2000);
+}
+
+function updateDriveStatus() {
+  const el = document.getElementById('drive-status');
+  if (!el) return;
+  const reloadBtn = document.getElementById('drive-pull-btn');
+  const disconnectBtn = document.getElementById('drive-disconnect-btn');
+  const syncNowBtn = document.getElementById('drive-sync-now-btn');
+  if (driveFolderId) {
+    el.classList.add('connected');
+    let statusText;
+    if (driveStatus === 'saving') statusText = '<span class="save-pulse"></span>동기화 중...';
+    else if (driveStatus === 'error') statusText = '⚠ 동기화 실패';
+    else {
+      const ago = driveLastSyncAt ? Math.max(0, Math.floor((Date.now() - driveLastSyncAt) / 1000)) : null;
+      const agoText = ago == null ? '' :
+        ago < 5 ? '방금 동기화됨' :
+        ago < 60 ? `${ago}초 전 동기화` :
+        ago < 3600 ? `${Math.floor(ago/60)}분 전 동기화` :
+        `${Math.floor(ago/3600)}시간 전 동기화`;
+      statusText = `✓ 연결됨 · 15초마다 폴링${agoText ? ' · ' + agoText : ''}`;
+    }
+    el.innerHTML = `
+      <div class="icon-circle" style="background:#1a73e8;color:#fff;font-size:14px;font-weight:700;">G</div>
+      <div class="text-area">
+        <div class="name">Drive 연결됨 · ${escapeHtml(DRIVE_FOLDER_NAME)} 폴더</div>
+        <div class="desc">${statusText}</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = '';
+    if (disconnectBtn) disconnectBtn.style.display = '';
+    if (syncNowBtn) syncNowBtn.style.display = '';
+  } else {
+    el.classList.remove('connected');
+    el.innerHTML = `
+      <div class="icon-circle" style="background:var(--surface3)">G</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">Google Drive 연결되지 않음</div>
+        <div class="desc">메모·마인드맵·이미지를 Drive 폴더에 자동 동기화 (모든 기기)</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+    if (syncNowBtn) syncNowBtn.style.display = 'none';
+  }
+}
+
+async function initDrive() {
+  if (driveClientId && driveFolderId) {
+    updateDriveStatus();
+    try {
+      await driveAuth(false);
+      await drivePullAll(true);
+      driveStartPolling();
+    } catch (e) {
+      console.warn('Drive auto-restore failed:', e);
+      driveStatus = 'error';
+      updateDriveStatus();
+    }
+  }
+}
+
+// =================== IMAGE UPLOAD (paste / drag / button → Drive) ===================
+async function uploadImageToDrive(blob) {
+  if (!driveAssetsFolderId) {
+    toast('이미지 업로드는 Drive 연결이 필요합니다', 'error');
+    return null;
+  }
+  try {
+    toast('이미지 업로드 중...');
+    const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg');
+    const name = `img-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const file = await driveUploadFile(name, blob, blob.type, driveAssetsFolderId);
+    await driveMakePublic(file.id);
+    // Use thumbnail URL for reliable hotlinking; size up to ~2000px
+    const url = `https://drive.google.com/thumbnail?id=${file.id}&sz=w2000`;
+    toast('이미지 업로드 완료', 'success');
+    return { url, id: file.id, name };
+  } catch (e) {
+    toast('업로드 실패: ' + e.message, 'error');
+    return null;
+  }
+}
+
+function insertAtCursor(textarea, text) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const before = textarea.value.slice(0, start);
+  const after = textarea.value.slice(end);
+  textarea.value = before + text + after;
+  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+  // Trigger input event so updateMemoContent runs
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+async function handleImageInsert(blob) {
+  const ta = document.querySelector('.memo-editor textarea');
+  if (!ta) return;
+  if (driveAssetsFolderId) {
+    const result = await uploadImageToDrive(blob);
+    if (result) insertAtCursor(ta, `\n![${result.name}](${result.url})\n`);
+  } else {
+    // Fallback: base64 inline (small images only)
+    if (blob.size > 800_000) {
+      toast('Drive 미연결 + 파일 800KB 초과 → 업로드 불가', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      insertAtCursor(ta, `\n![image](${reader.result})\n`);
+      toast('인라인 이미지로 삽입됨 (Drive 연결하면 자동 업로드)', 'success');
+    };
+    reader.readAsDataURL(blob);
+  }
+}
+
+document.addEventListener('paste', (e) => {
+  const ta = document.activeElement;
+  if (!ta || ta.tagName !== 'TEXTAREA' || !ta.closest('.memo-editor')) return;
+  const items = e.clipboardData?.items || [];
+  for (const item of items) {
+    if (item.type.startsWith('image/')) {
+      e.preventDefault();
+      const blob = item.getAsFile();
+      if (blob) handleImageInsert(blob);
+      return;
+    }
+  }
+});
+
+document.addEventListener('dragover', (e) => {
+  if (e.target.closest && e.target.closest('.memo-editor')) e.preventDefault();
+});
+document.addEventListener('drop', (e) => {
+  const target = e.target.closest && e.target.closest('.memo-editor');
+  if (!target) return;
+  const files = e.dataTransfer?.files;
+  if (!files || files.length === 0) return;
+  const img = [...files].find(f => f.type.startsWith('image/'));
+  if (img) {
+    e.preventDefault();
+    handleImageInsert(img);
+  }
+});
+
+function triggerImageUpload() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const f = e.target.files?.[0];
+    if (f) handleImageInsert(f);
+  };
+  input.click();
 }
 
 // =================== GITHUB GIST SYNC (works on iOS & desktop) ===================
@@ -3891,6 +4572,8 @@ document.body.addEventListener('touchmove', e => {
 initFolder();
 // Initialize Gist sync (silently pulls latest if connected)
 initGist();
+// Initialize Drive sync (silently re-auths and pulls if connected before)
+initDrive();
 
 // When sync modal opens, attempt to verify folder permission silently
 async function tryRestoreFolder() {
