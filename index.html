@@ -1,0 +1,3270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<title>MindFlow — 마인드맵 · 타임블록 · 메모</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  :root {
+    --bg: #0b0d14;
+    --bg-grad: radial-gradient(circle at 20% 0%, #1a1530 0%, #0b0d14 50%);
+    --surface: #161922;
+    --surface2: #1f2330;
+    --surface3: #2a2f3f;
+    --border: #2a2f3f;
+    --border-light: #353a4d;
+    --text: #e8eaf2;
+    --text-dim: #8b8fa3;
+    --text-mute: #595d70;
+    --accent: #7c6cf5;
+    --accent2: #a99bff;
+    --accent-glow: rgba(124,108,245,0.35);
+    --green: #10b981;
+    --orange: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --pink: #ec4899;
+    --cyan: #06b6d4;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bot: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+  }
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg);
+    background-image: var(--bg-grad);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  input, textarea { -webkit-user-select: text; user-select: text; touch-action: auto; }
+
+  /* ============== LAYOUT ============== */
+  .app {
+    display: flex;
+    height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+
+  /* Sidebar (desktop) */
+  .sidebar {
+    width: 72px;
+    background: rgba(22,25,34,0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 0 calc(18px + var(--safe-bot));
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .sidebar .logo {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; color: #fff;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 24px var(--accent-glow);
+  }
+  .sidebar .nav-btn {
+    width: 48px; height: 48px;
+    background: transparent;
+    border: none;
+    border-radius: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .sidebar .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar .nav-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    box-shadow: 0 6px 18px var(--accent-glow);
+  }
+  .sidebar .nav-btn .label {
+    position: absolute;
+    left: 56px;
+    background: var(--surface3);
+    color: var(--text);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  .sidebar .nav-btn:hover .label { opacity: 1; left: 62px; }
+  .sidebar .spacer { flex: 1; }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  /* Header */
+  .header {
+    height: 60px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 14px;
+    background: rgba(22,25,34,0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    flex-shrink: 0;
+  }
+  .header-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+  }
+  .header h1 { font-size: 17px; font-weight: 700; }
+  .header .subtitle { color: var(--text-dim); font-size: 13px; }
+  .header-spacer { flex: 1; }
+  .header-btn {
+    height: 36px;
+    padding: 0 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+  }
+  .header-btn:hover { background: var(--surface3); border-color: var(--border-light); }
+  .header-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .header-btn.primary:hover { background: var(--accent2); }
+
+  .content { flex: 1; overflow: hidden; position: relative; }
+  .page { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+  .page.active { display: flex; }
+  .mindmap-page, .timeblock-page, .memo-page {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+  }
+
+  /* ============== MIND MAP ============== */
+  .mindmap-page { flex-direction: row; }
+
+  .mindmap-list {
+    width: 240px;
+    background: rgba(22,25,34,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .mm-list-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .mm-list-header .mm-list-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .mm-list-header button {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 10px var(--accent-glow);
+  }
+  .mindmap-items { flex: 1; overflow-y: auto; padding: 6px; }
+  .mm-empty { padding: 30px 16px; text-align: center; color: var(--text-mute); font-size: 12px; line-height: 1.6; }
+  .mindmap-item {
+    padding: 10px 12px;
+    border-radius: 9px;
+    cursor: pointer;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .mindmap-item:hover { background: var(--surface2); }
+  .mindmap-item.active {
+    background: var(--surface2);
+    border-left-color: var(--accent);
+  }
+  .mindmap-item .mm-icon {
+    width: 28px; height: 28px;
+    background: var(--surface3);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    color: var(--text-dim);
+  }
+  .mindmap-item.active .mm-icon { background: var(--accent); color: #fff; }
+  .mm-content { flex: 1; min-width: 0; }
+  .mm-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mm-meta { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+  .mm-menu-btn {
+    width: 28px; height: 28px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 6px;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .mindmap-item:hover .mm-menu-btn { display: flex; }
+  .mm-menu-btn:hover { background: var(--surface3); color: var(--text); }
+
+  .mm-canvas-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .mm-canvas-area { flex: 1; position: relative; overflow: hidden; }
+
+  /* Mobile mindmap list = drawer */
+  .mm-list-toggle {
+    display: none;
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    cursor: pointer;
+    align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .mm-list-backdrop {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 49;
+  }
+  .mm-list-backdrop.show { display: block; }
+
+  .mindmap-toolbar {
+    height: 52px;
+    background: rgba(22,25,34,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+  }
+  .mindmap-toolbar::-webkit-scrollbar { display: none; }
+  .tb-btn {
+    height: 36px;
+    padding: 0 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tb-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tb-btn.danger:hover { background: var(--red); border-color: var(--red); }
+  .tb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .tb-btn:disabled:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
+  .sep { width: 1px; height: 24px; background: var(--border); flex-shrink: 0; }
+  .color-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .color-dot:hover { transform: scale(1.15); }
+  .color-dot.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+
+  #mindmap-canvas {
+    flex: 1;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+    display: block;
+    width: 100%;
+  }
+  #mindmap-canvas.connecting { cursor: crosshair; }
+  #mindmap-canvas:active { cursor: grabbing; }
+
+  .mindmap-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(22,25,34,0.85);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 8px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .mindmap-hint.show { opacity: 1; }
+
+  .node-edit-popup {
+    display: none;
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    padding: 10px;
+    z-index: 100;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .node-edit-popup input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 13px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    width: 220px;
+  }
+  .node-edit-popup input:focus { border-color: var(--accent); }
+
+  /* ============== TIME BLOCK ============== */
+  .timeblock-page { flex-direction: row; overflow: hidden; }
+
+  .timeblock-list {
+    width: 280px;
+    background: rgba(22,25,34,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .tb-list-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .tb-list-header .today-jump-btn {
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 9px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+  .tb-list-header .today-jump-btn:hover { transform: translateY(-1px); }
+
+  .timeblock-items { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .tb-list-item {
+    padding: 14px 16px 14px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--border);
+  }
+  .tb-list-item:hover { background: var(--surface2); }
+  .tb-list-item.active {
+    background: var(--surface2);
+    border-left-color: var(--accent);
+  }
+  .tb-list-item.is-today { color: var(--accent2); }
+  .tb-list-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tb-list-item.is-today .tb-list-date { color: var(--accent2); }
+  .today-tag {
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .tb-list-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .tb-list-meta .progress {
+    flex: 1;
+    height: 4px;
+    background: var(--surface3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .tb-list-meta .progress-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.25s;
+  }
+
+  .tb-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  .timeblock-header {
+    height: 60px;
+    background: rgba(22,25,34,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .nav-arrow {
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .nav-arrow:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .date-display {
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 180px;
+    text-align: center;
+    flex: 1;
+  }
+  .date-display .day-of-week { color: var(--accent2); margin-left: 6px; }
+  .today-badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  .timeblock-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 24px calc(40px + var(--safe-bot));
+  }
+  .day-summary {
+    background: linear-gradient(135deg, rgba(124,108,245,0.12), rgba(236,72,153,0.08));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .day-summary .stat .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+  .day-summary .stat .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
+
+  .timeblock-grid { display: flex; flex-direction: column; }
+  .time-row {
+    display: flex;
+    align-items: stretch;
+    min-height: 60px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .time-row.now-row::before {
+    content: '';
+    position: absolute;
+    top: var(--now-offset, 0);
+    left: 70px;
+    right: 0;
+    height: 2px;
+    background: var(--red);
+    box-shadow: 0 0 8px var(--red);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .time-row.now-row::after {
+    content: '';
+    position: absolute;
+    top: calc(var(--now-offset, 0) - 4px);
+    left: 66px;
+    width: 10px; height: 10px;
+    background: var(--red);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--red);
+    z-index: 2;
+    pointer-events: none;
+  }
+  .time-label {
+    width: 70px;
+    flex-shrink: 0;
+    padding: 8px 12px 8px 0;
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: right;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .time-slot {
+    flex: 1;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+    min-height: 60px;
+  }
+  .time-slot:hover { background: rgba(124,108,245,0.06); border-left-color: var(--accent); }
+  .time-slot:hover::after {
+    content: '+ 추가';
+    position: absolute;
+    right: 12px;
+    top: 8px;
+    font-size: 11px;
+    color: var(--accent2);
+  }
+
+  .time-block-item {
+    background: var(--accent);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 2px 0;
+    font-size: 13px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .time-block-item:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+  .time-block-item .block-title { font-weight: 600; line-height: 1.3; }
+  .time-block-item .block-time { font-size: 11px; opacity: 0.85; margin-top: 3px; font-variant-numeric: tabular-nums; }
+  .time-block-item .block-desc { font-size: 11px; opacity: 0.85; margin-top: 4px; line-height: 1.4; }
+  .time-block-item .block-delete {
+    position: absolute;
+    top: 6px; right: 8px;
+    background: rgba(0,0,0,0.2);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: none;
+    align-items: center; justify-content: center;
+  }
+  .time-block-item:hover .block-delete { display: flex; }
+  .time-block-item.done {
+    opacity: 0.55;
+    text-decoration: line-through;
+  }
+  .block-checkbox {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.2);
+    border: 2px solid rgba(255,255,255,0.5);
+    margin-right: 8px;
+    vertical-align: -3px;
+    cursor: pointer;
+  }
+  .time-block-item.done .block-checkbox::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    line-height: 12px;
+    display: block;
+    text-align: center;
+  }
+
+  .tb-color-green { background: linear-gradient(135deg, #10b981, #059669); }
+  .tb-color-orange { background: linear-gradient(135deg, #f59e0b, #d97706); color: #1a1300; }
+  .tb-color-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .tb-color-blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .tb-color-pink { background: linear-gradient(135deg, #ec4899, #db2777); }
+  .tb-color-cyan { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+  .tb-color-accent { background: linear-gradient(135deg, #7c6cf5, #5e4ce0); }
+
+  /* ============== MODAL ============== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 18px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    max-height: calc(100dvh - 40px);
+    overflow-y: auto;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+    animation: slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal h3 { margin-bottom: 6px; font-size: 18px; font-weight: 700; }
+  .modal .modal-desc { color: var(--text-dim); font-size: 13px; margin-bottom: 18px; }
+  .modal label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; margin-top: 14px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { border-color: var(--accent); }
+  .modal textarea { resize: vertical; min-height: 70px; }
+  .modal .time-row-input { display: flex; gap: 10px; }
+  .modal .time-row-input > div { flex: 1; }
+  .modal-colors { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+  .modal-colors .mc {
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-colors .mc:hover { transform: scale(1.15); }
+  .modal-colors .mc.active { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 0 2px rgba(255,255,255,0.15); }
+
+  .modal-actions { display: flex; gap: 8px; margin-top: 24px; justify-content: flex-end; }
+  .modal-actions button {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .modal-actions button:hover { background: var(--surface3); }
+  .modal-actions button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .modal-actions button.primary:hover { background: var(--accent2); }
+  .modal-actions button.danger { background: var(--red); border-color: var(--red); color: #fff; }
+
+  /* ============== MEMO ============== */
+  .memo-page { flex-direction: row; overflow: hidden; }
+  .memo-list {
+    width: 320px;
+    background: rgba(22,25,34,0.55);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .memo-list-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .memo-list-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .memo-list-title-row .title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .memo-list-title-row .count {
+    font-size: 11px;
+    color: var(--text-mute);
+    font-variant-numeric: tabular-nums;
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+  .memo-search-wrap { position: relative; display: flex; gap: 8px; }
+  .memo-search-wrap .search-input {
+    flex: 1;
+    height: 36px;
+    padding: 0 12px 0 34px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .memo-search-wrap .search-input:focus { border-color: var(--accent); background: var(--surface); }
+  .memo-search-wrap .search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-mute);
+    pointer-events: none;
+  }
+  .memo-search-wrap .new-btn {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 9px;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px var(--accent-glow);
+    flex-shrink: 0;
+  }
+  .memo-search-wrap .new-btn:hover { transform: translateY(-1px); }
+
+  .memo-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+  .memo-empty {
+    padding: 50px 24px;
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .memo-empty .big-icon { font-size: 40px; opacity: 0.4; margin-bottom: 12px; }
+  .memo-item {
+    padding: 14px 16px 14px 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-left: 3px solid transparent;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .memo-item:hover { background: var(--surface2); }
+  .memo-item.active {
+    background: var(--surface2);
+    border-left-color: var(--accent);
+  }
+  .memo-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+  .memo-item-preview {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .memo-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .memo-item-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-mute); }
+
+  .memo-editor { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
+  .memo-editor-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-mute);
+    font-size: 14px;
+    gap: 4px;
+    padding: 40px;
+    text-align: center;
+  }
+  .memo-editor-empty .big { font-size: 64px; opacity: 0.25; margin-bottom: 8px; }
+  .memo-editor-empty .hint { font-size: 12px; color: var(--text-mute); margin-top: 4px; }
+  .memo-editor-empty .shortcuts {
+    margin-top: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: left;
+    line-height: 1.8;
+    max-width: 320px;
+  }
+  .memo-editor-empty .shortcuts code {
+    background: var(--surface2);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    color: var(--accent2);
+  }
+
+  .memo-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: rgba(22,25,34,0.4);
+  }
+  .memo-back {
+    display: none;
+    width: 32px; height: 32px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    cursor: pointer;
+    align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+  .memo-editor-header {
+    padding: 22px 28px 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .memo-editor-header input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 26px;
+    font-weight: 700;
+    outline: none;
+    min-width: 0;
+    line-height: 1.2;
+    padding: 4px 0;
+  }
+  .memo-editor-header input::placeholder { color: var(--text-mute); font-weight: 600; }
+  .memo-meta {
+    padding: 4px 28px 14px;
+    color: var(--text-mute);
+    font-size: 11px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .memo-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-mute); }
+  .memo-meta .badge {
+    background: var(--surface2);
+    color: var(--accent2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  .memo-icon-btn {
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .memo-icon-btn:hover { background: var(--surface3); color: var(--text); }
+  .memo-icon-btn.danger:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+  .memo-editor textarea {
+    flex: 1;
+    padding: 24px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.75;
+    outline: none;
+    resize: none;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .memo-editor textarea::placeholder { color: var(--text-mute); }
+
+  /* Mode toggle (Edit / Split / Preview) */
+  .memo-mode-toggle {
+    display: flex;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 3px;
+    flex-shrink: 0;
+    gap: 2px;
+  }
+  .memo-mode-toggle button {
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .memo-mode-toggle button.active {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 6px var(--accent-glow);
+  }
+  .memo-mode-toggle button:hover:not(.active) { color: var(--text); background: var(--surface3); }
+  .memo-mode-toggle button svg { width: 14px; height: 14px; }
+  .memo-toolbar-spacer { flex: 1; }
+
+  /* Markdown rendered preview */
+  .memo-body-wrap { flex: 1; display: flex; min-height: 0; }
+  .memo-body-wrap.split { display: flex; }
+  .memo-body-wrap.split textarea { width: 50%; border-right: 1px solid var(--border); }
+  .memo-body-wrap.split .markdown-body { width: 50%; }
+  .markdown-body {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--text);
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .markdown-body h1 { font-size: 28px; font-weight: 700; margin: 22px 0 14px; line-height: 1.3; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .markdown-body h2 { font-size: 22px; font-weight: 700; margin: 20px 0 12px; }
+  .markdown-body h3 { font-size: 18px; font-weight: 600; margin: 16px 0 10px; color: var(--accent2); }
+  .markdown-body h4 { font-size: 16px; font-weight: 600; margin: 14px 0 8px; }
+  .markdown-body p { margin: 10px 0; }
+  .markdown-body code {
+    background: var(--surface2);
+    color: #ffb3d1;
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.88em;
+  }
+  .markdown-body pre {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    border-radius: 10px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .markdown-body pre code { background: transparent; color: var(--text); padding: 0; }
+  .markdown-body strong { color: var(--text); font-weight: 700; }
+  .markdown-body em { font-style: italic; color: var(--text-dim); }
+  .markdown-body del { color: var(--text-mute); }
+  .markdown-body a { color: var(--accent2); text-decoration: underline; }
+  .markdown-body ul, .markdown-body ol { padding-left: 26px; margin: 10px 0; }
+  .markdown-body li { margin: 5px 0; }
+  .markdown-body li.task { list-style: none; margin-left: -20px; }
+  .markdown-body li.task input { margin-right: 8px; vertical-align: -2px; }
+  .markdown-body blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 8px 16px;
+    color: var(--text-dim);
+    margin: 12px 0;
+    background: var(--surface2);
+    border-radius: 0 8px 8px 0;
+  }
+  .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .markdown-body img { max-width: 100%; border-radius: 8px; margin: 10px 0; }
+  .markdown-body table { border-collapse: collapse; margin: 14px 0; width: 100%; }
+  .markdown-body th, .markdown-body td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
+  .markdown-body th { background: var(--surface2); font-weight: 600; }
+  .markdown-empty { color: var(--text-mute); font-style: italic; }
+
+  /* Folder status in sync modal */
+  .folder-status {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color 0.2s;
+  }
+  .folder-status.connected { border-color: var(--green); background: rgba(16,185,129,0.05); }
+  .folder-status .icon-circle {
+    width: 36px; height: 36px;
+    background: var(--surface3);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .folder-status.connected .icon-circle { background: var(--green); }
+  .folder-status .text-area { flex: 1; min-width: 0; }
+  .folder-status .name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .folder-status .desc { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
+  .folder-status.connected .desc { color: var(--green); }
+  .save-pulse {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    margin-right: 4px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+
+  /* ============== TOAST ============== */
+  .toast {
+    position: fixed;
+    bottom: calc(30px + var(--safe-bot));
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    padding: 12px 20px;
+    border-radius: 100px;
+    font-size: 13px;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 500;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.success { border-color: var(--green); }
+  .toast.error { border-color: var(--red); }
+
+  /* ============== SCROLLBAR ============== */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+
+  .icon { width: 22px; height: 22px; flex-shrink: 0; }
+  .icon-sm { width: 18px; height: 18px; flex-shrink: 0; }
+
+  /* ============== MOBILE ============== */
+  @media (max-width: 768px) {
+    .app { flex-direction: column; padding: 0; }
+
+    /* Sidebar → bottom tab bar */
+    .sidebar {
+      order: 2;
+      width: 100%;
+      height: auto;
+      flex-direction: row;
+      justify-content: space-around;
+      padding: 8px 8px calc(8px + var(--safe-bot));
+      border-right: none;
+      border-top: 1px solid var(--border);
+      gap: 0;
+    }
+    .sidebar .logo { display: none; }
+    .sidebar .spacer { display: none; }
+    .sidebar .nav-btn { width: 56px; height: 48px; flex-direction: column; gap: 2px; }
+    .sidebar .nav-btn .label {
+      position: static;
+      opacity: 1;
+      background: none;
+      padding: 0;
+      font-size: 10px;
+      font-weight: 500;
+    }
+    .sidebar .nav-btn:hover .label { left: 0; }
+    .sidebar .nav-btn .icon { width: 20px; height: 20px; }
+    .sidebar .nav-btn.active { background: transparent; color: var(--accent2); box-shadow: none; }
+    .sidebar .nav-btn.active .icon { filter: drop-shadow(0 0 6px var(--accent-glow)); }
+
+    .main { order: 1; padding-top: var(--safe-top); }
+
+    .header { padding: 0 16px; height: 52px; gap: 10px; }
+    .header h1 { font-size: 16px; }
+    .header .subtitle { display: none; }
+    .header-icon { width: 32px; height: 32px; }
+    .header-btn .btn-label { display: none; }
+    .header-btn { padding: 0 10px; height: 32px; }
+
+    .mindmap-toolbar { padding: 0 12px; height: 48px; }
+    .tb-btn { padding: 0 10px; height: 32px; font-size: 12px; }
+
+    .timeblock-header { padding: 0 16px; height: 52px; }
+    .date-display { font-size: 14px; min-width: 0; }
+    .timeblock-body { padding: 12px 16px calc(20px + var(--safe-bot)); }
+
+    /* Memo: list/editor toggle */
+    .memo-page { position: relative; }
+    .memo-list {
+      width: 100%;
+      transition: transform 0.25s ease;
+    }
+    .memo-editor {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--bg);
+      transform: translateX(100%);
+      transition: transform 0.25s ease;
+      z-index: 5;
+    }
+    .memo-page.show-editor .memo-editor { transform: translateX(0); }
+    .memo-back { display: flex; }
+    .memo-editor-header { padding: 14px 16px 4px; }
+    .memo-editor-header input { font-size: 22px; }
+    .memo-meta { padding: 0 16px 12px; }
+    .memo-editor-toolbar { padding: 8px 12px; gap: 8px; }
+    .memo-editor textarea { padding: 16px; font-size: 15px; }
+    .markdown-body { padding: 16px; font-size: 15px; }
+    .memo-mode-toggle button { padding: 6px 9px; font-size: 11px; }
+    .memo-mode-toggle button .label-text { display: none; }
+    .memo-body-wrap.split { flex-direction: column; }
+    .memo-body-wrap.split textarea { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
+    .memo-body-wrap.split .markdown-body { width: 100%; height: 50%; }
+
+    /* Mindmap list as drawer on mobile */
+    .mindmap-list {
+      position: absolute;
+      top: 0; bottom: 0; left: 0;
+      width: 280px;
+      z-index: 50;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.4);
+    }
+    .mindmap-list.show { transform: translateX(0); }
+    .mm-list-toggle { display: flex; }
+
+    .modal { padding: 20px; border-radius: 16px; }
+    .modal h3 { font-size: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .day-summary { padding: 12px 14px; gap: 16px; }
+    .day-summary .stat .value { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="logo">M</div>
+    <button class="nav-btn active" data-page="timeblock" aria-label="타임블록">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/><rect x="6" y="13" width="4" height="3" rx="1" fill="currentColor"/>
+      </svg>
+      <span class="label">타임블록</span>
+    </button>
+    <button class="nav-btn" data-page="mindmap" aria-label="마인드맵">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/>
+        <line x1="9.5" y1="10.5" x2="5.5" y2="7.5"/><line x1="14.5" y1="10.5" x2="18.5" y2="7.5"/>
+        <line x1="9.5" y1="13.5" x2="5.5" y2="16.5"/><line x1="14.5" y1="13.5" x2="18.5" y2="16.5"/>
+      </svg>
+      <span class="label">마인드맵</span>
+    </button>
+    <button class="nav-btn" data-page="memo" aria-label="메모">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
+      </svg>
+      <span class="label">메모</span>
+    </button>
+    <div class="spacer"></div>
+    <button class="nav-btn" id="sync-btn" aria-label="동기화">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+      <span class="label">동기화</span>
+    </button>
+  </nav>
+
+  <div class="main">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-icon" id="header-icon"></div>
+      <div>
+        <h1 id="page-title">타임블록</h1>
+        <div class="subtitle" id="page-subtitle">하루를 블록 단위로 계획하세요</div>
+      </div>
+      <div class="header-spacer"></div>
+      <button class="header-btn" onclick="openSyncModal()" title="iCloud 동기화 / 백업">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
+        </svg>
+        <span class="btn-label">동기화</span>
+      </button>
+    </div>
+
+    <div class="content">
+      <!-- ===== MIND MAP PAGE ===== -->
+      <div class="page" id="page-mindmap">
+        <div class="mindmap-page" id="mindmap-page-root">
+          <aside class="mindmap-list" id="mindmap-list">
+            <div class="mm-list-header">
+              <div class="mm-list-title">마인드맵</div>
+              <button onclick="createMindmap()" title="새 마인드맵">+</button>
+            </div>
+            <div class="mindmap-items" id="mindmap-items"></div>
+          </aside>
+          <div class="mm-list-backdrop" id="mm-list-backdrop" onclick="toggleMindmapList()"></div>
+
+          <div class="mm-canvas-wrap">
+            <div class="mindmap-toolbar">
+              <button class="mm-list-toggle" onclick="toggleMindmapList()" title="마인드맵 목록">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              </button>
+              <button class="tb-btn" onclick="addMindNode()">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                노드
+              </button>
+              <button class="tb-btn" id="connect-btn" onclick="startConnecting()">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                연결
+              </button>
+              <button class="tb-btn danger" id="delete-btn" onclick="deleteSelected()" disabled>
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+                삭제
+              </button>
+              <div class="sep"></div>
+              <div class="color-dot active" style="background:#7c6cf5" data-color="#7c6cf5" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#10b981" data-color="#10b981" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#3b82f6" data-color="#3b82f6" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#ec4899" data-color="#ec4899" onclick="setNodeColor(this)"></div>
+              <div class="color-dot" style="background:#06b6d4" data-color="#06b6d4" onclick="setNodeColor(this)"></div>
+              <div class="sep"></div>
+              <button class="tb-btn" onclick="zoomIn()" title="확대">+</button>
+              <button class="tb-btn" onclick="zoomOut()" title="축소">−</button>
+              <button class="tb-btn" onclick="resetView()" title="초기화">↺</button>
+            </div>
+            <div class="mm-canvas-area">
+              <canvas id="mindmap-canvas"></canvas>
+              <div class="mindmap-hint" id="mm-hint">노드 선택 후 우측 + 핸들을 끌어 다른 노드와 연결하세요</div>
+            </div>
+            <div class="node-edit-popup" id="node-edit-popup">
+              <input type="text" id="node-edit-input" placeholder="노드 이름 입력..." onkeydown="if(event.key==='Enter')closeNodeEdit();if(event.key==='Escape')closeNodeEdit(true);">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TIME BLOCK PAGE ===== -->
+      <div class="page active" id="page-timeblock">
+        <div class="timeblock-page">
+          <aside class="timeblock-list">
+            <div class="tb-list-header">
+              <div class="memo-list-title-row">
+                <div class="title">일정</div>
+                <div class="count" id="tb-count">0</div>
+              </div>
+              <button class="today-jump-btn" onclick="goToday()">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                오늘로 이동
+              </button>
+            </div>
+            <div class="timeblock-items" id="timeblock-items"></div>
+          </aside>
+          <div class="tb-main">
+            <div class="timeblock-header">
+              <button class="nav-arrow" onclick="prevDay()">‹</button>
+              <div class="date-display" id="tb-date">—</div>
+              <button class="nav-arrow" onclick="nextDay()">›</button>
+            </div>
+            <div class="timeblock-body" id="timeblock-body"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MEMO PAGE ===== -->
+      <div class="page" id="page-memo">
+        <div class="memo-page" id="memo-page">
+          <div class="memo-list">
+            <div class="memo-list-header">
+              <div class="memo-list-title-row">
+                <div class="title">메모</div>
+                <div class="count" id="memo-count">0</div>
+              </div>
+              <div class="memo-search-wrap">
+                <svg class="search-icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="search-input" placeholder="제목·내용 검색" id="memo-search" oninput="filterMemos()">
+                <button class="new-btn" onclick="createMemo()" title="새 메모 (⌘N)">+</button>
+              </div>
+            </div>
+            <div class="memo-items" id="memo-items"></div>
+          </div>
+          <div class="memo-editor" id="memo-editor"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Time Block Modal -->
+<div class="modal-overlay" id="tb-modal" onclick="if(event.target===this)closeTbModal()">
+  <div class="modal">
+    <h3 id="tb-modal-title">타임블록 추가</h3>
+    <div class="modal-desc">하루를 블록 단위로 세밀하게 계획하세요</div>
+    <label>제목</label>
+    <input type="text" id="tb-title" placeholder="할 일을 입력하세요">
+    <div class="time-row-input" style="margin-top:14px;">
+      <div>
+        <label style="margin-top:0;">시작</label>
+        <input type="time" id="tb-start">
+      </div>
+      <div>
+        <label style="margin-top:0;">종료</label>
+        <input type="time" id="tb-end">
+      </div>
+    </div>
+    <label>메모 (선택)</label>
+    <textarea id="tb-desc" placeholder="추가 설명..."></textarea>
+    <label>색상</label>
+    <div class="modal-colors">
+      <div class="mc active" style="background:linear-gradient(135deg,#7c6cf5,#5e4ce0)" data-color="accent" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#10b981,#059669)" data-color="green" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#f59e0b,#d97706)" data-color="orange" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#ef4444,#dc2626)" data-color="red" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#3b82f6,#2563eb)" data-color="blue" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#ec4899,#db2777)" data-color="pink" onclick="setTbColor(this)"></div>
+      <div class="mc" style="background:linear-gradient(135deg,#06b6d4,#0891b2)" data-color="cyan" onclick="setTbColor(this)"></div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeTbModal()">취소</button>
+      <button class="primary" onclick="saveTbBlock()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sync Modal -->
+<div class="modal-overlay" id="sync-modal" onclick="if(event.target===this)closeSyncModal()">
+  <div class="modal">
+    <h3>📦 동기화 / 백업</h3>
+    <div class="modal-desc">
+      옵시디언처럼 폴더를 지정하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
+    </div>
+
+    <label>📁 Vault 폴더 (자동 동기화)</label>
+    <div class="folder-status" id="folder-status">
+      <div class="icon-circle" style="background:var(--surface3)">📁</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">폴더가 연결되지 않음</div>
+        <div class="desc">폴더를 선택하면 .md 파일을 자동으로 동기화합니다</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="tb-btn" onclick="pickFolder()" style="flex:1;min-width:110px;justify-content:center;">
+        📁 폴더 선택
+      </button>
+      <button class="tb-btn" onclick="reloadFromFolder()" id="reload-folder-btn" style="flex:1;min-width:110px;justify-content:center;display:none;">
+        🔄 다시 불러오기
+      </button>
+      <button class="tb-btn danger" onclick="disconnectFolder()" id="disconnect-folder-btn" style="flex:1;min-width:110px;justify-content:center;display:none;">
+        ✕ 연결 해제
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--text-mute);margin-top:8px;line-height:1.6;">
+      💡 <strong>옵시디언 vault</strong>나 <strong>iCloud Drive 폴더</strong>를 선택하면 그곳의 .md 파일을 메모로 불러오고, 변경사항이 실시간으로 그 폴더에 저장됩니다<br>
+      💡 데스크톱 Chrome / Edge / Brave에서 동작합니다 (Safari·iOS 미지원)<br>
+      💡 외부에서 .md 파일을 수정한 경우 "다시 불러오기"로 동기화하세요
+    </div>
+
+    <label style="margin-top:18px;">📊 현재 데이터</label>
+    <div id="sync-stats" style="background:var(--surface2);padding:12px 14px;border-radius:10px;font-size:13px;color:var(--text-dim);line-height:1.7;"></div>
+
+    <label style="margin-top:18px;">📤 수동 내보내기 / 불러오기</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="tb-btn" onclick="exportData('download')" style="flex:1;min-width:110px;justify-content:center;">
+        💾 JSON 저장
+      </button>
+      <button class="tb-btn" onclick="exportData('share')" style="flex:1;min-width:110px;justify-content:center;" id="share-btn">
+        📤 공유
+      </button>
+      <input type="file" id="import-file" accept=".json,application/json" onchange="importData(event)" style="display:none;">
+      <button class="tb-btn" onclick="document.getElementById('import-file').click()" style="flex:1;min-width:110px;justify-content:center;">
+        📂 JSON 불러오기
+      </button>
+    </div>
+    <div style="font-size:11px;color:var(--text-mute);margin-top:6px;line-height:1.5;">
+      💡 iOS에서는 "공유" → "파일에 저장" → iCloud Drive 사용<br>
+      ⚠️ JSON 불러오기는 현재 데이터를 덮어씁니다
+    </div>
+
+    <div class="modal-actions">
+      <button onclick="closeSyncModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =================== MARKDOWN PARSER ===================
+function md2html(md) {
+  if (!md) return '';
+  let s = md;
+  // Escape HTML
+  s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Code blocks ```
+  s = s.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+    `\n<pre><code>${code.replace(/\n$/, '')}</code></pre>\n`);
+
+  // Headers
+  s = s.replace(/^###### (.+)$/gm, '<h6>$1</h6>');
+  s = s.replace(/^##### (.+)$/gm, '<h5>$1</h5>');
+  s = s.replace(/^#### (.+)$/gm, '<h4>$1</h4>');
+  s = s.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  s = s.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  s = s.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Horizontal rule
+  s = s.replace(/^---+$/gm, '<hr>');
+
+  // Blockquote
+  s = s.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
+  s = s.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
+
+  // Task lists
+  s = s.replace(/^[-*+] \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled> $1</li>');
+  s = s.replace(/^[-*+] \[x\] (.+)$/gmi, '<li class="task done"><input type="checkbox" checked disabled> <del>$1</del></li>');
+
+  // Unordered list
+  s = s.replace(/^[-*+] (.+)$/gm, '<li>$1</li>');
+  // Ordered list
+  s = s.replace(/^\d+\. (.+)$/gm, '<li class="ord">$1</li>');
+
+  // Wrap consecutive <li>
+  s = s.replace(/(<li(?:\s+class="(?:task(?:\s+done)?|ord)")?>[\s\S]*?<\/li>(?:\n|$))+/g, m => {
+    if (m.includes('class="ord"')) return '<ol>' + m.replace(/ class="ord"/g, '') + '</ol>';
+    return '<ul>' + m + '</ul>';
+  });
+
+  // Bold (use sentinels to avoid conflict with italic)
+  s = s.replace(/\*\*([^\*\n]+)\*\*/g, 'B$1b');
+  s = s.replace(/__([^_\n]+)__/g, 'B$1b');
+
+  // Italic
+  s = s.replace(/\*([^\*\n]+)\*/g, '<em>$1</em>');
+  s = s.replace(/(^|\s)_([^_\n]+)_(?=\s|$|[.,!?])/g, '$1<em>$2</em>');
+
+  // Convert bold sentinels
+  s = s.replace(/B/g, '<strong>').replace(/b/g, '</strong>');
+
+  // Strikethrough
+  s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
+
+  // Inline code
+  s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Links and images
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // Paragraphs (split by blank lines)
+  s = s.split(/\n\n+/).map(block => {
+    block = block.trim();
+    if (!block) return '';
+    if (/^<(h\d|ul|ol|pre|blockquote|hr|table|img)/.test(block)) return block;
+    return '<p>' + block.replace(/\n/g, '<br>') + '</p>';
+  }).join('\n');
+
+  return s;
+}
+
+// =================== TOAST ===================
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.classList.remove('show'); }, 2500);
+}
+
+// =================== STORAGE ===================
+function save(key, data) {
+  try { localStorage.setItem('mindflow_' + key, JSON.stringify(data)); scheduleAutoSave(); }
+  catch (e) { toast('저장 실패: 저장 공간 부족', 'error'); }
+}
+function load(key, def) {
+  try { const v = localStorage.getItem('mindflow_' + key); return v ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+
+// =================== INDEXEDDB (folder handle persistence) ===================
+const IDB_NAME = 'mindflow-fs';
+const IDB_STORE = 'handles';
+function idbOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbSet(key, value) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function idbDel(key) {
+  const db = await idbOpen();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// =================== PAGE NAVIGATION ===================
+const pages = { mindmap: '마인드맵', timeblock: '타임블록', memo: '메모' };
+const subtitles = {
+  mindmap: '아이디어를 자유롭게 연결하세요',
+  timeblock: '하루를 블록 단위로 계획하세요',
+  memo: '생각을 자유롭게 기록하세요'
+};
+const pageIcons = {
+  mindmap: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="9.5" y1="10.5" x2="5.5" y2="7.5"/><line x1="14.5" y1="10.5" x2="18.5" y2="7.5"/><line x1="9.5" y1="13.5" x2="5.5" y2="16.5"/><line x1="14.5" y1="13.5" x2="18.5" y2="16.5"/></svg>',
+  timeblock: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  memo: '<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>'
+};
+
+function setHeaderIcon(page) {
+  document.getElementById('header-icon').innerHTML = pageIcons[page];
+}
+setHeaderIcon('timeblock');
+
+document.querySelectorAll('.sidebar .nav-btn[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.page;
+    document.querySelectorAll('.sidebar .nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    document.getElementById('page-title').textContent = pages[page];
+    document.getElementById('page-subtitle').textContent = subtitles[page];
+    setHeaderIcon(page);
+    if (page === 'mindmap') resizeCanvas();
+    if (page === 'timeblock') renderTimeBlocks();
+  });
+});
+document.getElementById('sync-btn').addEventListener('click', openSyncModal);
+
+// =================== MIND MAP (multi-map support) ===================
+const canvas = document.getElementById('mindmap-canvas');
+const ctx = canvas.getContext('2d');
+
+let mindmaps = load('mindmaps', []);
+let activeMindmapId = load('mm_active', null);
+
+// Migrate from old single-map storage (v1 → v2)
+(function migrateMindmaps() {
+  if (mindmaps.length > 0) return;
+  const oldNodes = load('mm_nodes', null);
+  if (oldNodes !== null) {
+    mindmaps = [{
+      id: Date.now(),
+      name: '내 첫 마인드맵',
+      nodes: oldNodes,
+      edges: load('mm_edges', []),
+      idCounter: load('mm_idcounter', 1),
+      pan: load('mm_pan', { x: 0, y: 0 }),
+      zoom: load('mm_zoom', 1),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }];
+    activeMindmapId = mindmaps[0].id;
+    save('mindmaps', mindmaps);
+    save('mm_active', activeMindmapId);
+  }
+})();
+
+if (!activeMindmapId && mindmaps.length > 0) activeMindmapId = mindmaps[0].id;
+
+let nodes = [], edges = [], pan = { x: 0, y: 0 }, zoom = 1, nodeIdCounter = 1;
+let selectedNode = null;
+let draggingNode = null;
+let connectingFrom = null;
+let isConnecting = false;
+let isDraggingConnection = false;
+let connDragPos = { x: 0, y: 0 };
+let currentNodeColor = '#7c6cf5';
+let isPanning = false;
+let lastMouse = { x: 0, y: 0 };
+let pinchStart = null;
+
+function activeMap() { return mindmaps.find(m => m.id === activeMindmapId); }
+
+function bindActiveMap() {
+  const m = activeMap();
+  if (!m) {
+    nodes = []; edges = []; pan = { x: 0, y: 0 }; zoom = 1; nodeIdCounter = 1;
+    return;
+  }
+  nodes = m.nodes;
+  edges = m.edges;
+  pan = m.pan;
+  zoom = m.zoom;
+  nodeIdCounter = m.idCounter;
+}
+bindActiveMap();
+
+function saveMindMap() {
+  const m = activeMap();
+  if (!m) return;
+  m.nodes = nodes;
+  m.edges = edges;
+  m.pan = pan;
+  m.zoom = zoom;
+  m.idCounter = nodeIdCounter;
+  m.updatedAt = new Date().toISOString();
+  save('mindmaps', mindmaps);
+  save('mm_active', activeMindmapId);
+  renderMindmapList();
+}
+
+function renderMindmapList() {
+  const container = document.getElementById('mindmap-items');
+  if (!container) return;
+  if (mindmaps.length === 0) {
+    container.innerHTML = `<div class="mm-empty">마인드맵이 없습니다<br>+ 버튼을 눌러 시작하세요</div>`;
+    return;
+  }
+  container.innerHTML = mindmaps.map(m => {
+    const isActive = m.id === activeMindmapId;
+    return `<div class="mindmap-item ${isActive ? 'active' : ''}" onclick="switchMindmap(${m.id})">
+      <div class="mm-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><line x1="9.7" y1="10.5" x2="6.3" y2="7.5"/><line x1="14.3" y1="10.5" x2="17.7" y2="7.5"/><line x1="9.7" y1="13.5" x2="6.3" y2="16.5"/><line x1="14.3" y1="13.5" x2="17.7" y2="16.5"/></svg>
+      </div>
+      <div class="mm-content">
+        <div class="mm-name">${escapeHtml(m.name)}</div>
+        <div class="mm-meta">노드 ${m.nodes.length}개 · 연결 ${m.edges.length}개</div>
+      </div>
+      <button class="mm-menu-btn" onclick="event.stopPropagation();showMindmapMenu(${m.id})" title="이름 변경 / 삭제">⋯</button>
+    </div>`;
+  }).join('');
+}
+
+function createMindmap() {
+  const name = prompt('새 마인드맵 이름:', `마인드맵 ${mindmaps.length + 1}`);
+  if (!name || !name.trim()) return;
+  // Save current map state first
+  if (activeMap()) saveMindMap();
+  const map = {
+    id: Date.now(),
+    name: name.trim(),
+    nodes: [],
+    edges: [],
+    idCounter: 1,
+    pan: { x: 0, y: 0 },
+    zoom: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  mindmaps.unshift(map);
+  activeMindmapId = map.id;
+  selectedNode = null;
+  bindActiveMap();
+  saveMindMap();
+  renderMindmapList();
+  updateToolbarState();
+  drawMindMap();
+  closeMindmapList();
+  toast('새 마인드맵 생성됨', 'success');
+}
+
+function switchMindmap(id) {
+  if (id === activeMindmapId) { closeMindmapList(); return; }
+  saveMindMap();
+  activeMindmapId = id;
+  save('mm_active', activeMindmapId);
+  selectedNode = null;
+  bindActiveMap();
+  renderMindmapList();
+  updateToolbarState();
+  drawMindMap();
+  closeMindmapList();
+}
+
+function showMindmapMenu(id) {
+  const m = mindmaps.find(x => x.id === id);
+  if (!m) return;
+  const choice = prompt(`"${m.name}"\n\n[r] 이름 변경  /  [d] 삭제  /  [x] 취소\n\n선택:`, 'r');
+  if (!choice) return;
+  if (choice.toLowerCase() === 'r') {
+    const name = prompt('새 이름:', m.name);
+    if (name && name.trim()) {
+      m.name = name.trim();
+      m.updatedAt = new Date().toISOString();
+      save('mindmaps', mindmaps);
+      renderMindmapList();
+    }
+  } else if (choice.toLowerCase() === 'd') {
+    if (mindmaps.length <= 1) { toast('최소 1개의 마인드맵이 필요합니다'); return; }
+    if (!confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
+    mindmaps = mindmaps.filter(x => x.id !== id);
+    if (activeMindmapId === id) {
+      activeMindmapId = mindmaps[0].id;
+      bindActiveMap();
+    }
+    save('mindmaps', mindmaps);
+    save('mm_active', activeMindmapId);
+    renderMindmapList();
+    drawMindMap();
+    toast('삭제됨');
+  }
+}
+
+function toggleMindmapList() {
+  const list = document.getElementById('mindmap-list');
+  const backdrop = document.getElementById('mm-list-backdrop');
+  if (!list) return;
+  list.classList.toggle('show');
+  backdrop.classList.toggle('show');
+}
+function closeMindmapList() {
+  const list = document.getElementById('mindmap-list');
+  const backdrop = document.getElementById('mm-list-backdrop');
+  if (list) list.classList.remove('show');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+function updateToolbarState() {
+  document.getElementById('delete-btn').disabled = !selectedNode;
+  document.getElementById('connect-btn').disabled = !selectedNode;
+}
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawMindMap();
+}
+window.addEventListener('resize', resizeCanvas);
+setTimeout(resizeCanvas, 50);
+
+function screenToWorld(sx, sy) { return { x: (sx - pan.x) / zoom, y: (sy - pan.y) / zoom }; }
+function worldToScreen(wx, wy) { return { x: wx * zoom + pan.x, y: wy * zoom + pan.y }; }
+
+function drawMindMap() {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  ctx.clearRect(0, 0, w, h);
+
+  // Background grid
+  ctx.save();
+  ctx.translate(pan.x, pan.y);
+  ctx.scale(zoom, zoom);
+  const grid = 40;
+  const startX = Math.floor(-pan.x / zoom / grid) * grid;
+  const startY = Math.floor(-pan.y / zoom / grid) * grid;
+  const endX = startX + (w / zoom) + grid * 2;
+  const endY = startY + (h / zoom) + grid * 2;
+  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.lineWidth = 1 / zoom;
+  for (let x = startX; x < endX; x += grid) {
+    ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
+  }
+  for (let y = startY; y < endY; y += grid) {
+    ctx.beginPath(); ctx.moveTo(startX, y); ctx.lineTo(endX, y); ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(pan.x, pan.y);
+  ctx.scale(zoom, zoom);
+
+  // Edges
+  edges.forEach(e => {
+    const from = nodes.find(n => n.id === e.from);
+    const to = nodes.find(n => n.id === e.to);
+    if (!from || !to) return;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
+    const mx = (from.x + to.x) / 2;
+    const my = (from.y + to.y) / 2 - 30;
+    ctx.quadraticCurveTo(mx, my, to.x, to.y);
+    const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+    grad.addColorStop(0, hexA(from.color || '#7c6cf5', 0.6));
+    grad.addColorStop(1, hexA(to.color || '#7c6cf5', 0.6));
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  });
+
+  if (isConnecting && connectingFrom) {
+    const from = nodes.find(n => n.id === connectingFrom);
+    if (from) {
+      const mp = screenToWorld(connDragPos.x, connDragPos.y);
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(mp.x, mp.y);
+      ctx.strokeStyle = hexA(from.color || '#7c6cf5', 0.85);
+      ctx.lineWidth = 3;
+      ctx.setLineDash([8, 5]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Endpoint dot
+      ctx.beginPath();
+      ctx.arc(mp.x, mp.y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = hexA(from.color || '#7c6cf5', 0.85);
+      ctx.fill();
+    }
+  }
+
+  nodes.forEach(n => {
+    const isSelected = selectedNode === n.id;
+    ctx.font = '600 14px -apple-system, sans-serif';
+    const textWidth = ctx.measureText(n.text).width;
+    const w = Math.max(textWidth + 40, 90);
+    const h = 44;
+
+    ctx.shadowColor = hexA(n.color || '#7c6cf5', 0.5);
+    ctx.shadowBlur = isSelected ? 24 : 14;
+    ctx.shadowOffsetY = 4;
+
+    ctx.beginPath();
+    ctx.roundRect(n.x - w/2, n.y - h/2, w, h, 12);
+    const grad = ctx.createLinearGradient(n.x - w/2, n.y - h/2, n.x + w/2, n.y + h/2);
+    grad.addColorStop(0, lightenColor(n.color || '#7c6cf5', 0.1));
+    grad.addColorStop(1, n.color || '#7c6cf5');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.shadowColor = 'transparent';
+
+    if (isSelected) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+    }
+
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(n.text, n.x, n.y);
+
+    // Connection handle on selected node (right side)
+    if (isSelected && !isDraggingConnection) {
+      const hx = n.x + w/2 + 16;
+      const hy = n.y;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 11, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.shadowColor = hexA(n.color || '#7c6cf5', 0.6);
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = n.color || '#7c6cf5';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(hx - 5, hy);
+      ctx.lineTo(hx + 5, hy);
+      ctx.moveTo(hx, hy - 5);
+      ctx.lineTo(hx, hy + 5);
+      ctx.strokeStyle = n.color || '#7c6cf5';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+  });
+
+  ctx.restore();
+}
+
+function getHandleAt(sx, sy) {
+  if (!selectedNode) return null;
+  const n = nodes.find(x => x.id === selectedNode);
+  if (!n) return null;
+  ctx.font = '600 14px -apple-system, sans-serif';
+  const textWidth = ctx.measureText(n.text).width;
+  const w = Math.max(textWidth + 40, 90);
+  const hx = n.x + w/2 + 16;
+  const hy = n.y;
+  const wp = screenToWorld(sx, sy);
+  const dist = Math.hypot(wp.x - hx, wp.y - hy);
+  return dist <= 14 / zoom ? n : null;
+}
+
+function hexA(hex, a) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function lightenColor(hex, amt) {
+  const r = Math.min(255, parseInt(hex.slice(1,3),16) + amt*255);
+  const g = Math.min(255, parseInt(hex.slice(3,5),16) + amt*255);
+  const b = Math.min(255, parseInt(hex.slice(5,7),16) + amt*255);
+  return `rgb(${r},${g},${b})`;
+}
+
+function getNodeAt(sx, sy) {
+  const wp = screenToWorld(sx, sy);
+  ctx.font = '600 14px -apple-system, sans-serif';
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const textWidth = ctx.measureText(n.text).width;
+    const w = Math.max(textWidth + 40, 90);
+    const h = 44;
+    if (wp.x >= n.x - w/2 && wp.x <= n.x + w/2 && wp.y >= n.y - h/2 && wp.y <= n.y + h/2) {
+      return n;
+    }
+  }
+  return null;
+}
+
+function getCanvasPoint(e) {
+  const rect = canvas.getBoundingClientRect();
+  const t = e.touches ? e.touches[0] : e;
+  return { x: t.clientX - rect.left, y: t.clientY - rect.top, cx: t.clientX, cy: t.clientY };
+}
+
+function pointerDown(e) {
+  if (e.touches && e.touches.length === 2) {
+    const t1 = e.touches[0], t2 = e.touches[1];
+    pinchStart = {
+      dist: Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY),
+      zoom: zoom,
+      cx: (t1.clientX + t2.clientX) / 2,
+      cy: (t1.clientY + t2.clientY) / 2
+    };
+    return;
+  }
+  const p = getCanvasPoint(e);
+
+  // 1) Connection-handle drag start (only on selected node's "+" handle)
+  const handleNode = getHandleAt(p.x, p.y);
+  if (handleNode) {
+    isConnecting = true;
+    isDraggingConnection = true;
+    connectingFrom = handleNode.id;
+    canvas.classList.add('connecting');
+    connDragPos = { x: p.x, y: p.y };
+    drawMindMap();
+    e.preventDefault && e.preventDefault();
+    return;
+  }
+
+  const node = getNodeAt(p.x, p.y);
+
+  // 2) Toolbar-button-triggered click-to-connect flow
+  if (isConnecting && !isDraggingConnection && node) {
+    if (connectingFrom && connectingFrom !== node.id) {
+      const exists = edges.find(eg => (eg.from === connectingFrom && eg.to === node.id) || (eg.from === node.id && eg.to === connectingFrom));
+      if (!exists) { edges.push({ from: connectingFrom, to: node.id }); saveMindMap(); toast('연결 완료', 'success'); }
+    }
+    connectingFrom = null; isConnecting = false;
+    canvas.classList.remove('connecting');
+    drawMindMap();
+    return;
+  }
+
+  if (node) {
+    selectedNode = node.id;
+    draggingNode = node;
+    lastMouse = { x: p.cx, y: p.cy };
+    updateToolbarState();
+    drawMindMap();
+  } else {
+    selectedNode = null;
+    isPanning = true;
+    lastMouse = { x: p.cx, y: p.cy };
+    updateToolbarState();
+    drawMindMap();
+  }
+}
+
+function pointerMove(e) {
+  if (e.touches && e.touches.length === 2 && pinchStart) {
+    const t1 = e.touches[0], t2 = e.touches[1];
+    const dist = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+    const newZoom = Math.max(0.2, Math.min(3, pinchStart.zoom * (dist / pinchStart.dist)));
+    const rect = canvas.getBoundingClientRect();
+    const cx = pinchStart.cx - rect.left;
+    const cy = pinchStart.cy - rect.top;
+    pan.x = cx - (cx - pan.x) * (newZoom / zoom);
+    pan.y = cy - (cy - pan.y) * (newZoom / zoom);
+    zoom = newZoom;
+    drawMindMap();
+    e.preventDefault && e.preventDefault();
+    return;
+  }
+  const t = e.touches ? e.touches[0] : e;
+  if (!t) return;
+
+  // Connection drag: just update endpoint position
+  if (isDraggingConnection || isConnecting) {
+    const rect = canvas.getBoundingClientRect();
+    connDragPos = { x: t.clientX - rect.left, y: t.clientY - rect.top };
+    drawMindMap();
+    if (isDraggingConnection) e.preventDefault && e.preventDefault();
+    return;
+  }
+
+  const dx = t.clientX - lastMouse.x;
+  const dy = t.clientY - lastMouse.y;
+
+  if (draggingNode) {
+    draggingNode.x += dx / zoom;
+    draggingNode.y += dy / zoom;
+    lastMouse = { x: t.clientX, y: t.clientY };
+    drawMindMap();
+    e.preventDefault && e.preventDefault();
+  } else if (isPanning) {
+    pan.x += dx; pan.y += dy;
+    lastMouse = { x: t.clientX, y: t.clientY };
+    drawMindMap();
+    e.preventDefault && e.preventDefault();
+  }
+}
+
+function pointerUp(e) {
+  if (isDraggingConnection) {
+    const t = (e && e.changedTouches && e.changedTouches[0]) || e;
+    if (t) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = t.clientX - rect.left;
+      const sy = t.clientY - rect.top;
+      const target = getNodeAt(sx, sy);
+      if (target && target.id !== connectingFrom) {
+        const exists = edges.find(eg =>
+          (eg.from === connectingFrom && eg.to === target.id) ||
+          (eg.from === target.id && eg.to === connectingFrom));
+        if (!exists) {
+          edges.push({ from: connectingFrom, to: target.id });
+          saveMindMap();
+          toast('연결 완료', 'success');
+        } else {
+          toast('이미 연결되어 있습니다');
+        }
+      }
+    }
+    isConnecting = false;
+    isDraggingConnection = false;
+    connectingFrom = null;
+    canvas.classList.remove('connecting');
+    drawMindMap();
+    return;
+  }
+  if (draggingNode) saveMindMap();
+  if (isPanning) saveMindMap();
+  draggingNode = null;
+  isPanning = false;
+  pinchStart = null;
+}
+
+canvas.addEventListener('mousedown', pointerDown);
+canvas.addEventListener('mousemove', pointerMove);
+window.addEventListener('mouseup', pointerUp);
+canvas.addEventListener('touchstart', pointerDown, { passive: false });
+canvas.addEventListener('touchmove', pointerMove, { passive: false });
+canvas.addEventListener('touchend', pointerUp);
+
+canvas.addEventListener('dblclick', e => {
+  const p = getCanvasPoint(e);
+  const node = getNodeAt(p.x, p.y);
+  if (node) openNodeEdit(node, p.cx, p.cy);
+});
+
+// Double tap on touch
+let lastTap = 0;
+canvas.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300 && e.changedTouches.length === 1) {
+    const t = e.changedTouches[0];
+    const rect = canvas.getBoundingClientRect();
+    const node = getNodeAt(t.clientX - rect.left, t.clientY - rect.top);
+    if (node) {
+      e.preventDefault();
+      openNodeEdit(node, t.clientX, t.clientY);
+    }
+  }
+  lastTap = now;
+});
+
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const oldZoom = zoom;
+  zoom *= e.deltaY < 0 ? 1.1 : 0.9;
+  zoom = Math.max(0.2, Math.min(3, zoom));
+  pan.x = mx - (mx - pan.x) * (zoom / oldZoom);
+  pan.y = my - (my - pan.y) * (zoom / oldZoom);
+  drawMindMap();
+  saveMindMap();
+}, { passive: false });
+
+function addMindNode() {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const cx = (w / 2 - pan.x) / zoom;
+  const cy = (h / 2 - pan.y) / zoom;
+  const node = {
+    id: nodeIdCounter++,
+    text: '새 노드',
+    x: cx + (Math.random() - 0.5) * 100,
+    y: cy + (Math.random() - 0.5) * 100,
+    color: currentNodeColor
+  };
+  nodes.push(node);
+  selectedNode = node.id;
+  saveMindMap();
+  updateToolbarState();
+  drawMindMap();
+  const sp = worldToScreen(node.x, node.y);
+  const rect = canvas.getBoundingClientRect();
+  openNodeEdit(node, sp.x + rect.left, sp.y + rect.top);
+}
+
+function startConnecting() {
+  if (!selectedNode) { toast('먼저 노드를 선택하세요'); return; }
+  isConnecting = true;
+  connectingFrom = selectedNode;
+  canvas.classList.add('connecting');
+  toast('연결할 노드를 탭하세요');
+}
+
+function deleteSelected() {
+  if (!selectedNode) return;
+  if (!confirm('이 노드를 삭제하시겠습니까?')) return;
+  nodes = nodes.filter(n => n.id !== selectedNode);
+  edges = edges.filter(e => e.from !== selectedNode && e.to !== selectedNode);
+  selectedNode = null;
+  saveMindMap();
+  updateToolbarState();
+  drawMindMap();
+}
+
+function setNodeColor(el) {
+  document.querySelectorAll('.mindmap-toolbar .color-dot').forEach(d => d.classList.remove('active'));
+  el.classList.add('active');
+  currentNodeColor = el.dataset.color;
+  if (selectedNode) {
+    const node = nodes.find(n => n.id === selectedNode);
+    if (node) { node.color = currentNodeColor; saveMindMap(); drawMindMap(); }
+  }
+}
+
+function zoomIn() { zoom = Math.min(3, zoom * 1.2); saveMindMap(); drawMindMap(); }
+function zoomOut() { zoom = Math.max(0.2, zoom / 1.2); saveMindMap(); drawMindMap(); }
+function resetView() { zoom = 1; pan = { x: 0, y: 0 }; saveMindMap(); drawMindMap(); }
+
+const popup = document.getElementById('node-edit-popup');
+const popupInput = document.getElementById('node-edit-input');
+let editingNodeId = null;
+let editOriginalText = '';
+
+function openNodeEdit(node, cx, cy) {
+  editingNodeId = node.id;
+  editOriginalText = node.text;
+  popupInput.value = node.text;
+  popup.style.display = 'block';
+  // Position adjust to stay in viewport
+  const popupW = 240;
+  const left = Math.min(window.innerWidth - popupW - 12, Math.max(12, cx - popupW/2));
+  const top = Math.min(window.innerHeight - 70, cy + 20);
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  popupInput.focus();
+  popupInput.select();
+}
+
+function closeNodeEdit(cancel) {
+  if (editingNodeId && !cancel) {
+    const node = nodes.find(n => n.id === editingNodeId);
+    if (node && popupInput.value.trim()) {
+      node.text = popupInput.value.trim();
+      saveMindMap();
+      drawMindMap();
+    }
+  }
+  popup.style.display = 'none';
+  editingNodeId = null;
+}
+
+document.addEventListener('mousedown', e => {
+  if (popup.style.display === 'block' && !popup.contains(e.target)) closeNodeEdit();
+});
+document.addEventListener('touchstart', e => {
+  if (popup.style.display === 'block' && !popup.contains(e.target)) closeNodeEdit();
+}, { passive: true });
+
+// Hint
+setTimeout(() => {
+  const hint = document.getElementById('mm-hint');
+  hint.classList.add('show');
+  setTimeout(() => hint.classList.remove('show'), 4000);
+}, 800);
+
+updateToolbarState();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const activePage = document.querySelector('.page.active').id;
+  if (activePage === 'page-mindmap') {
+    if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); addMindNode(); }
+    if (e.key === 'Escape') { selectedNode = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); drawMindMap(); }
+  }
+});
+
+// =================== TIME BLOCK ===================
+let currentDate = new Date();
+let timeBlocks = load('tb_blocks', {});
+let tbSelectedColor = 'accent';
+let tbClickedHour = null;
+let tbEditingIdx = null;
+
+const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+function dateKey(d) {
+  const y = d.getFullYear();
+  const m = (d.getMonth()+1).toString().padStart(2,'0');
+  const dd = d.getDate().toString().padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+
+function isSameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function renderDate() {
+  const d = currentDate;
+  const today = new Date();
+  const isToday = isSameDay(d, today);
+  const str = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일<span class="day-of-week">${dayNames[d.getDay()]}</span>`;
+  document.getElementById('tb-date').innerHTML = str + (isToday ? '<span class="today-badge">오늘</span>' : '');
+}
+
+function minutesFromTime(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h * 60 + m;
+}
+
+function renderTimeBlocks() {
+  const body = document.getElementById('timeblock-body');
+  const key = dateKey(currentDate);
+  const blocks = timeBlocks[key] || [];
+
+  // Summary
+  let totalMin = 0, doneMin = 0;
+  blocks.forEach(b => {
+    const dur = minutesFromTime(b.end) - minutesFromTime(b.start);
+    if (dur > 0) {
+      totalMin += dur;
+      if (b.done) doneMin += dur;
+    }
+  });
+  const fmt = m => `${Math.floor(m/60)}시간 ${m%60}분`;
+
+  let html = `<div class="day-summary">
+    <div class="stat"><div class="label">블록</div><div class="value">${blocks.length}개</div></div>
+    <div class="stat"><div class="label">계획 시간</div><div class="value">${fmt(totalMin)}</div></div>
+    <div class="stat"><div class="label">완료</div><div class="value">${blocks.filter(b=>b.done).length} / ${blocks.length}</div></div>
+  </div>`;
+
+  const today = new Date();
+  const isToday = isSameDay(currentDate, today);
+  const nowH = today.getHours();
+  const nowM = today.getMinutes();
+
+  html += '<div class="timeblock-grid">';
+  for (let h = 6; h <= 23; h++) {
+    const label = h.toString().padStart(2, '0') + ':00';
+    const hourBlocks = blocks.filter(b => parseInt(b.start.split(':')[0]) === h);
+    const isNowRow = isToday && nowH === h;
+    const nowOffset = isNowRow ? `${(nowM / 60) * 100}%` : '0';
+    html += `<div class="time-row ${isNowRow ? 'now-row' : ''}" style="--now-offset: ${nowOffset}">
+      <div class="time-label">${label}</div>
+      <div class="time-slot" data-hour="${h}">`;
+    hourBlocks.forEach(b => {
+      const idx = blocks.indexOf(b);
+      html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}">
+        <div class="block-title"><span class="block-checkbox" data-toggle="${idx}"></span>${escapeHtml(b.title)}</div>
+        <div class="block-time">${b.start} – ${b.end}</div>
+        ${b.desc ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
+        <button class="block-delete" data-del="${idx}">✕</button>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+  html += '</div>';
+  body.innerHTML = html;
+
+  // Wire up events
+  body.querySelectorAll('.time-slot').forEach(s => {
+    s.addEventListener('click', e => {
+      if (e.target.closest('.time-block-item')) return;
+      openTbModal(parseInt(s.dataset.hour));
+    });
+  });
+  body.querySelectorAll('.time-block-item').forEach(item => {
+    item.addEventListener('click', e => {
+      if (e.target.closest('[data-toggle]')) {
+        const idx = parseInt(e.target.dataset.toggle);
+        toggleTbDone(key, idx);
+        return;
+      }
+      if (e.target.closest('[data-del]')) {
+        e.stopPropagation();
+        const idx = parseInt(e.target.dataset.del);
+        if (confirm('이 블록을 삭제하시겠습니까?')) deleteTbBlock(key, idx);
+        return;
+      }
+      const idx = parseInt(item.dataset.idx);
+      editTbBlock(key, idx);
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
+}
+
+function prevDay() { currentDate.setDate(currentDate.getDate() - 1); renderDate(); renderTimeBlocks(); renderTimeblockList(); }
+function nextDay() { currentDate.setDate(currentDate.getDate() + 1); renderDate(); renderTimeBlocks(); renderTimeblockList(); }
+function goToday() { currentDate = new Date(); renderDate(); renderTimeBlocks(); renderTimeblockList(); }
+function goToDate(key) {
+  const [y,m,d] = key.split('-').map(Number);
+  currentDate = new Date(y, m-1, d);
+  renderDate(); renderTimeBlocks(); renderTimeblockList();
+}
+
+function renderTimeblockList() {
+  const container = document.getElementById('timeblock-items');
+  if (!container) return;
+  const today = new Date();
+  const todayKey = dateKey(today);
+  const currentKey = dateKey(currentDate);
+  const dateSet = new Set([todayKey, currentKey, ...Object.keys(timeBlocks)]);
+  const sortedKeys = [...dateSet].sort((a,b) => b.localeCompare(a));
+
+  let totalBlocks = 0;
+  Object.values(timeBlocks).forEach(arr => totalBlocks += arr.length);
+  const countEl = document.getElementById('tb-count');
+  if (countEl) countEl.textContent = totalBlocks;
+
+  container.innerHTML = sortedKeys.map(k => {
+    const [y,m,d] = k.split('-').map(Number);
+    const date = new Date(y, m-1, d);
+    const dayName = dayNames[date.getDay()];
+    const blocks = timeBlocks[k] || [];
+    const done = blocks.filter(b=>b.done).length;
+    const isToday = k === todayKey;
+    const isActive = k === currentKey;
+    const pct = blocks.length ? (done/blocks.length)*100 : 0;
+    const meta = blocks.length === 0
+      ? '<span style="color:var(--text-mute)">일정 없음</span>'
+      : `<span>${done}/${blocks.length}</span><div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>`;
+    return `<div class="tb-list-item ${isActive ? 'active' : ''} ${isToday ? 'is-today' : ''}" onclick="goToDate('${k}')">
+      <div class="tb-list-date">${date.getMonth()+1}월 ${date.getDate()}일 (${dayName})${isToday ? '<span class="today-tag">TODAY</span>' : ''}</div>
+      <div class="tb-list-meta">${meta}</div>
+    </div>`;
+  }).join('');
+}
+
+function openTbModal(hour) {
+  tbClickedHour = hour;
+  tbEditingIdx = null;
+  document.getElementById('tb-modal-title').textContent = '타임블록 추가';
+  document.getElementById('tb-title').value = '';
+  document.getElementById('tb-start').value = hour.toString().padStart(2, '0') + ':00';
+  document.getElementById('tb-end').value = (hour + 1).toString().padStart(2, '0') + ':00';
+  document.getElementById('tb-desc').value = '';
+  tbSelectedColor = 'accent';
+  document.querySelectorAll('.modal-colors .mc').forEach(m => m.classList.remove('active'));
+  document.querySelector('.modal-colors .mc').classList.add('active');
+  document.getElementById('tb-modal').classList.add('show');
+  setTimeout(() => document.getElementById('tb-title').focus(), 100);
+}
+
+function editTbBlock(key, idx) {
+  const block = timeBlocks[key][idx];
+  if (!block) return;
+  tbEditingIdx = idx;
+  document.getElementById('tb-modal-title').textContent = '타임블록 편집';
+  document.getElementById('tb-title').value = block.title;
+  document.getElementById('tb-start').value = block.start;
+  document.getElementById('tb-end').value = block.end;
+  document.getElementById('tb-desc').value = block.desc || '';
+  tbSelectedColor = block.color;
+  document.querySelectorAll('.modal-colors .mc').forEach(m => {
+    m.classList.toggle('active', m.dataset.color === block.color);
+  });
+  document.getElementById('tb-modal').classList.add('show');
+}
+
+function closeTbModal() { document.getElementById('tb-modal').classList.remove('show'); tbEditingIdx = null; }
+
+function setTbColor(el) {
+  document.querySelectorAll('.modal-colors .mc').forEach(m => m.classList.remove('active'));
+  el.classList.add('active');
+  tbSelectedColor = el.dataset.color;
+}
+
+function saveTbBlock() {
+  const title = document.getElementById('tb-title').value.trim();
+  if (!title) { toast('제목을 입력하세요'); return; }
+  const start = document.getElementById('tb-start').value;
+  const end = document.getElementById('tb-end').value;
+  if (!start || !end) { toast('시간을 설정하세요'); return; }
+  const key = dateKey(currentDate);
+  if (!timeBlocks[key]) timeBlocks[key] = [];
+
+  const data = {
+    title, start, end,
+    desc: document.getElementById('tb-desc').value.trim(),
+    color: tbSelectedColor,
+    done: tbEditingIdx !== null ? (timeBlocks[key][tbEditingIdx]?.done || false) : false
+  };
+
+  if (tbEditingIdx !== null) {
+    timeBlocks[key][tbEditingIdx] = data;
+    toast('수정되었습니다', 'success');
+  } else {
+    timeBlocks[key].push(data);
+    toast('추가되었습니다', 'success');
+  }
+  timeBlocks[key].sort((a, b) => a.start.localeCompare(b.start));
+  save('tb_blocks', timeBlocks);
+  closeTbModal();
+  renderTimeBlocks();
+  renderTimeblockList();
+}
+
+function deleteTbBlock(key, idx) {
+  timeBlocks[key].splice(idx, 1);
+  if (timeBlocks[key].length === 0) delete timeBlocks[key];
+  save('tb_blocks', timeBlocks);
+  renderTimeBlocks();
+  renderTimeblockList();
+}
+
+function toggleTbDone(key, idx) {
+  if (!timeBlocks[key] || !timeBlocks[key][idx]) return;
+  timeBlocks[key][idx].done = !timeBlocks[key][idx].done;
+  save('tb_blocks', timeBlocks);
+  renderTimeBlocks();
+  renderTimeblockList();
+}
+
+renderDate();
+renderTimeBlocks();
+renderTimeblockList();
+// Refresh "now" indicator every minute
+setInterval(() => {
+  if (document.getElementById('page-timeblock').classList.contains('active')) renderTimeBlocks();
+}, 60000);
+
+// =================== MEMO ===================
+let memos = load('memos', []);
+let activeMemoId = null;
+let memoIdCounter = load('memo_idcounter', 1);
+
+function saveMemos() {
+  save('memos', memos);
+  save('memo_idcounter', memoIdCounter);
+}
+
+function createMemo() {
+  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString() };
+  memos.unshift(memo);
+  activeMemoId = memo.id;
+  saveMemos();
+  renderMemoList();
+  renderMemoEditor();
+  document.getElementById('memo-page').classList.add('show-editor');
+  setTimeout(() => {
+    const inp = document.querySelector('.memo-editor-header input');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 100);
+}
+
+function selectMemo(id) {
+  activeMemoId = id;
+  renderMemoList();
+  renderMemoEditor();
+  document.getElementById('memo-page').classList.add('show-editor');
+}
+
+function backToList() {
+  document.getElementById('memo-page').classList.remove('show-editor');
+}
+
+function deleteMemo(id) {
+  if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+  memos = memos.filter(m => m.id !== id);
+  if (activeMemoId === id) activeMemoId = null;
+  saveMemos();
+  renderMemoList();
+  renderMemoEditor();
+  backToList();
+  toast('삭제되었습니다');
+}
+
+function renderMemoList() {
+  const search = document.getElementById('memo-search').value.toLowerCase();
+  const filtered = memos.filter(m => m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search));
+  const container = document.getElementById('memo-items');
+  const countEl = document.getElementById('memo-count');
+  if (countEl) countEl.textContent = memos.length;
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="memo-empty">
+      <div class="big-icon">📝</div>
+      ${memos.length === 0 ? '아직 메모가 없습니다<br>+ 버튼을 눌러 시작하세요' : '검색 결과가 없습니다'}
+    </div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(m => {
+    const date = new Date(m.date);
+    const now = new Date();
+    let dateStr;
+    if (isSameDay(date, now)) {
+      dateStr = `오늘 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+    } else {
+      const dayDiff = Math.floor((now - date) / (1000*60*60*24));
+      if (dayDiff < 7) dateStr = `${dayDiff}일 전`;
+      else dateStr = `${date.getMonth()+1}월 ${date.getDate()}일`;
+    }
+    const preview = m.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
+    const wordCount = m.content.length;
+    return `<div class="memo-item ${m.id === activeMemoId ? 'active' : ''}" onclick="selectMemo(${m.id})">
+      <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
+      <div class="memo-item-preview">${escapeHtml(preview)}</div>
+      <div class="memo-item-meta">
+        <span>${dateStr}</span>
+        <span class="dot"></span>
+        <span>${wordCount}자</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMemoEditor() {
+  const editor = document.getElementById('memo-editor');
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (!memo) {
+    editor.innerHTML = `<div class="memo-editor-empty">
+      <div class="big">📝</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text-dim);">메모를 선택하거나 새로 만드세요</div>
+      <div class="hint">목록에서 메모를 선택하거나 + 버튼을 눌러 새 메모를 만드세요</div>
+      <div class="shortcuts">
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">마크다운 단축 문법</div>
+        <code># </code> 큰 제목 ·  <code>## </code> 중제목<br>
+        <code>**굵게**</code> ·  <code>*기울임*</code> ·  <code>~~취소~~</code><br>
+        <code>- </code> 목록 ·  <code>- [ ] </code> 체크박스<br>
+        <code>\`코드\`</code> ·  <code>&gt; </code> 인용문 ·  <code>---</code> 구분선
+      </div>
+    </div>`;
+    return;
+  }
+  const date = new Date(memo.date);
+  const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+  const charCount = memo.content.length;
+  const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
+
+  const editPart = `<textarea placeholder="# 제목\n\n마크다운으로 자유롭게 작성하세요..." oninput="updateMemoContent(this.value)">${escapeHtml(memo.content)}</textarea>`;
+  const previewPart = `<div class="markdown-body">${memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>'}</div>`;
+
+  let bodyHtml = '';
+  if (memoMode === 'edit') bodyHtml = `<div class="memo-body-wrap">${editPart}</div>`;
+  else if (memoMode === 'preview') bodyHtml = `<div class="memo-body-wrap">${previewPart}</div>`;
+  else bodyHtml = `<div class="memo-body-wrap split">${editPart}${previewPart}</div>`;
+
+  const editIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const splitIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
+  const eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+
+  editor.innerHTML = `
+    <div class="memo-editor-toolbar">
+      <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
+      <div class="memo-mode-toggle">
+        <button class="${memoMode==='edit'?'active':''}" onclick="setMemoMode('edit')">${editIcon}<span class="label-text">편집</span></button>
+        <button class="${memoMode==='split'?'active':''}" onclick="setMemoMode('split')">${splitIcon}<span class="label-text">분할</span></button>
+        <button class="${memoMode==='preview'?'active':''}" onclick="setMemoMode('preview')">${eyeIcon}<span class="label-text">미리보기</span></button>
+      </div>
+      <div class="memo-toolbar-spacer"></div>
+      <button class="memo-icon-btn danger" onclick="deleteMemo(${memo.id})" title="메모 삭제">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+      </button>
+    </div>
+    <div class="memo-editor-header">
+      <input type="text" value="${escapeHtml(memo.title)}" oninput="updateMemoTitle(this.value)" placeholder="제목 없음">
+    </div>
+    <div class="memo-meta">
+      <span>${dateStr}</span>
+      <span class="dot"></span>
+      <span>${charCount}자 · ${wordCount}단어</span>
+      <span class="dot"></span>
+      <span class="badge">MARKDOWN</span>
+    </div>
+    ${bodyHtml}
+  `;
+}
+
+let memoMode = load('memo_mode', 'edit'); // edit | preview | split
+function setMemoMode(mode) {
+  memoMode = mode;
+  save('memo_mode', mode);
+  renderMemoEditor();
+}
+
+function updateMemoTitle(val) {
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (memo) {
+    memo.title = val;
+    memo.date = new Date().toISOString();
+    saveMemos();
+    renderMemoList();
+  }
+}
+
+function updateMemoContent(val) {
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (memo) {
+    memo.content = val;
+    memo.date = new Date().toISOString();
+    saveMemos();
+    const meta = document.querySelector('.memo-meta');
+    if (meta) {
+      const date = new Date(memo.date);
+      const dateStr = `${date.getFullYear()}.${(date.getMonth()+1).toString().padStart(2,'0')}.${date.getDate().toString().padStart(2,'0')} ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+      meta.textContent = `${dateStr} · ${val.length}자 · 마크다운 (.md)`;
+    }
+    // Live preview in split mode
+    if (memoMode === 'split') {
+      const preview = document.querySelector('.memo-body-wrap.split .markdown-body');
+      if (preview) preview.innerHTML = val.trim() ? md2html(val) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>';
+    }
+    clearTimeout(window._memoListTimer);
+    window._memoListTimer = setTimeout(renderMemoList, 500);
+  }
+}
+
+function filterMemos() { renderMemoList(); }
+
+renderMemoList();
+renderMemoEditor();
+
+// =================== SYNC / BACKUP ===================
+function getAllData() {
+  return {
+    version: 2,
+    app: 'mindflow',
+    exportedAt: new Date().toISOString(),
+    mindmaps: load('mindmaps', []),
+    activeMindmapId: load('mm_active', null),
+    timeBlocks: load('tb_blocks', {}),
+    memos: load('memos', []),
+    memoIdCounter: load('memo_idcounter', 1)
+  };
+}
+
+function applyData(data) {
+  if (!data || data.app !== 'mindflow') throw new Error('올바른 MindFlow 백업 파일이 아닙니다');
+  if (data.mindmaps) {
+    save('mindmaps', data.mindmaps);
+    save('mm_active', data.activeMindmapId || (data.mindmaps[0]?.id ?? null));
+  } else if (data.mindmap) {
+    // v1 backwards-compat: convert single mindmap to multi
+    const m = {
+      id: Date.now(),
+      name: '내 마인드맵',
+      nodes: data.mindmap.nodes || [],
+      edges: data.mindmap.edges || [],
+      idCounter: data.mindmap.idCounter || 1,
+      pan: data.mindmap.pan || { x: 0, y: 0 },
+      zoom: data.mindmap.zoom || 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    save('mindmaps', [m]);
+    save('mm_active', m.id);
+  }
+  save('tb_blocks', data.timeBlocks || {});
+  save('memos', data.memos || []);
+  save('memo_idcounter', data.memoIdCounter || 1);
+}
+
+function openSyncModal() {
+  const data = getAllData();
+  const totalNodes = data.mindmaps.reduce((s, m) => s + (m.nodes?.length || 0), 0);
+  const totalEdges = data.mindmaps.reduce((s, m) => s + (m.edges?.length || 0), 0);
+  const totalBlocks = Object.values(data.timeBlocks).reduce((s, a) => s + a.length, 0);
+  const stats = `
+    🧠 마인드맵: <strong>${data.mindmaps.length}개</strong> · 노드 <strong>${totalNodes}개</strong> · 연결 <strong>${totalEdges}개</strong><br>
+    📅 타임블록: <strong>${totalBlocks}개</strong> (${Object.keys(data.timeBlocks).length}일)<br>
+    📝 메모: <strong>${data.memos.length}개</strong>
+  `;
+  document.getElementById('sync-stats').innerHTML = stats;
+
+  // Hide share button if Web Share API unavailable (e.g. desktop browsers without share)
+  if (!navigator.share) {
+    document.getElementById('share-btn').style.display = 'none';
+  }
+
+  // Update folder status (handles File System Access API availability)
+  updateFolderStatus();
+  if (!isFsApiSupported()) {
+    const folderEl = document.getElementById('folder-status');
+    if (folderEl) {
+      folderEl.innerHTML = `
+        <div class="icon-circle" style="background:var(--orange);color:#1a1300">!</div>
+        <div class="text-area">
+          <div class="name" style="color:var(--orange)">이 브라우저는 폴더 자동 동기화를 지원하지 않습니다</div>
+          <div class="desc">데스크톱 Chrome / Edge / Brave에서만 동작합니다 (Safari · iOS 미지원)</div>
+        </div>
+      `;
+      // Hide folder action buttons in unsupported environments
+      const reloadBtn = document.getElementById('reload-folder-btn');
+      const disconnectBtn = document.getElementById('disconnect-folder-btn');
+      if (reloadBtn) reloadBtn.style.display = 'none';
+      if (disconnectBtn) disconnectBtn.style.display = 'none';
+    }
+  }
+
+  document.getElementById('sync-modal').classList.add('show');
+}
+
+function closeSyncModal() { document.getElementById('sync-modal').classList.remove('show'); }
+
+function exportData(mode) {
+  const data = getAllData();
+  const json = JSON.stringify(data, null, 2);
+  const ts = new Date();
+  const fname = `mindflow-${ts.getFullYear()}${(ts.getMonth()+1).toString().padStart(2,'0')}${ts.getDate().toString().padStart(2,'0')}-${ts.getHours().toString().padStart(2,'0')}${ts.getMinutes().toString().padStart(2,'0')}.json`;
+
+  if (mode === 'share' && navigator.share) {
+    const file = new File([json], fname, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      navigator.share({ files: [file], title: 'MindFlow 백업', text: 'MindFlow 데이터 백업 파일' })
+        .then(() => toast('공유 완료', 'success'))
+        .catch(err => { if (err.name !== 'AbortError') toast('공유 실패', 'error'); });
+      return;
+    }
+  }
+
+  // Fallback: download
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('파일이 저장되었습니다', 'success');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm('현재 데이터를 덮어씁니다. 계속하시겠습니까?')) {
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      applyData(data);
+      toast('불러오기 완료. 새로고침합니다...', 'success');
+      setTimeout(() => location.reload(), 800);
+    } catch (err) {
+      toast('파일을 읽을 수 없습니다: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// =================== VAULT (Obsidian-style folder sync) ===================
+let folderHandle = null;
+let autoSaveTimer = null;
+let autoSaveStatus = 'idle'; // idle | saving | saved | error
+let isLoadingFromFolder = false;
+const APP_JSON = '_mindflow-app.json';
+
+function isFsApiSupported() { return !!window.showDirectoryPicker; }
+
+async function ensurePermission(handle, mode = 'readwrite') {
+  if (!handle.queryPermission) return true;
+  if ((await handle.queryPermission({ mode })) === 'granted') return true;
+  return (await handle.requestPermission({ mode })) === 'granted';
+}
+
+function sanitizeFilename(s) {
+  return (s || 'untitled').replace(/[\/\\?%*:|"<>#]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'untitled';
+}
+
+async function pickFolder() {
+  if (!isFsApiSupported()) {
+    toast('이 브라우저는 폴더 자동 저장을 지원하지 않습니다 (Chrome/Edge 권장)', 'error');
+    return;
+  }
+  try {
+    const h = await window.showDirectoryPicker({ mode: 'readwrite' });
+    folderHandle = h;
+    await idbSet('folder', h);
+    updateFolderStatus();
+    await loadFromFolder({ silent: false });
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('폴더 선택 실패: ' + e.message, 'error');
+  }
+}
+
+async function disconnectFolder() {
+  if (!confirm('폴더 연결을 해제하시겠습니까? 데이터는 그대로 유지됩니다.')) return;
+  folderHandle = null;
+  await idbDel('folder');
+  updateFolderStatus();
+  toast('폴더 연결 해제됨');
+}
+
+async function reloadFromFolder() {
+  if (!folderHandle) { toast('연결된 폴더가 없습니다'); return; }
+  if (!confirm('폴더의 내용으로 다시 불러옵니다. 현재 변경사항은 폴더 파일로 덮어써집니다.\n계속하시겠습니까?')) return;
+  await loadFromFolder({ silent: false, force: true });
+}
+
+function parseFrontmatter(text, filename, mtime) {
+  const fmMatch = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n\r?\n?([\s\S]*)$/);
+  let title = filename.replace(/\.md$/i, '').replace(/^\d+[-_]/, '');
+  let date = new Date(mtime).toISOString();
+  let id = null;
+  let content = text;
+  if (fmMatch) {
+    const fm = fmMatch[1];
+    content = fmMatch[2];
+    const titleM = fm.match(/^title:\s*(.+)$/m);
+    const dateM = fm.match(/^date:\s*(.+)$/m);
+    const idM = fm.match(/^id:\s*(\d+)$/m);
+    if (titleM) title = titleM[1].trim().replace(/^["']|["']$/g, '');
+    if (dateM) {
+      const d = new Date(dateM[1].trim());
+      if (!isNaN(d)) date = d.toISOString();
+    }
+    if (idM) id = parseInt(idM[1]);
+  } else {
+    const h1 = text.match(/^# (.+)$/m);
+    if (h1) title = h1[1].trim();
+  }
+  return { id, title, content, date };
+}
+
+async function loadFromFolder({ silent = true, force = false } = {}) {
+  if (!folderHandle) return;
+  if (!(await ensurePermission(folderHandle))) {
+    if (!silent) toast('폴더 권한이 거부되었습니다', 'error');
+    return;
+  }
+  isLoadingFromFolder = true;
+  try {
+    // Load app data (mindmap/timeblock) if exists
+    let appLoaded = false;
+    try {
+      const appFh = await folderHandle.getFileHandle(APP_JSON, { create: false });
+      const appFile = await appFh.getFile();
+      const appText = await appFile.text();
+      const appData = JSON.parse(appText);
+      if (appData && appData.app === 'mindflow') {
+        if (appData.mindmaps) {
+          localStorage.setItem('mindflow_mindmaps', JSON.stringify(appData.mindmaps));
+          localStorage.setItem('mindflow_mm_active', JSON.stringify(appData.activeMindmapId || appData.mindmaps[0]?.id));
+          mindmaps = appData.mindmaps;
+          activeMindmapId = appData.activeMindmapId || (mindmaps[0]?.id ?? null);
+          bindActiveMap();
+          renderMindmapList();
+          drawMindMap();
+        } else if (appData.mindmap) {
+          // v1 backwards-compat
+          const m = {
+            id: Date.now(),
+            name: '내 마인드맵',
+            nodes: appData.mindmap.nodes || [],
+            edges: appData.mindmap.edges || [],
+            idCounter: appData.mindmap.idCounter || 1,
+            pan: appData.mindmap.pan || { x: 0, y: 0 },
+            zoom: appData.mindmap.zoom || 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          mindmaps = [m];
+          activeMindmapId = m.id;
+          localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+          localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+          bindActiveMap();
+          renderMindmapList();
+          drawMindMap();
+        }
+        if (appData.timeBlocks) localStorage.setItem('mindflow_tb_blocks', JSON.stringify(appData.timeBlocks));
+        appLoaded = true;
+      }
+    } catch (e) {
+      if (e.name !== 'NotFoundError') console.warn(e);
+    }
+
+    // Load .md files in folder root
+    const loaded = [];
+    let maxId = 0;
+    for await (const entry of folderHandle.values()) {
+      if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md')) {
+        try {
+          const file = await entry.getFile();
+          const text = await file.text();
+          const memo = parseFrontmatter(text, entry.name, file.lastModified);
+          if (!memo.id) memo.id = ++maxId + 100000;
+          else if (memo.id > maxId) maxId = memo.id;
+          memo._filename = entry.name;
+          loaded.push(memo);
+        } catch (e) { console.warn('Failed to load', entry.name, e); }
+      }
+    }
+
+    // Decide whether to replace
+    const folderHasMemos = loaded.length > 0;
+    const localHasMemos = memos.length > 0;
+
+    if (folderHasMemos) {
+      let replace = force;
+      if (!force && localHasMemos && !silent) {
+        replace = confirm(`이 폴더에서 ${loaded.length}개의 .md 메모를 찾았습니다.\n현재 ${memos.length}개의 로컬 메모를 폴더 내용으로 교체할까요?\n\n[확인] 폴더 내용으로 교체\n[취소] 로컬 유지 (다음 저장 시 폴더에 덮어씀)`);
+      } else if (!localHasMemos) {
+        replace = true;
+      }
+      if (replace) {
+        loaded.sort((a, b) => new Date(b.date) - new Date(a.date));
+        memos = loaded.map(({_filename, ...m}) => m);
+        memoIdCounter = Math.max(maxId, memos.length) + 1;
+        localStorage.setItem('mindflow_memos', JSON.stringify(memos));
+        localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
+        activeMemoId = memos[0]?.id || null;
+        renderMemoList();
+        renderMemoEditor();
+        renderTimeBlocks();
+        drawMindMap();
+        if (!silent) toast(`${loaded.length}개 메모 + 앱 데이터 불러옴 ✓`, 'success');
+      }
+    }
+
+    // Initial save of current data to folder (only if no memos there yet, or after replace)
+    if (!folderHasMemos && localHasMemos) {
+      if (!silent) toast('현재 데이터를 폴더에 저장합니다', 'success');
+    }
+    isLoadingFromFolder = false;
+    await autoSaveToFolder();
+  } catch (e) {
+    isLoadingFromFolder = false;
+    console.error(e);
+    if (!silent) toast('불러오기 실패: ' + e.message, 'error');
+  }
+}
+
+function memoToMarkdown(memo) {
+  const fm = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n`;
+  return fm + (memo.content || '');
+}
+
+async function autoSaveToFolder() {
+  if (!folderHandle || isLoadingFromFolder) return;
+  if (!(await ensurePermission(folderHandle))) return;
+  try {
+    autoSaveStatus = 'saving';
+    updateFolderStatus();
+
+    // Save app data (mindmaps + timeblock)
+    const appData = {
+      version: 2,
+      app: 'mindflow',
+      exportedAt: new Date().toISOString(),
+      mindmaps: load('mindmaps', []),
+      activeMindmapId: load('mm_active', null),
+      timeBlocks: load('tb_blocks', {})
+    };
+    const appFh = await folderHandle.getFileHandle(APP_JSON, { create: true });
+    const appW = await appFh.createWritable();
+    await appW.write(JSON.stringify(appData, null, 2));
+    await appW.close();
+
+    // Save each memo as .md (one file per memo, Obsidian-style flat structure)
+    const desiredFiles = new Set();
+    for (const memo of memos) {
+      const fname = `${sanitizeFilename(memo.title)}.md`;
+      // Avoid filename collisions between memos with same title
+      let final = fname;
+      let n = 2;
+      while (desiredFiles.has(final)) {
+        final = fname.replace(/\.md$/, ` (${n}).md`);
+        n++;
+      }
+      desiredFiles.add(final);
+      memo._filename = final;
+      const fh = await folderHandle.getFileHandle(final, { create: true });
+      const w = await fh.createWritable();
+      await w.write(memoToMarkdown(memo));
+      await w.close();
+    }
+
+    // Remove orphan .md files (memos that were deleted) — match by frontmatter id
+    const liveIds = new Set(memos.map(m => m.id));
+    const liveFiles = new Set([...desiredFiles]);
+    for await (const entry of folderHandle.values()) {
+      if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md') && !liveFiles.has(entry.name)) {
+        // Check if it's a managed file (has our frontmatter id)
+        try {
+          const f = await entry.getFile();
+          const t = await f.text();
+          const idM = t.match(/^---[\s\S]*?\nid:\s*(\d+)\s*\n[\s\S]*?\n---/);
+          if (idM && !liveIds.has(parseInt(idM[1]))) {
+            await folderHandle.removeEntry(entry.name);
+          }
+        } catch {}
+      }
+    }
+
+    autoSaveStatus = 'saved';
+    updateFolderStatus();
+    setTimeout(() => {
+      if (autoSaveStatus === 'saved') { autoSaveStatus = 'idle'; updateFolderStatus(); }
+    }, 1800);
+  } catch (e) {
+    console.error(e);
+    autoSaveStatus = 'error';
+    updateFolderStatus();
+    toast('자동 저장 실패: ' + e.message, 'error');
+  }
+}
+
+function scheduleAutoSave() {
+  if (!folderHandle || isLoadingFromFolder) return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSaveToFolder, 1200);
+}
+
+function updateFolderStatus() {
+  const el = document.getElementById('folder-status');
+  if (!el) return;
+  const reloadBtn = document.getElementById('reload-folder-btn');
+  const disconnectBtn = document.getElementById('disconnect-folder-btn');
+  if (folderHandle) {
+    el.classList.add('connected');
+    let statusText = '연결됨 · 변경사항이 자동 저장됩니다';
+    if (autoSaveStatus === 'saving') statusText = '<span class="save-pulse"></span>저장 중...';
+    else if (autoSaveStatus === 'saved') statusText = '✓ 저장됨';
+    else if (autoSaveStatus === 'error') statusText = '⚠ 저장 실패';
+    el.innerHTML = `
+      <div class="icon-circle">📁</div>
+      <div class="text-area">
+        <div class="name">${escapeHtml(folderHandle.name)}</div>
+        <div class="desc">${statusText}</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = '';
+    if (disconnectBtn) disconnectBtn.style.display = '';
+  } else {
+    el.classList.remove('connected');
+    el.innerHTML = `
+      <div class="icon-circle" style="background:var(--surface3)">📁</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">폴더가 연결되지 않음</div>
+        <div class="desc">폴더를 선택하면 .md 파일을 자동으로 동기화합니다</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+  }
+}
+
+async function initFolder() {
+  try {
+    const h = await idbGet('folder');
+    if (h) {
+      folderHandle = h;
+      updateFolderStatus();
+      // Don't request permission immediately; wait for user gesture
+    }
+  } catch {}
+}
+
+// =================== INIT STARTER ===================
+// If there are no mindmaps at all, create a starter
+if (mindmaps.length === 0) {
+  const starter = {
+    id: Date.now(),
+    name: '내 첫 마인드맵',
+    nodes: [],
+    edges: [],
+    idCounter: 1,
+    pan: { x: 0, y: 0 },
+    zoom: 1,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  const cx = 400, cy = 300;
+  starter.nodes.push({ id: starter.idCounter++, text: '중심 주제', x: cx, y: cy, color: '#7c6cf5' });
+  starter.nodes.push({ id: starter.idCounter++, text: '아이디어 1', x: cx - 200, y: cy - 110, color: '#10b981' });
+  starter.nodes.push({ id: starter.idCounter++, text: '아이디어 2', x: cx + 200, y: cy - 110, color: '#3b82f6' });
+  starter.nodes.push({ id: starter.idCounter++, text: '아이디어 3', x: cx - 200, y: cy + 110, color: '#ec4899' });
+  starter.nodes.push({ id: starter.idCounter++, text: '아이디어 4', x: cx + 200, y: cy + 110, color: '#f59e0b' });
+  starter.edges.push({ from: 1, to: 2 }, { from: 1, to: 3 }, { from: 1, to: 4 }, { from: 1, to: 5 });
+  mindmaps = [starter];
+  activeMindmapId = starter.id;
+  bindActiveMap();
+  save('mindmaps', mindmaps);
+  save('mm_active', activeMindmapId);
+}
+renderMindmapList();
+drawMindMap();
+
+// Prevent iOS bounce
+document.body.addEventListener('touchmove', e => {
+  if (e.target.closest('.timeblock-body, .memo-items, textarea, .modal, .markdown-body')) return;
+  if (e.touches.length > 1) return;
+}, { passive: true });
+
+// Initialize persistent folder handle
+initFolder();
+
+// When sync modal opens, attempt to verify folder permission silently
+async function tryRestoreFolder() {
+  if (folderHandle && folderHandle.queryPermission) {
+    const perm = await folderHandle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') {
+      await loadFromFolder({ silent: true });
+    }
+  }
+}
+tryRestoreFolder();
+</script>
+</body>
+</html>
