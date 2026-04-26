@@ -3207,3 +3207,50 @@ body[data-theme="leather"] .ledger-method-badge {
   font-weight: 700 !important;
 }
 .settings-save-btn:hover { transform: translateY(-1px); }
+
+/* ============================================================ */
+/* === Time / date input fix (modal) ========================= */
+/* ============================================================ */
+/* Generic .modal input styling broke native time/date pickers — they need
+   no internal vertical padding so the displayed value sits at the right
+   height, no -webkit-appearance default styling, and a tabular-numeric
+   font so 12:00 ↔ 21:30 don't shift the layout. */
+.modal input[type="time"],
+.modal input[type="date"],
+.modal input[type="datetime-local"] {
+  height: 42px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.3px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  width: 100%;
+}
+.modal input[type="time"]:focus,
+.modal input[type="date"]:focus,
+.modal input[type="datetime-local"]:focus {
+  background: var(--surface);
+  border-color: var(--text);
+}
+.modal input[type="time"]::-webkit-calendar-picker-indicator,
+.modal input[type="date"]::-webkit-calendar-picker-indicator,
+.modal input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  filter: var(--icon-filter, none);
+}
+body[data-theme="leather"] .modal input[type="time"]::-webkit-calendar-picker-indicator,
+body[data-theme="leather"] .modal input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.9);
+}
+/* Time row layout: ensure labels sit ABOVE inputs with consistent gap */
+.modal .time-row-input { display: flex; gap: 10px; align-items: stretch; }
+.modal .time-row-input > div { flex: 1; display: flex; flex-direction: column; }
+.modal .time-row-input label { margin-top: 0 !important; margin-bottom: 6px; }
