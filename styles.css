@@ -1,40 +1,37 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  /* === LIQUID GLASS — light (default) === */
-  /* Vibrant gradient wallpaper showing through translucent glass surfaces.
-     Surfaces use --surface (rgba) + backdrop-filter blur to refract the
-     wallpaper. iOS system colors for accent. */
+  /* === LIQUID GLASS — light (default) ===
+     Subtle wallpaper, mostly-opaque surfaces — text contrast over polish. */
   :root {
-    --bg: #eef2f7;
+    --bg: #f4f6fa;
     --bg-grad:
-      radial-gradient(circle at 0% 0%, rgba(255,143,209,0.55) 0%, transparent 45%),
-      radial-gradient(circle at 100% 0%, rgba(120,170,255,0.6) 0%, transparent 50%),
-      radial-gradient(circle at 50% 100%, rgba(180,140,255,0.5) 0%, transparent 55%),
-      linear-gradient(135deg, #f8fbff 0%, #eaf0fa 100%);
-    --surface: rgba(255,255,255,0.55);
-    --surface2: rgba(255,255,255,0.7);
-    --surface3: rgba(255,255,255,0.85);
-    --border: rgba(255,255,255,0.5);
-    --border-light: rgba(255,255,255,0.7);
-    --glass-stroke: rgba(255,255,255,0.6);   /* inner highlight on top edge */
-    --glass-shadow: 0 8px 32px rgba(31,38,135,0.12);
-    --text: #1c1c1e;
-    --text-dim: #3a3a3c;
-    --text-mute: #8e8e93;
-    --accent: #007AFF;        /* iOS system blue */
-    --accent2: #5AC8FA;
-    --accent-glow: rgba(0,122,255,0.3);
-    --green: #34C759;
-    --orange: #FF9500;
-    --red: #FF3B30;
-    --blue: #007AFF;
-    --pink: #FF2D55;
-    --cyan: #32ADE6;
-    --code-color: #AF52DE;
-    --paper-line: rgba(60,80,120,0.06);
-    --blur-amount: 28px;
-    --blur-strong: 40px;
-    --shadow-1: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(31,38,135,0.08);
-    --shadow-2: 0 8px 32px rgba(31,38,135,0.18);
+      radial-gradient(ellipse at 100% 0%, rgba(120,180,255,0.16) 0%, transparent 60%),
+      radial-gradient(ellipse at 0% 100%, rgba(180,160,255,0.12) 0%, transparent 55%),
+      linear-gradient(135deg, #f7f9fc 0%, #ebeef4 100%);
+    --surface: rgba(255,255,255,0.85);
+    --surface2: rgba(255,255,255,0.92);
+    --surface3: rgba(245,247,250,0.95);
+    --border: rgba(0,0,0,0.09);
+    --border-light: rgba(0,0,0,0.14);
+    --glass-stroke: rgba(255,255,255,0.85);
+    --glass-shadow: 0 4px 20px rgba(20,30,55,0.08);
+    --text: #18181b;
+    --text-dim: #3f3f46;
+    --text-mute: #6b6b73;
+    --accent: #0066ff;
+    --accent2: #4a9bff;
+    --accent-glow: rgba(0,102,255,0.22);
+    --green: #1da94c;
+    --orange: #e07a00;
+    --red: #d72b1e;
+    --blue: #0066ff;
+    --pink: #d12a52;
+    --cyan: #1d8db8;
+    --code-color: #8a36c4;
+    --paper-line: rgba(60,80,120,0.05);
+    --blur-amount: 22px;
+    --blur-strong: 36px;
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(20,30,55,0.05);
+    --shadow-2: 0 8px 24px rgba(20,30,55,0.12);
     --radius: 16px;
     --radius-sm: 12px;
     --safe-top: env(safe-area-inset-top, 0px);
@@ -46,25 +43,24 @@
 
   /* === LIQUID GLASS — dark === */
   body[data-theme="leather"] {
-    --bg: #0a0a14;
+    --bg: #0a0a12;
     --bg-grad:
-      radial-gradient(circle at 0% 0%, rgba(180,90,255,0.4) 0%, transparent 45%),
-      radial-gradient(circle at 100% 0%, rgba(60,140,255,0.45) 0%, transparent 50%),
-      radial-gradient(circle at 50% 100%, rgba(255,90,180,0.35) 0%, transparent 55%),
-      linear-gradient(135deg, #0e0e1c 0%, #050510 100%);
-    --surface: rgba(28,28,40,0.55);
-    --surface2: rgba(40,40,55,0.7);
-    --surface3: rgba(60,60,80,0.8);
+      radial-gradient(ellipse at 100% 0%, rgba(80,120,255,0.18) 0%, transparent 55%),
+      radial-gradient(ellipse at 0% 100%, rgba(150,90,220,0.14) 0%, transparent 55%),
+      linear-gradient(135deg, #0d0d18 0%, #04040a 100%);
+    --surface: rgba(28,28,38,0.78);
+    --surface2: rgba(48,48,62,0.86);
+    --surface3: rgba(70,70,90,0.9);
     --border: rgba(255,255,255,0.12);
-    --border-light: rgba(255,255,255,0.2);
-    --glass-stroke: rgba(255,255,255,0.15);
-    --glass-shadow: 0 12px 40px rgba(0,0,0,0.5);
-    --text: #ffffff;
+    --border-light: rgba(255,255,255,0.22);
+    --glass-stroke: rgba(255,255,255,0.18);
+    --glass-shadow: 0 8px 28px rgba(0,0,0,0.45);
+    --text: #f5f5f7;
     --text-dim: #c7c7cc;
-    --text-mute: #8e8e93;
-    --accent: #0A84FF;        /* iOS dark mode blue */
-    --accent2: #64D2FF;
-    --accent-glow: rgba(10,132,255,0.4);
+    --text-mute: #98989d;
+    --accent: #0A84FF;
+    --accent2: #5AC8FA;
+    --accent-glow: rgba(10,132,255,0.35);
     --green: #30D158;
     --orange: #FF9F0A;
     --red: #FF453A;
@@ -2136,4 +2132,128 @@ body[data-theme="leather"] .tb-list-item.active {
 /* Reduce paper-line texture (clashes with vibrant background) */
 .memo-editor {
   background-image: none;
+}
+
+/* ============================================================ */
+/* === Bear editor: image rendering (live view) ============== */
+/* ============================================================ */
+.bear-editor .md-img {
+  display: block;
+  max-width: 100%;
+  max-height: 480px;
+  margin: 10px 0;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  background: var(--surface3);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.bear-editor [data-line]:has(.md-img) {
+  /* Lines containing an image break out of strict line-height so the image
+     can take its full vertical space without truncation. */
+  line-height: 1.4;
+}
+
+/* ============================================================ */
+/* === Light theme contrast pass — make text & icons crisp === */
+/* ============================================================ */
+
+/* Buttons in light theme — solid icon color over glass surface */
+:root .header-btn,
+:root .tb-btn,
+:root .nav-arrow,
+:root .memo-icon-btn,
+:root .draw-tool,
+:root .panel-collapse-btn,
+:root .panel-reopen-btn,
+:root .tb-back-btn,
+:root .memo-back,
+:root .mm-list-toggle,
+:root .nav-btn {
+  color: var(--text);
+}
+
+/* Sidebar nav (mobile bottom bar): inactive tabs use --text-dim for legibility */
+@media (max-width: 768px) {
+  :root .sidebar .nav-btn { color: var(--text-dim); }
+  :root .sidebar .nav-btn.active { color: var(--accent); }
+}
+
+/* Header h1 & subtitle: explicit contrast */
+.header h1 { color: var(--text); }
+.header .subtitle { color: var(--text-dim); }
+
+/* Page tab text on bottom bar */
+.sidebar .nav-btn .label { color: inherit; }
+
+/* List item titles need to be solid black (was inheriting) */
+.memo-item-title { color: var(--text); }
+.memo-item-preview { color: var(--text-dim); }
+.memo-item-meta,
+.memo-item-meta span { color: var(--text-mute); }
+.tb-list-date { color: var(--text); }
+.tb-list-meta,
+.tb-list-meta span:not(.progress) { color: var(--text-dim); }
+.mm-name { color: var(--text); }
+.mm-meta { color: var(--text-mute); }
+
+/* Time-block summary stats — labels should pop */
+.day-summary .stat .label { color: var(--text-mute); }
+.day-summary .stat .value { color: var(--text); }
+
+/* Modal inputs: ensure text is dark on light glass */
+.modal input, .modal textarea, .modal select,
+.memo-search-wrap .search-input,
+.node-edit-popup input { color: var(--text); }
+.modal input::placeholder,
+.modal textarea::placeholder,
+.memo-search-wrap .search-input::placeholder { color: var(--text-mute); }
+
+/* Mindmap 2-pane "+" button — was a gradient blob that clashed; make it a
+   clean icon-button matching the rest of the toolbar */
+.mm-list-header button {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-stroke), 0 1px 2px rgba(0,0,0,0.04);
+  font-size: 18px;
+  font-weight: 500;
+}
+.mm-list-header button:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+/* Memo "+" new button: same treatment */
+.memo-search-wrap .new-btn {
+  /* Already has gradient, keep but tweak shadow for visibility on light */
+  box-shadow: 0 4px 14px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.25);
+}
+
+/* ============================================================ */
+/* === iPhone full edge-to-edge bottom bar =================== */
+/* ============================================================ */
+@media (max-width: 768px) {
+  /* Buttons share width so the bar feels filled rather than 3 islands */
+  .sidebar .nav-btn {
+    flex: 1;
+    width: auto;
+    max-width: 110px;
+  }
+  /* Bar itself: zero side padding so it touches both edges,
+     bottom padding includes safe-area inset to clear the home indicator
+     while the background extends fully behind it */
+  .sidebar {
+    padding: 4px 0 calc(4px + var(--safe-bot));
+    /* Background extends to absolute screen edges: */
+    margin-left: calc(-1 * var(--safe-left));
+    margin-right: calc(-1 * var(--safe-right));
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
+  /* Buttons keep some breathing room at edges */
+  .sidebar > * { margin: 0; }
 }
