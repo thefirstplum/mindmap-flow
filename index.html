@@ -1580,6 +1580,9 @@
       <button class="tb-btn" onclick="gistConnect()" style="flex:1;min-width:100px;justify-content:center;">
         🔗 연결
       </button>
+      <button class="tb-btn" onclick="gistSyncNow()" id="gist-sync-now-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        🔄 지금 동기화
+      </button>
       <button class="tb-btn" onclick="gistPullAll()" id="gist-pull-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
         ⬇ 가져오기
       </button>
@@ -3090,7 +3093,7 @@ let gistETag = null;
 let gistPollTimer = null;
 let gistLastPushAt = 0;
 let gistLastSyncAt = null;
-const GIST_POLL_INTERVAL = 30_000; // 30s
+const GIST_POLL_INTERVAL = 15_000; // 15s
 
 async function gistApi(method, path, body) {
   if (!gistToken) throw new Error('Token not set');
@@ -3410,6 +3413,7 @@ function updateGistStatus() {
   if (!el) return;
   const reloadBtn = document.getElementById('gist-pull-btn');
   const disconnectBtn = document.getElementById('gist-disconnect-btn');
+  const syncNowBtn = document.getElementById('gist-sync-now-btn');
   const idInput = document.getElementById('gist-id-input');
   if (gistToken && gistId) {
     el.classList.add('connected');
@@ -3434,6 +3438,7 @@ function updateGistStatus() {
     `;
     if (reloadBtn) reloadBtn.style.display = '';
     if (disconnectBtn) disconnectBtn.style.display = '';
+    if (syncNowBtn) syncNowBtn.style.display = '';
     if (idInput && !idInput.value) idInput.value = gistId;
   } else {
     el.classList.remove('connected');
@@ -3446,18 +3451,25 @@ function updateGistStatus() {
     `;
     if (reloadBtn) reloadBtn.style.display = 'none';
     if (disconnectBtn) disconnectBtn.style.display = 'none';
+    if (syncNowBtn) syncNowBtn.style.display = 'none';
   }
 }
 
 // Lightweight poll using ETag — only fetches data when remote actually changed
-async function gistPoll() {
+async function gistPoll(force = false) {
   if (!gistToken || !gistId || isLoadingFromGist) return;
-  if (document.hidden) return;
+  if (!force && document.hidden) return;
   // Don't poll during/right after a local push (avoid race + saving our own write back)
-  if (Date.now() - gistLastPushAt < 4000) return;
-  // Don't disrupt user typing — skip if input/textarea focused
-  const ae = document.activeElement;
-  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+  if (!force && Date.now() - gistLastPushAt < 4000) return;
+  // Don't disrupt active editing in the memo editor (search/sync inputs are fine)
+  if (!force) {
+    const ae = document.activeElement;
+    const inEditor = ae && (
+      ae.tagName === 'TEXTAREA' ||
+      (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))
+    );
+    if (inEditor) return;
+  }
 
   try {
     const headers = {
@@ -3492,7 +3504,21 @@ async function gistPoll() {
 function gistStartPolling() {
   if (gistPollTimer) clearInterval(gistPollTimer);
   if (!gistToken || !gistId) return;
-  gistPollTimer = setInterval(gistPoll, GIST_POLL_INTERVAL);
+  gistPollTimer = setInterval(() => gistPoll(false), GIST_POLL_INTERVAL);
+}
+
+// Force-sync now: push pending changes immediately + force pull
+async function gistSyncNow() {
+  if (!gistToken || !gistId) { toast('먼저 Gist를 연결하세요'); return; }
+  try {
+    clearTimeout(gistAutoSaveTimer);
+    toast('동기화 중...');
+    await gistPushAll();
+    await gistPoll(true);
+    toast('동기화 완료', 'success');
+  } catch (e) {
+    toast('동기화 실패: ' + e.message, 'error');
+  }
 }
 
 function gistStopPolling() {
