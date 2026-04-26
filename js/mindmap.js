@@ -74,6 +74,8 @@ function saveMindMap() {
 function renderMindmapList() {
   const container = document.getElementById('mindmap-items');
   if (!container) return;
+  const countEl = document.getElementById('mm-count');
+  if (countEl) countEl.textContent = mindmaps.length;
   if (mindmaps.length === 0) {
     container.innerHTML = `<div class="mm-empty">마인드맵이 없습니다<br>+ 버튼을 눌러 시작하세요</div>`;
     return;
