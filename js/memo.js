@@ -132,7 +132,7 @@ function renderMemoEditor() {
   if (!isEdit) {
     // Click anywhere on the rendered body switches to edit mode (unless
     // clicking a link). Matches Bear's "tap to edit" behavior.
-    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a'))setMemoMode('edit')">${renderedHtml}</div></div>`;
+    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('edit')">${renderedHtml}</div></div>`;
   } else if (isMobile) {
     bodyHtml = `<div class="memo-body-wrap edit-only">
       <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
@@ -836,4 +836,50 @@ function triggerImageUpload() {
   document.body.appendChild(input);
   input.click();
 }
+
+// =================== IMAGE LIGHTBOX ===================
+// Click any image in the rendered markdown view → full-screen modal.
+// Tap outside / press Esc / pinch-out (browser default) to close.
+function openImageLightbox(src, alt) {
+  let lb = document.getElementById('image-lightbox');
+  if (!lb) {
+    lb = document.createElement('div');
+    lb.id = 'image-lightbox';
+    lb.className = 'image-lightbox';
+    lb.innerHTML = `
+      <button class="lightbox-close" aria-label="닫기">×</button>
+      <img class="lightbox-img" alt="">
+    `;
+    document.body.appendChild(lb);
+    lb.addEventListener('click', (e) => {
+      if (e.target === lb || e.target.classList.contains('lightbox-close')) {
+        closeImageLightbox();
+      }
+    });
+  }
+  const img = lb.querySelector('.lightbox-img');
+  img.src = src;
+  img.alt = alt || '';
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeImageLightbox() {
+  const lb = document.getElementById('image-lightbox');
+  if (!lb) return;
+  lb.classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeImageLightbox();
+});
+// Delegated click on any rendered markdown image. stopPropagation so the
+// parent .view-clickable handler doesn't also fire (which would flip into
+// edit mode).
+document.addEventListener('click', (e) => {
+  const img = e.target.closest('.markdown-body img');
+  if (!img) return;
+  e.stopPropagation();
+  e.preventDefault();
+  openImageLightbox(img.src, img.alt);
+});
 
