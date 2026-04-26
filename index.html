@@ -8,34 +8,71 @@
 <meta name="theme-color" content="#0f1117">
 <title>MindFlow — 마인드맵 · 타임블록 · 메모</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  /* === MOLESKINE PAPER (default) — cream notebook page === */
   :root {
-    --bg: #0b0d14;
-    --bg-grad: radial-gradient(circle at 20% 0%, #1a1530 0%, #0b0d14 50%);
-    --surface: #161922;
-    --surface2: #1f2330;
-    --surface3: #2a2f3f;
-    --border: #2a2f3f;
-    --border-light: #353a4d;
-    --text: #e8eaf2;
-    --text-dim: #8b8fa3;
-    --text-mute: #595d70;
-    --accent: #7c6cf5;
-    --accent2: #a99bff;
-    --accent-glow: rgba(124,108,245,0.35);
-    --green: #10b981;
-    --orange: #f59e0b;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --pink: #ec4899;
-    --cyan: #06b6d4;
+    --bg: #f1ead2;
+    --bg-grad: radial-gradient(ellipse at 30% 0%, #faf3d9 0%, #ebe2c2 75%);
+    --surface: #fbf5e1;
+    --surface2: #ece2c2;
+    --surface3: #d8cba6;
+    --border: #cdbe98;
+    --border-light: #b8a679;
+    --text: #1f1a14;
+    --text-dim: #6b5a3e;
+    --text-mute: #9a8a68;
+    --accent: #8b3a3a;        /* oxblood ribbon red */
+    --accent2: #b15151;
+    --accent-glow: rgba(139,58,58,0.18);
+    --green: #4a7c59;
+    --orange: #b8841a;
+    --red: #9a3922;
+    --blue: #3a5577;
+    --pink: #a04a6a;
+    --cyan: #3a6577;
+    --code-color: #8b3a3a;
+    --paper-line: rgba(60,40,20,0.08);
+    --shadow-1: 0 2px 8px rgba(80,60,30,0.08);
+    --shadow-2: 0 8px 24px rgba(80,60,30,0.14);
     --radius: 14px;
     --radius-sm: 10px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
     --safe-right: env(safe-area-inset-right, 0px);
+    color-scheme: light;
+  }
+
+  /* === MOLESKINE LEATHER (dark) — embossed brown cover === */
+  body[data-theme="leather"] {
+    --bg: #221810;
+    --bg-grad: radial-gradient(ellipse at 30% 0%, #322419 0%, #1a1108 75%);
+    --surface: #2e2317;
+    --surface2: #3d2f1f;
+    --surface3: #50402a;
+    --border: #4a3a25;
+    --border-light: #5d4a30;
+    --text: #efe2c5;
+    --text-dim: #b59b76;
+    --text-mute: #806a4f;
+    --accent: #c8624a;
+    --accent2: #e07f6a;
+    --accent-glow: rgba(200,98,74,0.3);
+    --green: #6f9b65;
+    --orange: #d4a64a;
+    --red: #c8624a;
+    --blue: #6088a6;
+    --pink: #d27a8e;
+    --cyan: #6e9aa6;
+    --code-color: #f4b3a0;
+    --paper-line: rgba(255,220,180,0.05);
+    --shadow-1: 0 4px 12px rgba(0,0,0,0.4);
+    --shadow-2: 0 12px 32px rgba(0,0,0,0.5);
+    color-scheme: dark;
   }
   html, body {
     height: 100%;
@@ -43,7 +80,7 @@
     overscroll-behavior: none;
   }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
     background: var(--bg);
     background-image: var(--bg-grad);
     color: var(--text);
@@ -51,6 +88,23 @@
     -webkit-user-select: none;
     user-select: none;
     touch-action: manipulation;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+  /* Memo body uses serif (notebook handwriting feel) */
+  .bear-editor,
+  .memo-editor textarea,
+  .markdown-body,
+  .memo-editor-header input {
+    font-family: 'Crimson Pro', 'Lora', 'Nanum Myeongjo', Georgia, 'Times New Roman', serif;
+  }
+  .memo-editor textarea, .markdown-body, .bear-editor {
+    font-size: 17px;
+    line-height: 1.8;
+  }
+  /* Subtle ruled-line paper texture behind memo content */
+  .memo-editor {
+    background-image: repeating-linear-gradient(transparent, transparent 30.4px, var(--paper-line) 30.4px, var(--paper-line) 31.4px);
+    background-size: 100% 31.4px;
   }
   input, textarea { -webkit-user-select: text; user-select: text; touch-action: auto; }
 
@@ -1157,7 +1211,7 @@
   .bear-editor .md-strike { text-decoration: line-through; color: var(--text-mute); }
   .bear-editor .md-code {
     background: var(--surface2);
-    color: #ffb3d1;
+    color: var(--code-color);
     padding: 1px 6px;
     border-radius: 4px;
     font-family: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -1206,7 +1260,7 @@
   .markdown-body p { margin: 10px 0; }
   .markdown-body code {
     background: var(--surface2);
-    color: #ffb3d1;
+    color: var(--code-color);
     padding: 2px 6px;
     border-radius: 5px;
     font-family: ui-monospace, 'SF Mono', Menlo, monospace;
@@ -1631,6 +1685,10 @@
         <div class="subtitle" id="page-subtitle">하루를 블록 단위로 계획하세요</div>
       </div>
       <div class="header-spacer"></div>
+      <button class="header-btn theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="테마 전환 (종이 ↔ 가죽)">
+        <svg id="theme-icon-paper" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg id="theme-icon-leather" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <button class="header-btn sync-pill" id="header-sync-pill" onclick="openSyncModal()" title="동기화">
         <span class="sync-dot"></span>
         <span class="sync-label btn-label" id="header-sync-label">동기화</span>
@@ -2032,6 +2090,36 @@ function md2html(md) {
   return s;
 }
 
+// =================== THEME (Moleskine paper / leather) ===================
+let currentTheme = (function () {
+  try { return JSON.parse(localStorage.getItem('mindflow_theme')) || 'paper'; } catch { return 'paper'; }
+})();
+
+function applyTheme(theme) {
+  if (theme === 'leather') document.body.setAttribute('data-theme', 'leather');
+  else document.body.removeAttribute('data-theme');
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = theme === 'leather' ? '#221810' : '#f1ead2';
+  // Swap icon
+  const paperIcon = document.getElementById('theme-icon-paper');
+  const leatherIcon = document.getElementById('theme-icon-leather');
+  if (paperIcon && leatherIcon) {
+    if (theme === 'leather') { paperIcon.style.display = ''; leatherIcon.style.display = 'none'; }
+    else { paperIcon.style.display = 'none'; leatherIcon.style.display = ''; }
+  }
+  currentTheme = theme;
+}
+
+function toggleTheme() {
+  const next = currentTheme === 'paper' ? 'leather' : 'paper';
+  try { localStorage.setItem('mindflow_theme', JSON.stringify(next)); } catch {}
+  applyTheme(next);
+  // Mindmap canvas needs redraw because some colors are computed
+  if (typeof drawMindMap === 'function') drawMindMap();
+}
+
+applyTheme(currentTheme);
+
 // =================== TOAST ===================
 function toast(msg, type = '') {
   const el = document.getElementById('toast');
@@ -2365,7 +2453,9 @@ function drawMindMap() {
   const startY = Math.floor(-pan.y / zoom / grid) * grid;
   const endX = startX + (w / zoom) + grid * 2;
   const endY = startY + (h / zoom) + grid * 2;
-  ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+  ctx.strokeStyle = (document.body.getAttribute('data-theme') === 'leather')
+    ? 'rgba(255,255,255,0.04)'
+    : 'rgba(60,40,20,0.07)';
   ctx.lineWidth = 1 / zoom;
   for (let x = startX; x < endX; x += grid) {
     ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
