@@ -551,11 +551,27 @@
   .day-summary .stat .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
   .day-summary .stat .value { font-size: 18px; font-weight: 700; margin-top: 2px; }
 
-  .timeblock-grid { display: flex; flex-direction: column; }
+  .timeblock-grid { position: relative; }
+  .time-rows-bg { display: flex; flex-direction: column; }
+  .time-blocks-layer {
+    position: absolute;
+    top: 0;
+    left: 70px;
+    right: 12px;
+    bottom: 0;
+    pointer-events: none;
+  }
+  .time-blocks-layer .time-block-item {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    pointer-events: auto;
+    overflow: hidden;
+  }
   .time-row {
     display: flex;
     align-items: stretch;
-    min-height: 60px;
+    height: 60px;
     border-bottom: 1px solid var(--border);
     position: relative;
   }
@@ -2593,15 +2609,15 @@ function renderTimeBlocks() {
   const body = document.getElementById('timeblock-body');
   const key = dateKey(currentDate);
   const blocks = timeBlocks[key] || [];
+  const ROW_HEIGHT = 60; // px per hour
+  const START_HOUR = 6;
+  const END_HOUR = 23; // inclusive
 
   // Summary
-  let totalMin = 0, doneMin = 0;
+  let totalMin = 0;
   blocks.forEach(b => {
     const dur = minutesFromTime(b.end) - minutesFromTime(b.start);
-    if (dur > 0) {
-      totalMin += dur;
-      if (b.done) doneMin += dur;
-    }
+    if (dur > 0) totalMin += dur;
   });
   const fmt = m => `${Math.floor(m/60)}시간 ${m%60}분`;
 
@@ -2616,35 +2632,48 @@ function renderTimeBlocks() {
   const nowH = today.getHours();
   const nowM = today.getMinutes();
 
+  // Background hour grid
   html += '<div class="timeblock-grid">';
-  for (let h = 6; h <= 23; h++) {
+  html += '<div class="time-rows-bg">';
+  for (let h = START_HOUR; h <= END_HOUR; h++) {
     const label = h.toString().padStart(2, '0') + ':00';
-    const hourBlocks = blocks.filter(b => parseInt(b.start.split(':')[0]) === h);
     const isNowRow = isToday && nowH === h;
     const nowOffset = isNowRow ? `${(nowM / 60) * 100}%` : '0';
     html += `<div class="time-row ${isNowRow ? 'now-row' : ''}" style="--now-offset: ${nowOffset}">
       <div class="time-label">${label}</div>
-      <div class="time-slot" data-hour="${h}">`;
-    hourBlocks.forEach(b => {
-      const idx = blocks.indexOf(b);
-      html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}">
-        <div class="block-title"><span class="block-checkbox" data-toggle="${idx}"></span>${escapeHtml(b.title)}</div>
-        <div class="block-time">${b.start} – ${b.end}</div>
-        ${b.desc ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
-        <button class="block-delete" data-del="${idx}">✕</button>
-      </div>`;
-    });
-    html += '</div></div>';
+      <div class="time-slot" data-hour="${h}"></div>
+    </div>`;
   }
   html += '</div>';
+
+  // Foreground blocks layer (absolute positioned, visually span their duration)
+  html += '<div class="time-blocks-layer">';
+  blocks.forEach((b, idx) => {
+    const startMin = minutesFromTime(b.start);
+    const endMin = minutesFromTime(b.end);
+    const startOffset = startMin - START_HOUR * 60;
+    const duration = Math.max(20, endMin - startMin); // min visual height for tiny blocks
+    if (startOffset + duration <= 0) return; // entirely before view
+    const visibleStart = Math.max(0, startOffset);
+    const visibleHeight = Math.min((END_HOUR + 1 - START_HOUR) * 60 - visibleStart, duration - (visibleStart - startOffset));
+    if (visibleHeight <= 0) return;
+    const top = visibleStart;
+    const height = visibleHeight;
+    html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}" style="top:${top}px;height:${height}px;">
+      <div class="block-title"><span class="block-checkbox" data-toggle="${idx}"></span>${escapeHtml(b.title)}</div>
+      <div class="block-time">${b.start} – ${b.end}</div>
+      ${b.desc && height > 70 ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
+      <button class="block-delete" data-del="${idx}">✕</button>
+    </div>`;
+  });
+  html += '</div>';
+  html += '</div>';
+
   body.innerHTML = html;
 
   // Wire up events
   body.querySelectorAll('.time-slot').forEach(s => {
-    s.addEventListener('click', e => {
-      if (e.target.closest('.time-block-item')) return;
-      openTbModal(parseInt(s.dataset.hour));
-    });
+    s.addEventListener('click', () => openTbModal(parseInt(s.dataset.hour)));
   });
   body.querySelectorAll('.time-block-item').forEach(item => {
     item.addEventListener('click', e => {
@@ -3187,6 +3216,8 @@ let driveLastPushAt = 0;
 let driveLastSyncAt = null;
 let driveLastModifiedTime = null; // server-side mtime of folder for change detection
 let isLoadingFromDrive = false;
+let isPushingToDrive = false;
+let driveDirty = false; // local has unpushed changes
 let driveStatus = 'idle';
 let driveAutoSaveTimer = null;
 const DRIVE_POLL_INTERVAL = 15_000;
@@ -3411,18 +3442,31 @@ function sanitizeDriveName(s) {
   return (s || 'untitled').replace(/[\/\\?%*:|"<>]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'untitled';
 }
 
+function memoDriveFilename(memo) {
+  const safe = sanitizeDriveName(memo.title);
+  return `${memo.id}-${safe}.md`;
+}
+function parseMemoIdFromFilename(name) {
+  const m = name.match(/^(\d+)-/);
+  return m ? parseInt(m[1]) : null;
+}
+
 async function drivePushAll() {
-  if (!driveFolderId || isLoadingFromDrive) return;
+  if (!driveFolderId || isLoadingFromDrive || isPushingToDrive) return;
+  isPushingToDrive = true;
   try {
     driveStatus = 'saving';
     updateDriveStatus();
 
     // Get current files in folder
     const current = await driveListInFolder(driveFolderId);
-    const byName = {};
+    const byName = new Map();
+    const byMemoId = new Map();
     for (const f of current.files) {
-      if (f.name === DRIVE_ASSETS_NAME) continue; // skip subfolder
-      byName[f.name] = f;
+      if (f.mimeType === 'application/vnd.google-apps.folder') continue;
+      byName.set(f.name, f);
+      const id = parseMemoIdFromFilename(f.name);
+      if (id) byMemoId.set(id, f);
     }
 
     // App data
@@ -3435,38 +3479,46 @@ async function drivePushAll() {
       timeBlocks: load('tb_blocks', {})
     };
     const appJson = JSON.stringify(appData, null, 2);
-    if (byName[DRIVE_APP_FILENAME]) {
-      await driveUpdateFile(byName[DRIVE_APP_FILENAME].id, appJson, 'application/json');
+    const appFile = byName.get(DRIVE_APP_FILENAME);
+    if (appFile) {
+      await driveUpdateFile(appFile.id, appJson, 'application/json');
     } else {
       await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
     }
 
-    // Memos as .md
-    const desired = new Set([DRIVE_APP_FILENAME]);
+    // Memos as .md — match by memo ID (filename prefix), allow rename
+    const keptFiles = new Set([DRIVE_APP_FILENAME]);
     for (const memo of memos) {
-      let base = sanitizeDriveName(memo.title);
-      let fname = base + '.md';
-      let n = 2;
-      while (desired.has(fname)) { fname = `${base} (${n}).md`; n++; }
-      desired.add(fname);
+      const fname = memoDriveFilename(memo);
       const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
-      if (byName[fname]) {
-        await driveUpdateFile(byName[fname].id, content, 'text/markdown');
+      const existing = byMemoId.get(memo.id);
+      if (existing) {
+        // Update content; rename in metadata if filename changed
+        await driveUpdateFile(existing.id, content, 'text/markdown');
+        if (existing.name !== fname) {
+          try { await driveApi('PATCH', `/files/${existing.id}`, { name: fname }); } catch (e) { console.warn('Rename failed:', e); }
+        }
+        keptFiles.add(fname);
+        keptFiles.add(existing.name);
       } else {
         await driveUploadFile(fname, content, 'text/markdown', driveFolderId);
+        keptFiles.add(fname);
       }
     }
 
-    // Delete orphan .md files
-    for (const [name, f] of Object.entries(byName)) {
-      if (!desired.has(name) && name.toLowerCase().endsWith('.md')) {
+    // Delete orphan .md files (memos that were deleted locally)
+    for (const [name, f] of byName) {
+      if (keptFiles.has(name)) continue;
+      if (!name.toLowerCase().endsWith('.md')) continue;
+      // Only delete if it has our id-prefix (managed by us) and that id is no longer in memos
+      const id = parseMemoIdFromFilename(name);
+      if (id && !memos.find(m => m.id === id)) {
         try { await driveDeleteFile(f.id); } catch {}
       }
     }
 
     driveLastPushAt = Date.now();
     driveLastSyncAt = driveLastPushAt;
-    // Update mtime so the next poll doesn't pull our own write
     try {
       const meta = await driveApi('GET', `/files/${driveFolderId}`, null, { fields: 'modifiedTime' });
       driveLastModifiedTime = meta.modifiedTime;
@@ -3480,6 +3532,8 @@ async function drivePushAll() {
     driveStatus = 'error';
     updateDriveStatus();
     toast('Drive 동기화 실패: ' + e.message, 'error');
+  } finally {
+    isPushingToDrive = false;
   }
 }
 
@@ -3581,7 +3635,8 @@ async function drivePullAll(skipConfirm = false) {
 }
 
 async function drivePoll(force = false) {
-  if (!driveFolderId || isLoadingFromDrive) return;
+  if (!driveFolderId || isLoadingFromDrive || isPushingToDrive) return;
+  if (!force && driveDirty) return; // don't poll while we have unpushed local changes — would overwrite
   if (!force && document.hidden) return;
   if (!force && Date.now() - driveLastPushAt < 4000) return;
   if (!force) {
@@ -3638,8 +3693,12 @@ async function driveSyncNow() {
 
 function scheduleDriveSave() {
   if (!driveFolderId || isLoadingFromDrive) return;
+  driveDirty = true;
   clearTimeout(driveAutoSaveTimer);
-  driveAutoSaveTimer = setTimeout(drivePushAll, 2000);
+  driveAutoSaveTimer = setTimeout(async () => {
+    await drivePushAll();
+    driveDirty = false;
+  }, 2000);
 }
 
 function updateDriveStatus() {
