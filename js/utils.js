@@ -189,6 +189,10 @@ function applySettings() {
 function saveSettings() {
   save('settings', appSettings);
   applySettings();
+  // Refresh timeblock if visible so the ledger summary card appears/disappears
+  if (typeof renderTimeBlocks === 'function' && document.getElementById('page-timeblock')?.classList.contains('active')) {
+    renderTimeBlocks();
+  }
 }
 
 function setSetting(key, value) {

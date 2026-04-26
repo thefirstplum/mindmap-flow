@@ -46,3 +46,9 @@ document.querySelectorAll('.sidebar .nav-btn[data-page]').forEach(btn => {
 });
 document.getElementById('sync-btn').addEventListener('click', openSyncModal);
 
+
+// Programmatic page navigation (used by ledger summary card on timeblock)
+function goToLedger() {
+  const btn = document.querySelector('.sidebar .nav-btn[data-page="ledger"]');
+  if (btn && btn.style.display !== 'none') btn.click();
+}

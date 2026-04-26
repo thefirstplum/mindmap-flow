@@ -72,8 +72,11 @@ function addLedgerEntry() {
   saveLedger();
   if (amountInput) amountInput.value = '';
   if (noteInput) noteInput.value = '';
-  // Keep date and category as-is — likely the user will add another entry for same context
   renderLedger();
+  // If timeblock page is showing the ledger summary card, refresh it
+  if (typeof renderTimeBlocks === 'function' && document.getElementById('page-timeblock')?.classList.contains('active')) {
+    renderTimeBlocks();
+  }
   toast(`${ledgerType === 'income' ? '수입' : '지출'} ${formatWon(amount)} 추가됨`, 'success');
   amountInput?.focus();
 }
@@ -83,6 +86,9 @@ function deleteLedgerEntry(id) {
   ledgerEntries = ledgerEntries.filter(e => e.id !== id);
   saveLedger();
   renderLedger();
+  if (typeof renderTimeBlocks === 'function' && document.getElementById('page-timeblock')?.classList.contains('active')) {
+    renderTimeBlocks();
+  }
 }
 
 function renderLedger() {
