@@ -183,6 +183,8 @@ function renderMemoEditor() {
   `;
 
   if (isEdit) setupSplitScrollSync();
+  // Mark cached images as loaded so the skeleton shimmer goes away
+  setTimeout(markLoadedImages, 0);
 }
 
 // Toggle between viewer and edit. View is default; first-time tap on the
@@ -647,6 +649,7 @@ function updateMemoContent(val) {
   const preview = document.querySelector('.memo-body-wrap.split #memo-preview');
   if (preview) {
     preview.innerHTML = val.trim() ? md2html(val) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>';
+    setTimeout(markLoadedImages, 0);
   }
   clearTimeout(window._memoListTimer);
   window._memoListTimer = setTimeout(renderMemoList, 500);
@@ -670,8 +673,10 @@ async function uploadImageToDrive(blob) {
     const name = `img-${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
     const file = await driveUploadFile(name, blob, blob.type, driveAssetsFolderId);
     await driveMakePublic(file.id);
-    // Use thumbnail URL for reliable hotlinking; size up to ~2000px
-    const url = `https://drive.google.com/thumbnail?id=${file.id}&sz=w2000`;
+    // Use lh3 CDN URL — much faster than drive.google.com/thumbnail
+    // (CDN-edge cached, no on-demand thumbnail generation). Request 2560px
+    // to support retina displays at full memo width.
+    const url = `https://lh3.googleusercontent.com/d/${file.id}=w2560`;
     toast('이미지 업로드 완료', 'success');
     return { url, id: file.id, name };
   } catch (e) {
@@ -716,9 +721,10 @@ function insertIntoActiveMemo(insertText) {
 }
 
 // Resize a large image down to a reasonable size before upload/embed.
-// iPhone photos are typically 2–5MB which would blow past localStorage and
-// hit Drive quotas. Resize to 1600px max dim at JPEG q=0.85 → usually 200–500KB.
-async function resizeImage(blob, maxDim = 1600, quality = 0.85) {
+// iPhone photos are 4032px @ 12MP and 2-5MB. Resize to 2560px max dim
+// at JPEG q=0.92 → typically 600KB-1.2MB. 2560px is enough for retina
+// displays at full memo width without looking soft.
+async function resizeImage(blob, maxDim = 2560, quality = 0.92) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(blob);
@@ -755,9 +761,11 @@ async function handleImageInsert(blob) {
   // Always shrink large/HEIC images before upload or embed
   let workingBlob = blob;
   try {
-    if (blob.size > 600_000 || /image\/(heic|heif)/i.test(blob.type)) {
+    // Always resize HEIC/HEIF (Safari can't render those inline). Otherwise
+    // only resize photos > 1.5 MB so smaller PNG screenshots stay sharp.
+    if (blob.size > 1_500_000 || /image\/(heic|heif)/i.test(blob.type)) {
       toast('이미지 처리 중...');
-      workingBlob = await resizeImage(blob, 1600, 0.85);
+      workingBlob = await resizeImage(blob, 2560, 0.92);
     }
   } catch (e) {
     console.warn('Resize failed, using original:', e);
@@ -874,12 +882,33 @@ document.addEventListener('keydown', (e) => {
 });
 // Delegated click on any rendered markdown image. stopPropagation so the
 // parent .view-clickable handler doesn't also fire (which would flip into
-// edit mode).
+// edit mode). For Drive CDN URLs, request the original (=w0) for the
+// lightbox so the zoomed view is high-res.
 document.addEventListener('click', (e) => {
   const img = e.target.closest('.markdown-body img');
   if (!img) return;
   e.stopPropagation();
   e.preventDefault();
-  openImageLightbox(img.src, img.alt);
+  let fullSrc = img.src;
+  const m = fullSrc.match(/^(https:\/\/lh3\.googleusercontent\.com\/d\/[^=]+)=w\d+/);
+  if (m) fullSrc = m[1] + '=w0';
+  openImageLightbox(fullSrc, img.alt);
 });
+
+// Fade-in once each rendered image finishes loading. The .loaded class
+// removes the shimmer skeleton bg and stops the animation. Capture-phase
+// listener catches load events for images inserted via innerHTML.
+document.addEventListener('load', (e) => {
+  if (e.target?.tagName === 'IMG' && e.target.closest('.markdown-body')) {
+    e.target.classList.add('loaded');
+  }
+}, true);
+// Mark images that were already cached/complete before our listener
+// could see them (happens on memo switch when the browser already has
+// the image in its cache). Called from renderMemoEditor + updateMemoContent.
+function markLoadedImages() {
+  document.querySelectorAll('.markdown-body img').forEach(img => {
+    if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
+  });
+}
 

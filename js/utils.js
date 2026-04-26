@@ -1,3 +1,25 @@
+// =================== IMAGE URL OPTIMIZATION ===================
+// Rewrite slow-loading Drive thumbnail URLs to the lh3.googleusercontent
+// CDN form, which is much faster (CDN-edge cached, no on-demand generation).
+// Files must already be public-shared (Drive's drive.file scope + the
+// driveMakePublic call after upload handles this).
+function optimizeImageUrl(url) {
+  if (!url) return url;
+  // drive.google.com/thumbnail?id=ID&sz=...  →  lh3.googleusercontent.com/d/ID=w2560
+  // (Always request 2560 — covers retina at full memo width, source is
+  // already at most 2560px after the upload-side resize.)
+  let m = url.match(/^https?:\/\/(?:www\.)?drive\.google\.com\/thumbnail\?(?:.*&)?id=([^&]+)/);
+  if (m) {
+    return `https://lh3.googleusercontent.com/d/${m[1]}=w2560`;
+  }
+  // drive.google.com/uc?export=view&id=ID  →  lh3.googleusercontent.com/d/ID=w2560
+  m = url.match(/^https?:\/\/(?:www\.)?drive\.google\.com\/uc\?(?:.*&)?id=([^&]+)/);
+  if (m) {
+    return `https://lh3.googleusercontent.com/d/${m[1]}=w2560`;
+  }
+  return url;
+}
+
 // =================== MARKDOWN PARSER ===================
 function md2html(md) {
   if (!md) return '';
@@ -56,8 +78,14 @@ function md2html(md) {
   // Inline code
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
-  // Links and images
-  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
+  // Links and images. Rewrite Drive thumbnail URLs to the lh3 CDN form
+  // for ~2-3× faster fetches (CDN-cached vs. on-demand thumbnail gen).
+  // Add loading="lazy" + decoding="async" so multiple images don't block
+  // the main thread and the parser stays responsive while they fetch.
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_m, alt, url) => {
+    const optimized = optimizeImageUrl(url);
+    return `<img src="${optimized}" alt="${alt}" loading="lazy" decoding="async">`;
+  });
   s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
   // Paragraphs (split by blank lines)
