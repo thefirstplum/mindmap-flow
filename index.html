@@ -154,12 +154,67 @@
     color: var(--text);
     font-size: 13px;
     cursor: pointer;
-    display: inline-flex; align-items: center; gap: 6px;
+    display: inline-flex; align-items: center; gap: 8px;
     transition: all 0.15s;
   }
   .header-btn:hover { background: var(--surface3); border-color: var(--border-light); }
   .header-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
   .header-btn.primary:hover { background: var(--accent2); }
+
+  /* Sync status pill in header — always visible state */
+  .sync-pill .sync-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-mute);
+    flex-shrink: 0;
+    transition: all 0.25s;
+  }
+  .sync-pill.synced { color: var(--green); border-color: rgba(16,185,129,0.4); }
+  .sync-pill.synced .sync-dot { background: var(--green); box-shadow: 0 0 8px rgba(16,185,129,0.5); }
+  .sync-pill.syncing { color: var(--orange); border-color: rgba(245,158,11,0.4); }
+  .sync-pill.syncing .sync-dot {
+    background: var(--orange);
+    box-shadow: 0 0 8px rgba(245,158,11,0.5);
+    animation: syncpulse 1.2s ease-in-out infinite;
+  }
+  .sync-pill.error { color: var(--red); border-color: rgba(239,68,68,0.4); }
+  .sync-pill.error .sync-dot { background: var(--red); box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+  .sync-pill.offline { color: var(--text-mute); }
+  .sync-pill.offline .sync-dot { background: var(--text-mute); }
+  @keyframes syncpulse {
+    0%, 100% { opacity: 0.5; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+  .sync-pill .sync-label { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  /* Sync error banner — persistent, dismissible */
+  .sync-error-banner {
+    display: none;
+    background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.08));
+    border-bottom: 1px solid rgba(239,68,68,0.4);
+    padding: 10px 24px;
+    color: var(--red);
+    font-size: 13px;
+    align-items: center;
+    gap: 12px;
+  }
+  .sync-error-banner.show { display: flex; }
+  .sync-error-banner .msg { flex: 1; min-width: 0; }
+  .sync-error-banner button {
+    background: var(--red);
+    color: #fff;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .sync-error-banner button.dismiss {
+    background: transparent;
+    color: var(--red);
+    padding: 5px 8px;
+  }
 
   .content { flex: 1; overflow: hidden; position: relative; }
   .page { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
@@ -1567,12 +1622,16 @@
         <div class="subtitle" id="page-subtitle">하루를 블록 단위로 계획하세요</div>
       </div>
       <div class="header-spacer"></div>
-      <button class="header-btn" onclick="openSyncModal()" title="iCloud 동기화 / 백업">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/>
-        </svg>
-        <span class="btn-label">동기화</span>
+      <button class="header-btn sync-pill" id="header-sync-pill" onclick="openSyncModal()" title="동기화">
+        <span class="sync-dot"></span>
+        <span class="sync-label btn-label" id="header-sync-label">동기화</span>
       </button>
+    </div>
+    <div class="sync-error-banner" id="sync-error-banner">
+      <span>⚠️</span>
+      <span class="msg" id="sync-error-msg">동기화 실패</span>
+      <button onclick="driveSyncNow()">재시도</button>
+      <button class="dismiss" onclick="dismissSyncError()">✕</button>
     </div>
 
     <div class="content">
@@ -1791,9 +1850,10 @@
       </div>
     </details>
 
-    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
+    <details style="margin-top:22px;">
+      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 다른 동기화 옵션 (Gist · 로컬 폴더 · JSON)</summary>
 
-    <label>☁️ GitHub Gist 자동 동기화 <span style="color:var(--text-mute);font-weight:500;font-size:10px;">대안 (이미지 미지원)</span></label>
+    <label style="margin-top:14px;">☁️ GitHub Gist 자동 동기화 <span style="color:var(--text-mute);font-weight:500;font-size:10px;">대안 (이미지 미지원)</span></label>
     <div class="folder-status" id="gist-status">
       <div class="icon-circle" style="background:var(--surface3)">☁</div>
       <div class="text-area">
@@ -1878,6 +1938,8 @@
       💡 iOS에서는 "공유" → "파일에 저장" → iCloud Drive 사용<br>
       ⚠️ JSON 불러오기는 현재 데이터를 덮어씁니다
     </div>
+
+    </details>
 
     <div class="modal-actions">
       <button onclick="closeSyncModal()">닫기</button>
@@ -4207,21 +4269,30 @@ async function driveSyncNow() {
 
 function scheduleDriveSave() {
   if (!driveFolderId || isLoadingFromDrive) return;
+  if (!isOnline) {
+    // Mark dirty so we'll push when network returns
+    driveDirty = true;
+    localStorage.setItem('mindflow_drive_dirty', '1');
+    return;
+  }
   driveDirty = true;
-  localStorage.setItem('mindflow_drive_dirty', '1'); // survives browser close
+  localStorage.setItem('mindflow_drive_dirty', '1');
   clearTimeout(driveAutoSaveTimer);
   driveAutoSaveTimer = setTimeout(async () => {
     try {
       await drivePushAll();
       driveDirty = false;
+      driveRetryAttempt = 0;
       localStorage.removeItem('mindflow_drive_dirty');
     } catch (e) {
-      console.warn('Drive push failed; will retry on next change:', e);
+      console.warn('Drive push failed; scheduling retry:', e);
+      scheduleDriveRetry();
     }
   }, 2000);
 }
 
 function updateDriveStatus() {
+  updateHeaderSyncPill();
   const el = document.getElementById('drive-status');
   if (!el) return;
   const reloadBtn = document.getElementById('drive-pull-btn');
@@ -4266,6 +4337,108 @@ function updateDriveStatus() {
     if (syncNowBtn) syncNowBtn.style.display = 'none';
   }
 }
+
+// ---- Network awareness + retry ----
+let isOnline = (typeof navigator !== 'undefined' && 'onLine' in navigator) ? navigator.onLine : true;
+let driveRetryTimer = null;
+let driveRetryAttempt = 0;
+
+window.addEventListener('online', () => {
+  isOnline = true;
+  updateHeaderSyncPill();
+  if (driveDirty && driveFolderId) {
+    // Resume sync immediately
+    clearTimeout(driveAutoSaveTimer);
+    driveAutoSaveTimer = setTimeout(async () => {
+      try { await drivePushAll(); driveDirty = false; localStorage.removeItem('mindflow_drive_dirty'); } catch {}
+    }, 500);
+  }
+});
+window.addEventListener('offline', () => {
+  isOnline = false;
+  updateHeaderSyncPill();
+});
+
+function scheduleDriveRetry() {
+  // Exponential backoff: 5s, 15s, 60s, then give up (user can manually retry)
+  if (driveRetryAttempt >= 3) return;
+  const delays = [5000, 15000, 60000];
+  const delay = delays[driveRetryAttempt];
+  driveRetryAttempt++;
+  clearTimeout(driveRetryTimer);
+  driveRetryTimer = setTimeout(async () => {
+    if (!driveDirty || !driveFolderId) { driveRetryAttempt = 0; return; }
+    try {
+      await drivePushAll();
+      driveDirty = false;
+      localStorage.removeItem('mindflow_drive_dirty');
+      driveRetryAttempt = 0;
+    } catch (e) {
+      console.warn(`Retry ${driveRetryAttempt} failed:`, e);
+      scheduleDriveRetry();
+    }
+  }, delay);
+}
+
+// Header sync pill: always-visible status indicator
+function updateHeaderSyncPill() {
+  const pill = document.getElementById('header-sync-pill');
+  const label = document.getElementById('header-sync-label');
+  const banner = document.getElementById('sync-error-banner');
+  if (!pill || !label) return;
+  pill.classList.remove('synced', 'syncing', 'error', 'offline');
+
+  if (!isOnline) {
+    pill.classList.add('offline');
+    label.textContent = '오프라인';
+    if (banner) banner.classList.remove('show');
+    return;
+  }
+
+  // Determine active sync method (Drive primary, Gist secondary)
+  const driveActive = !!driveFolderId;
+  const gistActive = !!(gistToken && gistId);
+  const status = driveActive ? driveStatus : gistActive ? gistStatus : 'idle';
+  const lastSync = driveActive ? driveLastSyncAt : gistActive ? gistLastSyncAt : null;
+
+  if (!driveActive && !gistActive) {
+    label.textContent = '미연결';
+    if (banner) banner.classList.remove('show');
+    return;
+  }
+
+  if (status === 'saving') {
+    pill.classList.add('syncing');
+    label.textContent = '동기화 중';
+    if (banner) banner.classList.remove('show');
+  } else if (status === 'error') {
+    pill.classList.add('error');
+    label.textContent = '동기화 실패';
+    if (banner) {
+      banner.classList.add('show');
+      const msg = document.getElementById('sync-error-msg');
+      if (msg) msg.textContent = isOnline ? '동기화 실패 — 재시도하거나 동기화 모달 확인' : '오프라인 상태';
+    }
+  } else {
+    pill.classList.add('synced');
+    if (lastSync) {
+      const ago = Math.floor((Date.now() - lastSync) / 1000);
+      label.textContent = ago < 5 ? '동기화됨' :
+        ago < 60 ? `${ago}초 전` :
+        ago < 3600 ? `${Math.floor(ago/60)}분 전` :
+        `${Math.floor(ago/3600)}시간 전`;
+    } else {
+      label.textContent = '동기화됨';
+    }
+    if (banner) banner.classList.remove('show');
+  }
+}
+function dismissSyncError() {
+  const banner = document.getElementById('sync-error-banner');
+  if (banner) banner.classList.remove('show');
+}
+// Refresh "X초 전" label every 10s
+setInterval(updateHeaderSyncPill, 10_000);
 
 async function initDrive() {
   if (driveClientId && driveFolderId) {
@@ -4721,6 +4894,7 @@ function scheduleGistSave() {
 }
 
 function updateGistStatus() {
+  updateHeaderSyncPill();
   const el = document.getElementById('gist-status');
   if (!el) return;
   const reloadBtn = document.getElementById('gist-pull-btn');
@@ -5205,6 +5379,8 @@ initFolder();
 initGist();
 // Initialize Drive sync (silently re-auths and pulls if connected before)
 initDrive();
+// Initial header pill render
+updateHeaderSyncPill();
 
 // When sync modal opens, attempt to verify folder permission silently
 async function tryRestoreFolder() {
