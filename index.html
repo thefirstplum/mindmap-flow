@@ -208,12 +208,14 @@
             <div class="ledger-quick-row">
               <input type="number" inputmode="numeric" pattern="[0-9]*" id="ledger-amount" placeholder="0" autocomplete="off">
               <span class="ledger-currency">원</span>
+              <button type="button" class="ledger-sms-btn" onclick="pasteSMSToLedger()" title="카드 결제 문자 붙여넣기">📩 문자</button>
             </div>
             <div class="ledger-quick-row">
               <div class="ledger-type-toggle">
                 <button class="active" data-type="expense" onclick="setLedgerType('expense')">지출</button>
                 <button data-type="income" onclick="setLedgerType('income')">수입</button>
               </div>
+              <select id="ledger-method" class="ledger-select" aria-label="결제 수단"></select>
               <select id="ledger-category" class="ledger-select" aria-label="카테고리"></select>
               <input type="date" id="ledger-date" class="ledger-date-input" aria-label="날짜">
             </div>
@@ -223,6 +225,7 @@
             </div>
           </div>
           <div class="ledger-summary" id="ledger-summary"></div>
+          <div class="ledger-method-breakdown" id="ledger-method-breakdown"></div>
           <div class="ledger-list" id="ledger-list"></div>
         </div>
       </div>

@@ -3070,3 +3070,93 @@ body[data-theme="leather"] .sidebar {
   text-align: right;
   margin-top: 6px;
 }
+
+/* ============================================================ */
+/* === Ledger payment method + SMS button + breakdown ======== */
+/* ============================================================ */
+.ledger-method-badge {
+  display: inline-block;
+  background: rgba(0,102,255,0.1);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-right: 8px;
+  border: 1px solid rgba(0,102,255,0.25);
+}
+body[data-theme="leather"] .ledger-method-badge {
+  background: rgba(10,132,255,0.15);
+  border-color: rgba(10,132,255,0.35);
+}
+
+.ledger-sms-btn {
+  height: 38px;
+  padding: 0 14px;
+  background: var(--surface3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.ledger-sms-btn:hover { background: var(--text); color: var(--surface); border-color: var(--text); }
+
+.ledger-method-breakdown {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-1);
+}
+.ledger-method-breakdown:empty { display: none; }
+.ledger-breakdown-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+.ledger-breakdown-list { display: flex; flex-direction: column; gap: 10px; }
+.ledger-breakdown-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+}
+.ledger-breakdown-label { color: var(--text); font-weight: 600; }
+.ledger-breakdown-bar {
+  height: 8px;
+  background: var(--surface3);
+  border-radius: 100px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.ledger-breakdown-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue), var(--accent2));
+  border-radius: 100px;
+  transition: width 0.4s ease;
+}
+.ledger-breakdown-amt {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.ledger-breakdown-pct {
+  font-size: 11px;
+  color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
+  min-width: 36px;
+  text-align: right;
+}
+
+@media (max-width: 768px) {
+  .ledger-breakdown-row { grid-template-columns: 70px 1fr auto; }
+  .ledger-breakdown-pct { display: none; }
+}

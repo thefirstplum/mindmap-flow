@@ -44,7 +44,10 @@ document.querySelectorAll('.sidebar .nav-btn[data-page]').forEach(btn => {
     }
   });
 });
-document.getElementById('sync-btn').addEventListener('click', openSyncModal);
+// Wrap in arrow so the reference is resolved at click time — sync.js loads
+// after navigation.js, so a bare reference to openSyncModal here would
+// throw ReferenceError and abort the rest of this file.
+document.getElementById('sync-btn').addEventListener('click', () => openSyncModal());
 
 
 // Programmatic page navigation (used by ledger summary card on timeblock)

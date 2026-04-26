@@ -589,23 +589,70 @@ function insertIntoActiveMemo(insertText) {
   return true;
 }
 
+// Resize a large image down to a reasonable size before upload/embed.
+// iPhone photos are typically 2–5MB which would blow past localStorage and
+// hit Drive quotas. Resize to 1600px max dim at JPEG q=0.85 → usually 200–500KB.
+async function resizeImage(blob, maxDim = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      if (w > maxDim || h > maxDim) {
+        const scale = Math.min(maxDim / w, maxDim / h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(b => {
+        URL.revokeObjectURL(url);
+        if (b) resolve(b);
+        else reject(new Error('이미지 변환 실패'));
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('이미지 로드 실패 (지원하지 않는 형식일 수 있음)'));
+    };
+    img.src = url;
+  });
+}
+
 async function handleImageInsert(blob) {
   if (!activeMemoId) { toast('먼저 메모를 선택하세요'); return; }
+
+  // Always shrink large/HEIC images before upload or embed
+  let workingBlob = blob;
+  try {
+    if (blob.size > 600_000 || /image\/(heic|heif)/i.test(blob.type)) {
+      toast('이미지 처리 중...');
+      workingBlob = await resizeImage(blob, 1600, 0.85);
+    }
+  } catch (e) {
+    console.warn('Resize failed, using original:', e);
+  }
+
   let insertText;
   if (driveAssetsFolderId) {
-    const result = await uploadImageToDrive(blob);
+    const result = await uploadImageToDrive(workingBlob);
     if (!result) return;
     insertText = `\n![${result.name}](${result.url})\n`;
   } else {
-    if (blob.size > 800_000) {
-      toast('Drive 미연결 + 파일 800KB 초과 → 업로드 불가', 'error');
+    // Inline base64 — after resize, typical photo fits in ~500KB
+    if (workingBlob.size > 1_500_000) {
+      toast('이미지가 너무 큽니다. Drive를 연결하면 자동 업로드돼요', 'error');
       return;
     }
     const dataUrl = await new Promise((res, rej) => {
       const reader = new FileReader();
       reader.onload = () => res(reader.result);
       reader.onerror = rej;
-      reader.readAsDataURL(blob);
+      reader.readAsDataURL(workingBlob);
     });
     insertText = `\n![image](${dataUrl})\n`;
     toast('인라인 이미지로 삽입됨 (Drive 연결하면 자동 업로드)', 'success');

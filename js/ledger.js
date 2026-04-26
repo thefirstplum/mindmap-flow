@@ -11,6 +11,23 @@ const LEDGER_CATEGORIES = {
   income:  ['월급', '부수입', '용돈', '투자', '기타']
 };
 
+function getLedgerMethods() {
+  if (typeof appSettings !== 'undefined' && Array.isArray(appSettings.ledgerMethods) && appSettings.ledgerMethods.length) {
+    return appSettings.ledgerMethods;
+  }
+  return ['현금', '체크카드', '지역화폐', '신용카드'];
+}
+
+function updateMethodOptions() {
+  const sel = document.getElementById('ledger-method');
+  if (!sel) return;
+  const previous = sel.value;
+  const methods = getLedgerMethods();
+  sel.innerHTML = methods.map(m => `<option value="${m}">${m}</option>`).join('');
+  if (methods.includes(previous)) sel.value = previous;
+  else sel.value = methods[0] || '';
+}
+
 function saveLedger() {
   save('ledger', ledgerEntries);
   save('ledger_idcounter', ledgerIdCounter);
@@ -49,6 +66,7 @@ function addLedgerEntry() {
   const noteInput = document.getElementById('ledger-note');
   const dateInput = document.getElementById('ledger-date');
   const catInput = document.getElementById('ledger-category');
+  const methodInput = document.getElementById('ledger-method');
   const raw = (amountInput?.value || '').replace(/[^0-9]/g, '');
   const amount = parseInt(raw, 10);
   if (!amount || amount <= 0) {
@@ -66,6 +84,7 @@ function addLedgerEntry() {
     type: ledgerType,
     amount,
     category: (catInput?.value || '').trim(),
+    method: (methodInput?.value || '').trim(),
     note: (noteInput?.value || '').trim(),
     date: entryDate.toISOString()
   });
@@ -157,10 +176,11 @@ function renderLedger() {
       const time = localTimeHHMM(e.date);
       const sign = e.type === 'income' ? '+' : '-';
       const catBadge = e.category ? `<span class="ledger-cat-badge">${escapeHtml(e.category)}</span>` : '';
+      const methodBadge = e.method ? `<span class="ledger-method-badge">${escapeHtml(e.method)}</span>` : '';
       const noteText = e.note || (e.category ? '' : (e.type === 'income' ? '수입' : '지출'));
       return `<div class="ledger-item" data-id="${e.id}">
         <div class="ledger-item-time">${time}</div>
-        <div class="ledger-item-note">${catBadge}${escapeHtml(noteText)}</div>
+        <div class="ledger-item-note">${catBadge}${methodBadge}${escapeHtml(noteText)}</div>
         <div class="ledger-item-amount ${e.type}">${sign}${formatWon(e.amount)}</div>
         <button class="ledger-item-delete" onclick="deleteLedgerEntry(${e.id})" title="삭제">✕</button>
       </div>`;
@@ -173,17 +193,146 @@ function renderLedger() {
       <div class="ledger-day-items">${items}</div>
     </div>`;
   }).join('');
+
+  // Update payment-method breakdown card after the list is rendered
+  renderMethodBreakdown();
 }
 
 // Init: render on load (in case ledger page is the active page) and seed
-// the date input with today + populate the category dropdown
+// the date input with today + populate the category & method dropdowns
 function initLedger() {
   setTimeout(() => {
     const dateInput = document.getElementById('ledger-date');
     if (dateInput && !dateInput.value) dateInput.value = todayLocalISODate();
     updateCategoryOptions();
+    updateMethodOptions();
     renderLedger();
   }, 0);
+}
+
+// =================== SMS PARSER (한국 카드 결제 문자) ===================
+// Best-effort regex extraction of amount, card, merchant, and date/time
+// from a pasted card SMS. Returns null when nothing useful is found.
+function parseCardSMS(text) {
+  if (!text || text.trim().length < 5) return null;
+  const result = {};
+
+  // Amount: numbers (with commas) followed by 원
+  const amountMatch = text.match(/([\d]{1,3}(?:,\d{3})+|\d{4,})\s*원/);
+  if (!amountMatch) return null;
+  result.amount = parseInt(amountMatch[1].replace(/,/g, ''), 10);
+
+  // Card brand
+  const cardBrands = [
+    { re: /(신한[가-힣\s]*카드)/, key: '신한' },
+    { re: /(국민\s*카드|KB\s*카드|KB체크카드?|KB국민카드?)/i, key: 'KB국민' },
+    { re: /(삼성\s*카드)/, key: '삼성' },
+    { re: /(현대\s*카드)/, key: '현대' },
+    { re: /(롯데\s*카드)/, key: '롯데' },
+    { re: /(하나\s*카드)/, key: '하나' },
+    { re: /(우리\s*카드)/, key: '우리' },
+    { re: /(NH[농협가-힣\s]*카드)/, key: 'NH농협' },
+    { re: /(농협\s*카드|농협체크)/, key: 'NH농협' },
+    { re: /(BC\s*카드)/, key: 'BC' },
+    { re: /(시티\s*카드)/, key: '시티' },
+    { re: /(체크카드)/, key: '체크카드' },
+    { re: /(지역화폐|온누리|동백전|인천e음|성남사랑|온동두천)/, key: '지역화폐' },
+    { re: /(현금영수증)/, key: '현금' }
+  ];
+  for (const { re, key } of cardBrands) {
+    if (re.test(text)) { result.method = key; break; }
+  }
+
+  // Date / time — common formats
+  // MM/DD HH:MM   or   YYYY-MM-DD HH:MM
+  let dateObj = null;
+  const dt1 = text.match(/(\d{1,2})\/(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+  const dt2 = text.match(/(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})/);
+  if (dt2) {
+    dateObj = new Date(+dt2[1], +dt2[2] - 1, +dt2[3], +dt2[4], +dt2[5]);
+  } else if (dt1) {
+    const yr = new Date().getFullYear();
+    dateObj = new Date(yr, +dt1[1] - 1, +dt1[2], +dt1[3], +dt1[4]);
+  }
+  if (dateObj) result.date = dateObj;
+
+  // Merchant: take the line that doesn't contain header markers / amount / time / card
+  const lines = text.split(/\n|\r/).map(l => l.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i];
+    if (/원/.test(line)) continue;
+    if (/\d{1,2}\/\d{1,2}/.test(line)) continue;
+    if (/\d{4}-\d{2}-\d{2}/.test(line)) continue;
+    if (/^\[/.test(line)) continue;
+    if (/^Web발신/.test(line)) continue;
+    if (/카드|승인|체크|일시불|할부/.test(line) && line.length < 12) continue;
+    if (line.length < 2) continue;
+    result.merchant = line.replace(/^[a-zA-Z]+:/, '').trim();
+    break;
+  }
+
+  return result;
+}
+
+function pasteSMSToLedger() {
+  const text = prompt('카드 결제 문자(또는 알림)를 그대로 붙여넣으세요:');
+  if (!text) return;
+  const parsed = parseCardSMS(text);
+  if (!parsed || !parsed.amount) {
+    toast('문자에서 금액을 찾지 못했습니다');
+    return;
+  }
+  const amountInput = document.getElementById('ledger-amount');
+  const noteInput = document.getElementById('ledger-note');
+  const dateInput = document.getElementById('ledger-date');
+  const methodSel = document.getElementById('ledger-method');
+  if (amountInput) amountInput.value = String(parsed.amount);
+  if (parsed.merchant && noteInput) noteInput.value = parsed.merchant;
+  if (parsed.date && dateInput) {
+    dateInput.value = localDateKey(parsed.date);
+  }
+  if (parsed.method && methodSel) {
+    // Match best-effort against existing methods
+    const opts = [...methodSel.options].map(o => o.value);
+    const direct = opts.find(o => o === parsed.method);
+    const fuzzy = direct || opts.find(o => parsed.method.includes(o) || o.includes(parsed.method));
+    if (fuzzy) methodSel.value = fuzzy;
+  }
+  // Card SMS = expense by default
+  if (typeof setLedgerType === 'function') setLedgerType('expense');
+  toast('자동 입력 완료. 확인 후 [추가]를 누르세요', 'success');
+  amountInput?.focus();
+}
+
+// Monthly breakdown by payment method (this month, expenses only)
+function renderMethodBreakdown() {
+  const wrap = document.getElementById('ledger-method-breakdown');
+  if (!wrap) return;
+  const ym = localMonthKey(new Date());
+  const totals = {};
+  for (const e of ledgerEntries) {
+    if (localMonthKey(e.date) !== ym) continue;
+    if (e.type !== 'expense') continue;
+    const m = e.method || '미지정';
+    totals[m] = (totals[m] || 0) + e.amount;
+  }
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) { wrap.innerHTML = ''; return; }
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  wrap.innerHTML = `
+    <div class="ledger-breakdown-title">이번 달 결제수단별 지출</div>
+    <div class="ledger-breakdown-list">
+      ${entries.map(([m, v]) => {
+        const pct = total > 0 ? Math.round((v / total) * 100) : 0;
+        return `<div class="ledger-breakdown-row">
+          <span class="ledger-breakdown-label">${escapeHtml(m)}</span>
+          <div class="ledger-breakdown-bar"><div class="ledger-breakdown-fill" style="width:${pct}%"></div></div>
+          <span class="ledger-breakdown-amt">${formatWon(v)}</span>
+          <span class="ledger-breakdown-pct">${pct}%</span>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 // Allow Enter in the amount field to submit
