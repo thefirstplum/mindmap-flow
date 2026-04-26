@@ -1,6 +1,18 @@
 // =================== TIME BLOCK ===================
 let currentDate = new Date();
 let timeBlocks = load('tb_blocks', {});
+
+// Migrate old color names to current palette
+(function migrateTbColors() {
+  const MAP = { accent: 'yellow', pink: 'magenta' };
+  let changed = false;
+  Object.values(timeBlocks).forEach(blocks => {
+    blocks.forEach(b => {
+      if (b.color && MAP[b.color]) { b.color = MAP[b.color]; changed = true; }
+    });
+  });
+  if (changed) save('tb_blocks', timeBlocks);
+})();
 let tbSelectedColor = 'accent';
 let tbClickedHour = null;
 let tbEditingIdx = null;

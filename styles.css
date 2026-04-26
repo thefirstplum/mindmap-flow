@@ -806,17 +806,23 @@
   .block-title { display: flex; align-items: flex-start; gap: 0; }
   .block-title-text { flex: 1; min-width: 0; }
 
-  /* Solarized timeblock palette — 8 colors, matches mindmap dots */
+  /* Extended timeblock palette — 14 colors */
   .tb-color-yellow,
   .tb-color-accent { background: linear-gradient(135deg, #b58900, #8a6800); color: #fff; }
   .tb-color-orange { background: linear-gradient(135deg, #cb4b16, #9c3a10); color: #fff; }
   .tb-color-red    { background: linear-gradient(135deg, #dc322f, #a52623); color: #fff; }
+  .tb-color-rose   { background: linear-gradient(135deg, #e11d48, #b5183a); color: #fff; }
   .tb-color-magenta,
   .tb-color-pink   { background: linear-gradient(135deg, #d33682, #a32865); color: #fff; }
+  .tb-color-purple { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: #fff; }
   .tb-color-violet { background: linear-gradient(135deg, #6c71c4, #525695); color: #fff; }
+  .tb-color-sky    { background: linear-gradient(135deg, #0284c7, #016fa3); color: #fff; }
   .tb-color-blue   { background: linear-gradient(135deg, #268bd2, #1c6aa3); color: #fff; }
   .tb-color-cyan   { background: linear-gradient(135deg, #2aa198, #1f7a73); color: #fff; }
+  .tb-color-teal   { background: linear-gradient(135deg, #0d9488, #0a7265); color: #fff; }
   .tb-color-green  { background: linear-gradient(135deg, #859900, #5e6c00); color: #fff; }
+  .tb-color-brown  { background: linear-gradient(135deg, #92400e, #6d300a); color: #fff; }
+  .tb-color-slate  { background: linear-gradient(135deg, #475569, #334155); color: #fff; }
 
   /* ============== MODAL ============== */
   .modal-overlay {
@@ -4996,9 +5002,6 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
 /* ============================================================ */
 /* === Mobile bottom-nav: tighter spacing (final override) ==== */
 /* ============================================================ */
-/* Earlier passes added 8px + safe-bot below the tab buttons, which
-   stacks visibly above the iOS home indicator and feels too tall.
-   Drop the extra padding to the bare safe-area inset only. */
 @media (max-width: 768px) {
   .sidebar {
     padding-top: 3px !important;
@@ -5010,6 +5013,147 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   .sidebar .nav-btn .label {
     font-size: 10px;
   }
-  /* Toast lifted just above the tab bar (compact bar = lower toast) */
   .toast { bottom: calc(56px + var(--safe-bot)) !important; }
+}
+
+/* ============================================================ */
+/* === SPACING & SIZING IMPROVEMENTS — final pass ============= */
+/* ============================================================ */
+
+/* Color picker in timeblock modal: 7-column grid so 14 swatches
+   lay out as two clean rows instead of ragged flex wrapping.     */
+.modal-colors {
+  display: grid;
+  grid-template-columns: repeat(7, 30px);
+  gap: 8px;
+  margin-top: 10px;
+}
+.modal-colors .mc {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+
+/* Desktop memo content: comfortable ~720px reading column.
+   Uses padding trick so no extra HTML wrapper is needed.
+   padding = max(32px, 50%-380px) → kicks in above ~1200px wide. */
+@media (min-width: 1200px) {
+  .memo-editor-header {
+    padding-left: max(32px, calc(50% - 380px)) !important;
+    padding-right: max(32px, calc(50% - 380px)) !important;
+  }
+  .memo-meta {
+    padding-left: max(32px, calc(50% - 380px)) !important;
+    padding-right: max(32px, calc(50% - 380px)) !important;
+  }
+  /* Only constrain non-split modes — split needs both halves to span full width */
+  .memo-body-wrap:not(.split) .markdown-body,
+  .memo-body-wrap.edit-only textarea {
+    padding-left: max(32px, calc(50% - 380px)) !important;
+    padding-right: max(32px, calc(50% - 380px)) !important;
+  }
+}
+
+/* Desktop list panel: slightly wider for better item readability */
+@media (min-width: 769px) {
+  .memo-list,
+  .mindmap-list,
+  .timeblock-list {
+    width: 300px !important;
+  }
+}
+
+/* List items: comfortable padding & font on all screen sizes */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  padding: 11px 14px !important;
+}
+.memo-item-title,
+.mm-name,
+.tb-list-date {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.15px !important;
+}
+.memo-item-preview {
+  font-size: 12.5px !important;
+  line-height: 1.5 !important;
+  margin-top: 2px !important;
+}
+.memo-item-meta,
+.mm-meta,
+.tb-list-meta {
+  font-size: 11px !important;
+  margin-top: 5px !important;
+}
+
+/* List headers: clean, consistent padding */
+.memo-list-header,
+.mm-list-header,
+.tb-list-header {
+  padding: 16px 14px 12px !important;
+  gap: 10px !important;
+}
+
+/* Mobile: comfortable memo editor spacing */
+@media (max-width: 768px) {
+  .memo-editor-header {
+    padding: 18px 18px 6px !important;
+  }
+  .memo-editor-header input {
+    font-size: 23px !important;
+  }
+  .memo-meta {
+    padding: 0 18px 12px !important;
+    font-size: 11px !important;
+  }
+  .memo-editor textarea,
+  .markdown-body {
+    padding: 14px 18px 28px !important;
+    font-size: 16px !important;
+    line-height: 1.72 !important;
+  }
+  /* List headers on mobile: iOS large-title feel */
+  .memo-list-header,
+  .mm-list-header,
+  .tb-list-header {
+    padding: 16px 16px 12px !important;
+  }
+  /* List items: comfortable tap targets */
+  .memo-item,
+  .mindmap-item,
+  .tb-list-item {
+    padding: 12px 14px !important;
+    margin: 2px 8px !important;
+  }
+  /* Timeblock content area */
+  .timeblock-body {
+    padding: 14px 16px 32px !important;
+  }
+  /* Mindmap color dots: slightly smaller so more fit without scrolling */
+  .color-dot {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* Desktop: slightly more breathing room in headers */
+@media (min-width: 769px) {
+  .memo-editor-header {
+    padding: 24px 32px 8px !important;
+  }
+  .memo-meta {
+    padding: 0 32px 14px !important;
+  }
+  .memo-editor textarea,
+  .markdown-body {
+    padding: 16px 32px 36px !important;
+    font-size: 16px !important;
+    line-height: 1.75 !important;
+  }
+  .memo-editor-toolbar {
+    padding: 0 16px !important;
+    height: 48px !important;
+  }
 }
