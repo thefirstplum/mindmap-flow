@@ -3160,3 +3160,50 @@ body[data-theme="leather"] .ledger-method-badge {
   .ledger-breakdown-row { grid-template-columns: 70px 1fr auto; }
   .ledger-breakdown-pct { display: none; }
 }
+
+/* ============================================================ */
+/* === Settings: editable groups (ledger methods, etc.) ====== */
+/* ============================================================ */
+.settings-group {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.settings-group-header { margin-bottom: 10px; }
+.settings-group-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.settings-group-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.settings-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+}
+.settings-textarea:focus { border-color: var(--text); }
+.settings-save-btn {
+  margin-top: 10px;
+  background: var(--text) !important;
+  color: var(--surface) !important;
+  border: none;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+.settings-save-btn:hover { transform: translateY(-1px); }

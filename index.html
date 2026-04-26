@@ -426,6 +426,15 @@
       <input type="checkbox" id="setting-ledger-enabled" onchange="setSetting('ledgerEnabled', this.checked)">
     </label>
 
+    <div class="settings-group" id="settings-ledger-group" style="display:none;">
+      <div class="settings-group-header">
+        <div class="settings-group-title">💳 결제 수단</div>
+        <div class="settings-group-desc">한 줄에 하나씩. 가계부 입력 시 드롭다운에 나타납니다.</div>
+      </div>
+      <textarea id="setting-ledger-methods" class="settings-textarea" rows="8" spellcheck="false"></textarea>
+      <button class="tb-btn primary settings-save-btn" onclick="saveLedgerMethods()">저장</button>
+    </div>
+
     <div class="modal-actions">
       <button onclick="closeSettingsModal()">닫기</button>
     </div>
