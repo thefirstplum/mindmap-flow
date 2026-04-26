@@ -29,6 +29,28 @@ let activeMindmapId = load('mm_active', null);
 
 if (!activeMindmapId && mindmaps.length > 0) activeMindmapId = mindmaps[0].id;
 
+// Migrate old Moleskine/Journey palette hex colors → Solarized palette
+(function migrateNodeColors() {
+  const MAP = {
+    '#d99e1f': '#b58900', '#d99f1f': '#b58900',
+    '#c97a2c': '#cb4b16',
+    '#b85577': '#d33682',
+    '#4a6c8a': '#268bd2',
+    '#4d7d8f': '#2aa198',
+    '#6a8c4f': '#859900',
+    '#7c6cf5': '#6c71c4',
+    '#d33a2c': '#dc322f',
+  };
+  let changed = false;
+  mindmaps.forEach(m => {
+    (m.nodes || []).forEach(n => {
+      const mapped = n.color && MAP[n.color.toLowerCase()];
+      if (mapped) { n.color = mapped; changed = true; }
+    });
+  });
+  if (changed) save('mindmaps', mindmaps);
+})();
+
 let nodes = [], edges = [], pan = { x: 0, y: 0 }, zoom = 1, nodeIdCounter = 1;
 let selectedNode = null;
 let draggingNode = null;

@@ -98,6 +98,12 @@ function renderMemoList() {
 
 function renderMemoEditor() {
   const editor = document.getElementById('memo-editor');
+  // Capture decoded images before the DOM is replaced so we can
+  // transplant them back after — prevents iOS re-decode flicker.
+  const _imgCache = new Map();
+  editor.querySelectorAll('.markdown-body img').forEach(img => {
+    if (img.complete && img.naturalWidth > 0) _imgCache.set(img.src, img);
+  });
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) {
     editor.innerHTML = `<div class="memo-editor-empty">
@@ -182,6 +188,8 @@ function renderMemoEditor() {
     ${bodyHtml}
   `;
 
+  // Restore decoded images to avoid iOS re-decode flicker
+  _patchImagesAfterRender(editor, _imgCache);
   if (isEdit) setupSplitScrollSync();
   // Mark cached images as loaded so the skeleton shimmer goes away
   setTimeout(markLoadedImages, 0);
@@ -645,10 +653,15 @@ function updateMemoContent(val) {
     if (spans[0]) spans[0].textContent = dateStr;
     if (spans[2]) spans[2].textContent = `${val.length}자 · ${wc}단어`;
   }
-  // Live preview in desktop split mode
+  // Live preview in desktop split mode — preserve decoded images
   const preview = document.querySelector('.memo-body-wrap.split #memo-preview');
   if (preview) {
+    const _previewCache = new Map();
+    preview.querySelectorAll('img').forEach(img => {
+      if (img.complete && img.naturalWidth > 0) _previewCache.set(img.src, img);
+    });
     preview.innerHTML = val.trim() ? md2html(val) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>';
+    _patchImagesAfterRender(preview, _previewCache);
     setTimeout(markLoadedImages, 0);
   }
   clearTimeout(window._memoListTimer);
@@ -843,6 +856,23 @@ function triggerImageUpload() {
   };
   document.body.appendChild(input);
   input.click();
+}
+
+// =================== IMAGE DOM PRESERVATION ===================
+// Transplant already-decoded <img> nodes from the previous DOM into the
+// freshly-set innerHTML. On iOS Safari this avoids the browser discarding
+// the decoded pixel data and re-fetching/re-decoding on every re-render,
+// which caused images to flicker or momentarily disappear.
+// imgCache: Map<src string → img element> captured BEFORE innerHTML replace.
+function _patchImagesAfterRender(container, imgCache) {
+  if (!imgCache || imgCache.size === 0) return;
+  container.querySelectorAll('img').forEach(newImg => {
+    const old = imgCache.get(newImg.src);
+    if (old && !old.isConnected) {
+      old.className = newImg.className;
+      newImg.parentNode.replaceChild(old, newImg);
+    }
+  });
 }
 
 // =================== IMAGE LIGHTBOX ===================
