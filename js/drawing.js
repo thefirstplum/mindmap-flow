@@ -6,6 +6,16 @@ let drawColor = '#1f1a14';
 let drawWidthBase = 2;
 let drawCanvas = null;
 let drawCtx = null;
+// Offscreen baked canvas: holds all completed strokes already rendered.
+// On every pointermove we just blit this image, then draw the current stroke
+// on top — instead of replaying every previous stroke. Keeps drawing smooth
+// even after dozens of strokes.
+let drawBaked = null;
+let drawBakedCtx = null;
+// Palm rejection mode: 'auto' starts permissive then becomes pen-only as
+// soon as a pen pointer is seen; 'pen-only' rejects touch from the start;
+// 'allow-touch' never rejects.
+let drawPalmMode = 'auto';
 
 function openDrawingModal() {
   if (!activeMemoId) { toast('먼저 메모를 선택하세요'); return; }
@@ -21,14 +31,16 @@ function openDrawingModal() {
   document.getElementById('draw-width-display').textContent = '2';
 
   document.getElementById('drawing-modal-overlay').classList.add('show');
-  // Defer canvas init to ensure modal layout is done
   setTimeout(() => {
     drawCanvas = document.getElementById('drawing-canvas');
     if (!drawCanvas) return;
     drawCtx = drawCanvas.getContext('2d');
+    drawBaked = document.createElement('canvas');
+    drawBakedCtx = drawBaked.getContext('2d');
     resizeDrawingCanvas();
     setupDrawingPointer(drawCanvas);
     updateDrawEmptyHint();
+    updatePalmModeButton();
   }, 30);
 }
 
@@ -46,7 +58,12 @@ function resizeDrawingCanvas() {
   drawCanvas.style.width = rect.width + 'px';
   drawCanvas.style.height = rect.height + 'px';
   drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  redrawAllStrokes();
+  if (drawBaked) {
+    drawBaked.width = drawCanvas.width;
+    drawBaked.height = drawCanvas.height;
+    drawBakedCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  rebakeAll();
 }
 window.addEventListener('resize', () => {
   if (document.getElementById('drawing-modal-overlay')?.classList.contains('show')) {
@@ -54,41 +71,91 @@ window.addEventListener('resize', () => {
   }
 });
 
-function redrawAllStrokes() {
+function clearVisibleCanvas() {
   if (!drawCtx) return;
   const w = drawCanvas.width / (window.devicePixelRatio || 1);
   const h = drawCanvas.height / (window.devicePixelRatio || 1);
   drawCtx.clearRect(0, 0, w, h);
-  for (const stroke of drawStrokes) renderStroke(stroke);
-  if (drawCurrentStroke) renderStroke(drawCurrentStroke);
 }
 
-function renderStroke(stroke) {
-  if (!stroke || !drawCtx || stroke.points.length < 1) return;
+function clearBakedCanvas() {
+  if (!drawBakedCtx) return;
+  const w = drawBaked.width / (window.devicePixelRatio || 1);
+  const h = drawBaked.height / (window.devicePixelRatio || 1);
+  drawBakedCtx.clearRect(0, 0, w, h);
+}
+
+function renderStrokeOn(ctx, stroke) {
+  if (!stroke || !ctx || stroke.points.length < 1) return;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  if (stroke.points.length === 1) {
+    const p = stroke.points[0];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(1, stroke.width * (p.p || 0.5)), 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    for (let i = 1; i < stroke.points.length; i++) {
+      const p1 = stroke.points[i-1];
+      const p2 = stroke.points[i];
+      const w = Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2));
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// Append only the latest segment of the current stroke to the visible canvas
+// (so we don't re-render previous segments — that's where the lag came from).
+function paintLatestSegment(stroke, fromIdx) {
+  if (!drawCtx || !stroke || stroke.points.length <= fromIdx) return;
   drawCtx.save();
   drawCtx.lineCap = 'round';
   drawCtx.lineJoin = 'round';
   drawCtx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
   drawCtx.strokeStyle = stroke.color;
   drawCtx.fillStyle = stroke.color;
-  if (stroke.points.length === 1) {
-    const p = stroke.points[0];
+  for (let i = Math.max(1, fromIdx); i < stroke.points.length; i++) {
+    const p1 = stroke.points[i-1];
+    const p2 = stroke.points[i];
+    const w = Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2));
+    drawCtx.lineWidth = w;
     drawCtx.beginPath();
-    drawCtx.arc(p.x, p.y, Math.max(1, stroke.width * (p.p || 0.5)), 0, Math.PI * 2);
-    drawCtx.fill();
-  } else {
-    for (let i = 1; i < stroke.points.length; i++) {
-      const p1 = stroke.points[i-1];
-      const p2 = stroke.points[i];
-      const w = Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2));
-      drawCtx.lineWidth = w;
-      drawCtx.beginPath();
-      drawCtx.moveTo(p1.x, p1.y);
-      drawCtx.lineTo(p2.x, p2.y);
-      drawCtx.stroke();
-    }
+    drawCtx.moveTo(p1.x, p1.y);
+    drawCtx.lineTo(p2.x, p2.y);
+    drawCtx.stroke();
   }
   drawCtx.restore();
+}
+
+function rebakeAll() {
+  if (!drawBakedCtx) return;
+  clearBakedCanvas();
+  for (const stroke of drawStrokes) renderStrokeOn(drawBakedCtx, stroke);
+  drawCompositeFromBaked();
+}
+
+function drawCompositeFromBaked() {
+  if (!drawCtx || !drawBaked) return;
+  clearVisibleCanvas();
+  drawCtx.save();
+  drawCtx.setTransform(1, 0, 0, 1, 0, 0); // drawImage uses raw px
+  drawCtx.drawImage(drawBaked, 0, 0);
+  drawCtx.restore();
+  if (drawCurrentStroke) renderStrokeOn(drawCtx, drawCurrentStroke);
+}
+
+// Public redraw entry point used by undo / clear / resize
+function redrawAllStrokes() {
+  rebakeAll();
 }
 
 function setDrawTool(tool) {
@@ -134,36 +201,51 @@ function setupDrawingPointer(canvas) {
   if (canvas.dataset.drawReady) return;
   canvas.dataset.drawReady = '1';
 
-  // ---- Palm rejection ----
-  // If we ever see a pen (Apple Pencil) input on this canvas, we treat it as
-  // "stylus mode" and reject all touch pointers (which are almost certainly
-  // palm/wrist contact). The mode persists for a short buffer after the
-  // last pen event so palm contacts that linger on lift-off still get
-  // ignored. Touch-only devices (no Apple Pencil ever seen) keep working.
-  let stylusModeActive = false;       // true while a pen pointer is down
-  let lastPenAt = 0;                   // ms since epoch of last pen event
-  let everSawPen = false;              // sticky: any pen seen this session?
-  const PALM_BUFFER_MS = 1200;
-  let activePenPointerId = null;
+  // ---- Palm rejection state (per-modal session) ----
+  let stylusActive = false;
+  let lastPenAt = 0;
+  let everSawPen = false;
+  const PALM_BUFFER_MS = 1500;
 
   function shouldRejectTouch() {
-    if (stylusModeActive) return true;
-    if (!everSawPen) return false; // no Apple Pencil device involved → finger drawing OK
+    if (drawPalmMode === 'allow-touch') return false;
+    if (drawPalmMode === 'pen-only') return true;          // strict: always reject finger
+    // 'auto' mode:
+    if (stylusActive) return true;
+    if (!everSawPen) return false;
     return (Date.now() - lastPenAt) < PALM_BUFFER_MS;
   }
 
-  const start = (e) => {
-    if (e.pointerType === 'touch' && shouldRejectTouch()) {
-      // Palm / unintended touch — drop silently
-      return;
-    }
+  // We listen at document level for pointerdown so that palm contact OUTSIDE
+  // the canvas (e.g. on the toolbar) doesn't "miss" being a hint that the
+  // pencil is in use — but we also want to detect a pen hover BEFORE
+  // pointerdown so palm-down-then-pen sequences don't briefly draw a palm
+  // stroke. pointerover with pointerType=pen does fire on iPad before any
+  // touch from the palm in many cases.
+  document.addEventListener('pointerover', (e) => {
     if (e.pointerType === 'pen') {
       everSawPen = true;
-      stylusModeActive = true;
       lastPenAt = Date.now();
-      activePenPointerId = e.pointerId;
-      // Cancel any in-progress finger stroke if pen takes over
-      drawCurrentStroke = null;
+      // Retroactively cancel any palm stroke that just started
+      if (drawCurrentStroke && drawCurrentStroke.pointerType === 'touch') {
+        drawCurrentStroke = null;
+        drawCompositeFromBaked();
+        updateDrawEmptyHint();
+      }
+    }
+  });
+
+  const start = (e) => {
+    if (e.pointerType === 'touch' && shouldRejectTouch()) return;
+    if (e.pointerType === 'pen') {
+      everSawPen = true;
+      stylusActive = true;
+      lastPenAt = Date.now();
+      // Cancel any concurrent palm stroke
+      if (drawCurrentStroke && drawCurrentStroke.pointerType === 'touch') {
+        drawCurrentStroke = null;
+        drawCompositeFromBaked();
+      }
     }
     e.preventDefault();
     if (e.pointerId != null) {
@@ -178,16 +260,19 @@ function setupDrawingPointer(canvas) {
       width: drawWidthBase,
       points: [{ x, y, p: e.pressure > 0 ? e.pressure : 0.5 }],
       pointerId: e.pointerId,
-      pointerType: e.pointerType
+      pointerType: e.pointerType,
+      paintedUpTo: 1 // index of next point to paint
     };
+    // Paint the initial dot immediately so dot-strokes work and the user
+    // sees something on first touch
+    drawCompositeFromBaked();
     updateDrawEmptyHint();
   };
 
   const move = (e) => {
     if (!drawCurrentStroke) return;
-    // Only accept moves from the same pointer that started the stroke
     if (e.pointerId !== drawCurrentStroke.pointerId) return;
-    if (e.pointerType === 'pen') lastPenAt = Date.now();
+    if (e.pointerType === 'pen') { lastPenAt = Date.now(); }
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
     const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
@@ -198,21 +283,28 @@ function setupDrawingPointer(canvas) {
         p: ev.pressure > 0 ? ev.pressure : 0.5
       });
     }
-    redrawAllStrokes();
+    // Paint only the new segments on top of the visible canvas — no rebake
+    paintLatestSegment(drawCurrentStroke, drawCurrentStroke.paintedUpTo);
+    drawCurrentStroke.paintedUpTo = drawCurrentStroke.points.length;
   };
 
   const end = (e) => {
-    // If a non-stroke pointer ends, ignore
     if (drawCurrentStroke && e.pointerId !== drawCurrentStroke.pointerId) return;
     if (e.pointerType === 'pen') {
-      stylusModeActive = false;
+      stylusActive = false;
       lastPenAt = Date.now();
-      activePenPointerId = null;
     }
     if (!drawCurrentStroke) return;
-    if (drawCurrentStroke.points.length > 0) drawStrokes.push(drawCurrentStroke);
+    if (drawCurrentStroke.points.length > 0) {
+      drawStrokes.push(drawCurrentStroke);
+      // Bake the completed stroke into the offscreen canvas so future moves
+      // can blit instead of replaying it.
+      renderStrokeOn(drawBakedCtx, drawCurrentStroke);
+    }
     drawCurrentStroke = null;
-    redrawAllStrokes();
+    // Refresh visible canvas from baked (current stroke painted in place
+    // matches the baked version exactly, so this is essentially a no-op)
+    drawCompositeFromBaked();
     updateDrawEmptyHint();
   };
 
@@ -221,6 +313,24 @@ function setupDrawingPointer(canvas) {
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('pointerleave', end);
+}
+
+function setPalmMode(mode) {
+  drawPalmMode = mode;
+  updatePalmModeButton();
+}
+function updatePalmModeButton() {
+  const btn = document.getElementById('tool-palm');
+  if (!btn) return;
+  const labels = { 'auto': '🤖 자동', 'pen-only': '🖋 펜만', 'allow-touch': '✋ 손가락 OK' };
+  btn.title = `팜 리젝션: ${labels[drawPalmMode] || drawPalmMode}`;
+  btn.dataset.mode = drawPalmMode;
+}
+function cyclePalmMode() {
+  const order = ['auto', 'pen-only', 'allow-touch'];
+  const idx = order.indexOf(drawPalmMode);
+  setPalmMode(order[(idx + 1) % order.length]);
+  toast({ 'auto': '팜 리젝션: 자동', 'pen-only': '팜 리젝션: 펜만 받기', 'allow-touch': '팜 리젝션: 손가락도 받기' }[drawPalmMode]);
 }
 
 // Generate compact SVG from stroke history
