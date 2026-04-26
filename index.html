@@ -3378,62 +3378,61 @@ function bearRenderContent(text) {
   ).join('');
 }
 
+// All offset/text functions are Range-based so they correctly handle
+// browser-inserted blocks (e.g. when Enter creates a plain <div> without
+// our data-line class) and treat block boundaries as \n the same way
+// Range.toString() does.
 function bearGetCaretOffset(editor) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return 0;
   const range = sel.getRangeAt(0);
   if (!editor.contains(range.startContainer)) return 0;
-  // Count text length from editor start to caret
-  let chars = 0;
-  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-  let node;
-  while ((node = walker.nextNode())) {
-    if (node === range.startContainer) {
-      return chars + range.startOffset;
-    }
-    chars += node.length;
-  }
-  // Fallback: count line breaks between div[data-line] elements
-  return chars;
+  const tempRange = document.createRange();
+  tempRange.selectNodeContents(editor);
+  tempRange.setEnd(range.startContainer, range.startOffset);
+  return tempRange.toString().length;
 }
 
-function bearSetCaretOffset(editor, offset) {
-  let chars = 0;
+function bearSetCaretOffset(editor, target) {
+  // Walk text nodes; for each, use Range.toString() to get the position of
+  // the start of that node and place the caret at (target - startPos) within it.
   const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
   let node;
+  let firstNode = null;
   while ((node = walker.nextNode())) {
-    const len = node.length;
-    if (chars + len >= offset) {
-      const range = document.createRange();
+    if (!firstNode) firstNode = node;
+    const startR = document.createRange();
+    startR.selectNodeContents(editor);
+    startR.setEnd(node, 0);
+    const startPos = startR.toString().length;
+    const endPos = startPos + node.length;
+    if (endPos >= target) {
       const sel = window.getSelection();
-      range.setStart(node, Math.min(offset - chars, len));
+      const range = document.createRange();
+      const offsetInNode = Math.max(0, Math.min(node.length, target - startPos));
+      range.setStart(node, offsetInNode);
       range.collapse(true);
       sel.removeAllRanges();
       sel.addRange(range);
       return;
     }
-    chars += len;
   }
-  // Place at end if offset overshoots
+  // Fallback: place at end of editor
+  const sel = window.getSelection();
   const range = document.createRange();
   range.selectNodeContents(editor);
   range.collapse(false);
-  const sel = window.getSelection();
   sel.removeAllRanges();
   sel.addRange(range);
 }
 
 function bearGetText(editor) {
-  // Reconstruct markdown source from rendered DOM, line by line
-  const lines = [];
-  editor.querySelectorAll('[data-line]').forEach(div => {
-    // Use textContent (preserves text without HTML)
-    let t = div.textContent || '';
-    // Strip zero-width space placeholder
-    t = t.replace(/​/g, '');
-    lines.push(t);
-  });
-  return lines.length ? lines.join('\n') : '';
+  // Range.toString() of full contents gives the same \n-separated text as
+  // innerText, but is consistent regardless of how the browser structured
+  // line breaks (works after Enter creates plain <div>).
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  return range.toString().replace(/​/g, '');
 }
 
 function setupBearEditor(editor, content, onChange) {
