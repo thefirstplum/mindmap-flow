@@ -34,6 +34,10 @@ document.body.addEventListener('touchmove', e => {
   if (e.touches.length > 1) return;
 }, { passive: true });
 
+// Apply settings (show/hide ledger tab etc.) and init ledger renderer
+applySettings();
+if (typeof initLedger === 'function') initLedger();
+
 // Initialize persistent folder handle
 initFolder();
 // Initialize Gist sync (silently pulls latest if connected)

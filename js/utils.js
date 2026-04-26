@@ -163,3 +163,43 @@ async function idbDel(key) {
   });
 }
 
+
+// =================== APP SETTINGS ===================
+let appSettings = load('settings', { ledgerEnabled: false });
+
+function applySettings() {
+  // Show/hide ledger nav button
+  const ledgerNav = document.querySelector('[data-page="ledger"]');
+  if (ledgerNav) {
+    ledgerNav.style.display = appSettings.ledgerEnabled ? '' : 'none';
+  }
+  // If ledger was disabled while user was on its page, switch to first available page
+  if (!appSettings.ledgerEnabled) {
+    const cur = document.querySelector('.page.active');
+    if (cur && cur.id === 'page-ledger') {
+      const firstNav = document.querySelector('.sidebar .nav-btn[data-page]:not([style*="none"])');
+      if (firstNav) firstNav.click();
+    }
+  }
+  // Sync the toggle state in the settings modal
+  const toggle = document.getElementById('setting-ledger-enabled');
+  if (toggle) toggle.checked = !!appSettings.ledgerEnabled;
+}
+
+function saveSettings() {
+  save('settings', appSettings);
+  applySettings();
+}
+
+function setSetting(key, value) {
+  appSettings = { ...appSettings, [key]: value };
+  saveSettings();
+}
+
+function openSettingsModal() {
+  applySettings();
+  document.getElementById('settings-modal')?.classList.add('show');
+}
+function closeSettingsModal() {
+  document.getElementById('settings-modal')?.classList.remove('show');
+}

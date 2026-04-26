@@ -8,7 +8,10 @@ function getAllData() {
     activeMindmapId: load('mm_active', null),
     timeBlocks: load('tb_blocks', {}),
     memos: load('memos', []),
-    memoIdCounter: load('memo_idcounter', 1)
+    memoIdCounter: load('memo_idcounter', 1),
+    ledger: load('ledger', []),
+    ledgerIdCounter: load('ledger_idcounter', 1),
+    settings: load('settings', { ledgerEnabled: false })
   };
 }
 
@@ -36,6 +39,18 @@ function applyData(data) {
   save('tb_blocks', data.timeBlocks || {});
   save('memos', data.memos || []);
   save('memo_idcounter', data.memoIdCounter || 1);
+  if (data.ledger) save('ledger', data.ledger);
+  if (data.ledgerIdCounter) save('ledger_idcounter', data.ledgerIdCounter);
+  if (data.settings) {
+    save('settings', data.settings);
+    if (typeof appSettings !== 'undefined') {
+      appSettings = data.settings;
+      if (typeof applySettings === 'function') applySettings();
+    }
+  }
+  // Refresh in-memory state + UI
+  if (typeof ledgerEntries !== 'undefined') ledgerEntries = data.ledger || [];
+  if (typeof renderLedger === 'function') renderLedger();
 }
 
 function openSyncModal() {

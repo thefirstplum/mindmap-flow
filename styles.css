@@ -2574,3 +2574,317 @@ body[data-theme="leather"] .sidebar {
   padding: 16px 20px 32px;
 }
 
+
+/* ============================================================ */
+/* === LEDGER (가계부) ======================================= */
+/* ============================================================ */
+.ledger-page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 22px clamp(20px, 4vw, 40px) 40px;
+  gap: 20px;
+}
+
+.ledger-quick-add {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.ledger-quick-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ledger-quick-add #ledger-amount {
+  flex: 1;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  padding: 4px 0;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  -moz-appearance: textfield;
+}
+.ledger-quick-add #ledger-amount::-webkit-outer-spin-button,
+.ledger-quick-add #ledger-amount::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.ledger-quick-add #ledger-amount::placeholder {
+  color: var(--text-mute);
+  font-weight: 700;
+}
+.ledger-currency {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ledger-type-toggle {
+  display: inline-flex;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+.ledger-type-toggle button {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 9px;
+  transition: all 0.15s;
+}
+.ledger-type-toggle button.active[data-type="expense"] {
+  background: var(--red);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(220,38,38,0.3);
+}
+.ledger-type-toggle button.active[data-type="income"] {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+}
+
+.ledger-quick-add #ledger-note {
+  flex: 1;
+  height: 38px;
+  padding: 0 14px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  min-width: 100px;
+}
+.ledger-quick-add #ledger-note:focus {
+  background: var(--surface);
+  border-color: var(--text);
+}
+
+.ledger-add-btn {
+  background: var(--text);
+  color: var(--surface);
+  border: none;
+  border-radius: 12px;
+  padding: 0 22px;
+  height: 38px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-1);
+}
+.ledger-add-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-2); }
+
+/* Summary cards */
+.ledger-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.ledger-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-1);
+}
+.ledger-stat .label {
+  font-size: 11px;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.ledger-stat .value {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.3px;
+}
+.ledger-stat .value.income { color: var(--green); }
+.ledger-stat .value.expense { color: var(--red); }
+
+/* Daily groups */
+.ledger-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ledger-empty {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 14px;
+}
+.ledger-empty .big-icon { font-size: 48px; opacity: 0.5; margin-bottom: 12px; }
+
+.ledger-day {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-1);
+}
+.ledger-day-header {
+  padding: 12px 18px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.ledger-day-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ledger-day-net {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-day-net.income { color: var(--green); }
+.ledger-day-net.expense { color: var(--red); }
+
+.ledger-day-items { display: flex; flex-direction: column; }
+.ledger-item {
+  display: grid;
+  grid-template-columns: 60px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.ledger-item:last-child { border-bottom: none; }
+.ledger-item-time {
+  font-size: 12px;
+  color: var(--text-mute);
+  font-variant-numeric: tabular-nums;
+}
+.ledger-item-note {
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ledger-item-amount {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.ledger-item-amount.income { color: var(--green); }
+.ledger-item-amount.expense { color: var(--red); }
+.ledger-item-delete {
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-mute);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+  opacity: 0;
+}
+.ledger-item:hover .ledger-item-delete { opacity: 1; }
+.ledger-item-delete:hover {
+  background: var(--red);
+  color: #fff;
+  border-color: var(--red);
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .ledger-page { padding: 16px 14px 28px; gap: 14px; }
+  .ledger-quick-add { padding: 16px 18px; }
+  .ledger-quick-add #ledger-amount { font-size: 30px; }
+  .ledger-summary { grid-template-columns: 1fr; gap: 8px; }
+  .ledger-stat { padding: 12px 14px; }
+  .ledger-stat .value { font-size: 17px; }
+  .ledger-quick-row { flex-wrap: wrap; }
+  .ledger-quick-add #ledger-note { width: 100%; flex: 1 1 100%; }
+  .ledger-add-btn { width: 100%; flex: 1 1 100%; height: 44px; }
+  .ledger-item { grid-template-columns: 48px 1fr auto; gap: 10px; padding: 12px 14px; }
+  .ledger-item-delete { display: none; }
+  /* Tap on row to delete on mobile via long-press not implemented — show
+     button on the right always at small touch size */
+}
+
+/* ============================================================ */
+/* === Settings modal toggles ================================ */
+/* ============================================================ */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.settings-toggle:hover { border-color: var(--border-light); }
+.settings-toggle-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.settings-toggle-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+.settings-toggle input[type="checkbox"] {
+  width: 44px; height: 26px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--border-light);
+  border-radius: 100px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.settings-toggle input[type="checkbox"]::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 22px; height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s cubic-bezier(0.32,0.72,0.16,1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.settings-toggle input[type="checkbox"]:checked {
+  background: var(--green);
+}
+.settings-toggle input[type="checkbox"]:checked::after {
+  transform: translateX(18px);
+}
