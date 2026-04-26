@@ -218,15 +218,22 @@ function bearInline(html) {
   html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
     '<span class="md-marker">[</span><span class="md-link">$1</span><span class="md-marker">](</span><span class="md-marker">$2</span><span class="md-marker">)</span>');
 
-  // Restore image tokens with marker spans (preserve source as text) + actual <img>
+  // Restore image tokens. Wrap the entire image (markers + img) in a
+  // contenteditable=false block so the user cannot accidentally type INTO
+  // a marker span. Previously, clicking inside the URL marker and typing
+  // would silently corrupt the data URL and the image would vanish on
+  // re-render. Caret can still land BEFORE or AFTER the wrapper, and
+  // backspace deletes the whole block atomically.
   html = html.replace(/IMG(\d+)/g, (_m, idx) => {
     const t = imgs[parseInt(idx)];
     const safeUrl = String(t.url).replace(/"/g, '&quot;');
-    return `<span class="md-marker">!</span><span class="md-marker">[</span>` +
+    return `<span class="md-image-block" contenteditable="false">` +
+           `<span class="md-marker">!</span><span class="md-marker">[</span>` +
            `<span class="md-marker">${t.alt}</span><span class="md-marker">]</span>` +
            `<span class="md-marker">(</span><span class="md-marker">${t.url}</span>` +
            `<span class="md-marker">)</span>` +
-           `<img class="md-img" src="${safeUrl}" alt="${t.alt}" loading="lazy" contenteditable="false">`;
+           `<img class="md-img" src="${safeUrl}" alt="${t.alt}" loading="lazy">` +
+           `</span>`;
   });
   return html;
 }
