@@ -182,7 +182,12 @@ function localTimeHHMM(d) {
 }
 
 // =================== APP SETTINGS ===================
-let appSettings = load('settings', { ledgerEnabled: false });
+const DEFAULT_LEDGER_METHODS = ['현금', '체크카드', '지역화폐', '신용카드'];
+let appSettings = load('settings', { ledgerEnabled: false, ledgerMethods: DEFAULT_LEDGER_METHODS });
+// Migrate older saved settings that didn't have ledgerMethods
+if (!appSettings.ledgerMethods || !Array.isArray(appSettings.ledgerMethods) || appSettings.ledgerMethods.length === 0) {
+  appSettings.ledgerMethods = DEFAULT_LEDGER_METHODS;
+}
 
 function applySettings() {
   // Show/hide ledger nav button
