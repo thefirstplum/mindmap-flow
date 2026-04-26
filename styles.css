@@ -5017,6 +5017,43 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
 }
 
 /* ============================================================ */
+/* === Memo 3-way mode segmented control ====================== */
+/* ============================================================ */
+.memo-mode-seg {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.memo-mode-seg button {
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 6px 10px;
+  cursor: pointer;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s;
+  line-height: 0;
+}
+.memo-mode-seg button:last-child { border-right: none; }
+.memo-mode-seg button.active {
+  background: var(--accent);
+  color: #fff;
+}
+.memo-mode-seg button:hover:not(.active) {
+  background: var(--surface3);
+  color: var(--text);
+}
+@media (max-width: 768px) {
+  .memo-mode-seg button { padding: 6px 9px; }
+}
+
+/* ============================================================ */
 /* === SPACING & SIZING IMPROVEMENTS — final pass ============= */
 /* ============================================================ */
 

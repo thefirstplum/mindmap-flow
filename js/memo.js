@@ -125,36 +125,30 @@ function renderMemoEditor() {
   const charCount = memo.content.length;
   const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
 
-  // Mode-based editor: 'view' (default, rendered markdown) or 'edit'
-  // (desktop = split textarea+preview, mobile = textarea only).
-  // This replaces the contenteditable live editor — native textarea is
-  // reliable for cursor position, undo/redo, and avoids the image-flicker
-  // problem caused by re-rendering on every keystroke.
-  const isMobile = window.innerWidth < 769;
-  const isEdit = memoMode === 'edit';
+  // Three editor modes:
+  //   'view' — rendered markdown only (tap to enter edit)
+  //   'live' — split textarea + live preview (both desktop & mobile)
+  //   'edit' — textarea only (no preview, faster on mobile)
   const renderedHtml = memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">내용을 추가하려면 편집 모드로 전환하세요</div>';
 
   let bodyHtml;
-  if (!isEdit) {
-    // Click anywhere on the rendered body switches to edit mode (unless
-    // clicking a link). Matches Bear's "tap to edit" behavior.
+  if (memoMode === 'view') {
     bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('edit')">${renderedHtml}</div></div>`;
-  } else if (isMobile) {
-    bodyHtml = `<div class="memo-body-wrap edit-only">
-      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
-    </div>`;
-  } else {
+  } else if (memoMode === 'live') {
     bodyHtml = `<div class="memo-body-wrap split">
       <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
       <div class="markdown-body" id="memo-preview">${renderedHtml}</div>
     </div>`;
+  } else {
+    bodyHtml = `<div class="memo-body-wrap edit-only">
+      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
+    </div>`;
   }
 
-  const editLabel = isEdit ? '뷰어' : '편집';
-  // Cleaner SF Symbols-style icons: square.and.pencil for edit, doc.text for view
-  const editIcon = isEdit
-    ? `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`
-    : `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/><path d="M18.375 2.625a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.375-9.375z"/></svg>`;
+  // 3-way segmented mode control
+  const viewIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`;
+  const liveIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="18" rx="1.5"/><rect x="13" y="3" width="9" height="18" rx="1.5"/></svg>`;
+  const editIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/><path d="M18.375 2.625a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.375-9.375z"/></svg>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
@@ -163,10 +157,11 @@ function renderMemoEditor() {
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-toolbar-spacer"></div>
-      <button class="memo-icon-btn ${isEdit ? 'active' : ''}" onclick="toggleMemoMode()" title="${editLabel} 모드">
-        ${editIcon}
-        <span class="label-text">${editLabel}</span>
-      </button>
+      <div class="memo-mode-seg" role="group" aria-label="편집 모드">
+        <button class="${memoMode === 'view' ? 'active' : ''}" onclick="setMemoMode('view')" title="뷰어">${viewIcon}</button>
+        <button class="${memoMode === 'live' ? 'active' : ''}" onclick="setMemoMode('live')" title="라이브뷰">${liveIcon}</button>
+        <button class="${memoMode === 'edit' ? 'active' : ''}" onclick="setMemoMode('edit')" title="편집">${editIcon}</button>
+      </div>
       <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
       </button>
@@ -190,17 +185,10 @@ function renderMemoEditor() {
 
   // Restore decoded images to avoid iOS re-decode flicker
   _patchImagesAfterRender(editor, _imgCache);
-  if (isEdit) setupSplitScrollSync();
+  if (memoMode === 'live') setupSplitScrollSync();
   // Mark cached images as loaded so the skeleton shimmer goes away
   setTimeout(markLoadedImages, 0);
 }
-
-// Toggle between viewer and edit. View is default; first-time tap on the
-// edit button enters edit mode. From edit, tap "뷰어" to render.
-function toggleMemoMode() {
-  setMemoMode(memoMode === 'edit' ? 'view' : 'edit');
-}
-
 
 // =================== BEAR-STYLE LIVE EDITOR ===================
 function bearRenderLine(text) {
@@ -584,24 +572,22 @@ function setupBearEditor(editor, content, onChange) {
   });
 }
 
-// Default mode is 'view' — markdown is rendered. Toggling enters 'edit'
-// mode (split on desktop, textarea-only on mobile). Migrate any prior
-// 'live' / 'split' / 'preview' values from older builds.
+// Three modes: 'view' (rendered), 'live' (split textarea+preview), 'edit' (textarea only).
+// Migrate old values from prior builds: 'split'/'preview' → 'live'.
 let memoMode = load('memo_mode', 'view');
-if (memoMode !== 'view' && memoMode !== 'edit') memoMode = 'view';
+if (!['view', 'live', 'edit'].includes(memoMode)) {
+  memoMode = (memoMode === 'split') ? 'live' : 'view';
+}
 function setMemoMode(mode) {
   memoMode = mode;
   save('memo_mode', mode);
   renderMemoEditor();
-  // When entering edit mode, focus the textarea so the keyboard pops on mobile
-  if (mode === 'edit') {
+  if (mode === 'edit' || mode === 'live') {
     setTimeout(() => {
       const ta = document.getElementById('memo-textarea');
       if (ta) {
         ta.focus();
-        // Move caret to end so the user can keep typing
-        const len = ta.value.length;
-        try { ta.setSelectionRange(len, len); } catch {}
+        try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch {}
       }
     }, 30);
   }
@@ -704,7 +690,7 @@ function insertIntoActiveMemo(insertText) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return false;
   const ta = document.getElementById('memo-textarea');
-  if (ta && memoMode === 'edit') {
+  if (ta && (memoMode === 'edit' || memoMode === 'live')) {
     // Native insert preserves undo history
     const start = ta.selectionStart ?? ta.value.length;
     const end = ta.selectionEnd ?? ta.value.length;
