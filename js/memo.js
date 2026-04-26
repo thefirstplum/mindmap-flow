@@ -116,19 +116,9 @@ function renderMemoEditor() {
   const charCount = memo.content.length;
   const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
 
-  const editPart = `<textarea placeholder="# 제목\n\n마크다운으로 자유롭게 작성하세요..." oninput="updateMemoContent(this.value)">${escapeHtml(memo.content)}</textarea>`;
-  const previewPart = `<div class="markdown-body">${memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>'}</div>`;
+  // Live mode is the only editing mode now — toggle/split/preview removed.
   const livePart = `<div class="bear-editor" contenteditable="true" id="bear-editor-${memo.id}" spellcheck="false"></div>`;
-
-  let bodyHtml = '';
-  if (memoMode === 'live') bodyHtml = `<div class="memo-body-wrap">${livePart}</div>`;
-  else if (memoMode === 'edit') bodyHtml = `<div class="memo-body-wrap">${editPart}</div>`;
-  else if (memoMode === 'preview') bodyHtml = `<div class="memo-body-wrap">${previewPart}</div>`;
-  else bodyHtml = `<div class="memo-body-wrap split">${editPart}${previewPart}</div>`;
-
-  const liveIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`;
-  const splitIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
-  const eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const bodyHtml = `<div class="memo-body-wrap">${livePart}</div>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
@@ -136,11 +126,6 @@ function renderMemoEditor() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
-      <div class="memo-mode-toggle">
-        <button class="${memoMode==='live'?'active':''}" onclick="setMemoMode('live')" title="라이브 (Bear 스타일)">${liveIcon}<span class="label-text">라이브</span></button>
-        <button class="${memoMode==='split'?'active':''}" onclick="setMemoMode('split')" title="분할">${splitIcon}<span class="label-text">분할</span></button>
-        <button class="${memoMode==='preview'?'active':''}" onclick="setMemoMode('preview')" title="미리보기">${eyeIcon}<span class="label-text">미리보기</span></button>
-      </div>
       <div class="memo-toolbar-spacer"></div>
       <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
@@ -159,34 +144,27 @@ function renderMemoEditor() {
       <span>${dateStr}</span>
       <span class="dot"></span>
       <span>${charCount}자 · ${wordCount}단어</span>
-      <span class="dot"></span>
-      <span class="badge">MARKDOWN</span>
     </div>
     ${bodyHtml}
   `;
-  // Wire interactions once the new DOM exists
   setTimeout(() => {
-    if (memoMode === 'split') setupSplitScrollSync();
-    if (memoMode === 'live') {
-      const ed = document.getElementById('bear-editor-' + memo.id);
-      if (ed) {
-        setupBearEditor(ed, memo.content, (newContent) => {
-          memo.content = newContent;
-          memo.date = new Date().toISOString();
-          saveMemos();
-          // Live char-count update in meta (optional)
-          const meta = document.querySelector('.memo-meta');
-          if (meta) {
-            const date = new Date(memo.date);
-            const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-            const wc = newContent.trim().split(/\s+/).filter(Boolean).length;
-            meta.querySelector('span:nth-child(1)').textContent = dateStr;
-            meta.querySelector('span:nth-child(3)').textContent = `${newContent.length}자 · ${wc}단어`;
-          }
-          clearTimeout(window._memoListTimer);
-          window._memoListTimer = setTimeout(renderMemoList, 500);
-        });
-      }
+    const ed = document.getElementById('bear-editor-' + memo.id);
+    if (ed) {
+      setupBearEditor(ed, memo.content, (newContent) => {
+        memo.content = newContent;
+        memo.date = new Date().toISOString();
+        saveMemos();
+        const meta = document.querySelector('.memo-meta');
+        if (meta) {
+          const date = new Date(memo.date);
+          const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+          const wc = newContent.trim().split(/\s+/).filter(Boolean).length;
+          meta.querySelector('span:nth-child(1)').textContent = dateStr;
+          meta.querySelector('span:nth-child(3)').textContent = `${newContent.length}자 · ${wc}단어`;
+        }
+        clearTimeout(window._memoListTimer);
+        window._memoListTimer = setTimeout(renderMemoList, 500);
+      });
     }
   }, 0);
 }
@@ -217,6 +195,13 @@ function bearRenderLine(text) {
 }
 
 function bearInline(html) {
+  // Image first via placeholder so subsequent regexes don't match into the URL
+  const imgs = [];
+  html = html.replace(/!\[([^\]\n]*)\]\(([^)\s\n]+)\)/g, (_m, alt, url) => {
+    imgs.push({ alt, url });
+    return `IMG${imgs.length - 1}`;
+  });
+
   // Bold ** **
   html = html.replace(/\*\*([^\*\n]+)\*\*/g,
     '<span class="md-marker">**</span><span class="md-bold">$1</span><span class="md-marker">**</span>');
@@ -229,9 +214,20 @@ function bearInline(html) {
   // Inline code `
   html = html.replace(/`([^`\n]+)`/g,
     '<span class="md-marker">`</span><span class="md-code">$1</span><span class="md-marker">`</span>');
-  // Link [text](url)
+  // Link [text](url) — won't match images (they were tokenized)
   html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
     '<span class="md-marker">[</span><span class="md-link">$1</span><span class="md-marker">](</span><span class="md-marker">$2</span><span class="md-marker">)</span>');
+
+  // Restore image tokens with marker spans (preserve source as text) + actual <img>
+  html = html.replace(/IMG(\d+)/g, (_m, idx) => {
+    const t = imgs[parseInt(idx)];
+    const safeUrl = String(t.url).replace(/"/g, '&quot;');
+    return `<span class="md-marker">!</span><span class="md-marker">[</span>` +
+           `<span class="md-marker">${t.alt}</span><span class="md-marker">]</span>` +
+           `<span class="md-marker">(</span><span class="md-marker">${t.url}</span>` +
+           `<span class="md-marker">)</span>` +
+           `<img class="md-img" src="${safeUrl}" alt="${t.alt}" loading="lazy" contenteditable="false">`;
+  });
   return html;
 }
 
