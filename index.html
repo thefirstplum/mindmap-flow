@@ -40,6 +40,12 @@
       </svg>
       <span class="label">메모</span>
     </button>
+    <button class="nav-btn" data-page="ledger" aria-label="가계부" style="display:none;">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+      </svg>
+      <span class="label">가계부</span>
+    </button>
     <div class="spacer"></div>
     <button class="nav-btn" id="sync-btn" aria-label="동기화">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -58,6 +64,9 @@
         <div class="subtitle" id="page-subtitle">하루를 블록 단위로 계획하세요</div>
       </div>
       <div class="header-spacer"></div>
+      <button class="header-btn" onclick="openSettingsModal()" title="설정">
+        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
       <button class="header-btn theme-toggle" id="theme-toggle" onclick="toggleTheme()" title="테마 전환 (종이 ↔ 가죽)">
         <svg id="theme-icon-paper" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
         <svg id="theme-icon-leather" class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -189,6 +198,28 @@
             <div class="memo-items" id="memo-items"></div>
           </div>
           <div class="memo-editor" id="memo-editor"></div>
+        </div>
+      </div>
+
+      <!-- ===== LEDGER PAGE ===== -->
+      <div class="page" id="page-ledger">
+        <div class="ledger-page">
+          <div class="ledger-quick-add">
+            <div class="ledger-quick-row">
+              <input type="number" inputmode="numeric" id="ledger-amount" placeholder="0" autocomplete="off" autofocus>
+              <span class="ledger-currency">원</span>
+            </div>
+            <div class="ledger-quick-row">
+              <div class="ledger-type-toggle">
+                <button class="active" data-type="expense" onclick="setLedgerType('expense')">지출</button>
+                <button data-type="income" onclick="setLedgerType('income')">수입</button>
+              </div>
+              <input type="text" id="ledger-note" placeholder="메모 (선택)" autocomplete="off">
+              <button class="ledger-add-btn" onclick="addLedgerEntry()">추가</button>
+            </div>
+          </div>
+          <div class="ledger-summary" id="ledger-summary"></div>
+          <div class="ledger-list" id="ledger-list"></div>
         </div>
       </div>
     </div>
@@ -374,6 +405,26 @@
 </div>
 
 <!-- Drawing modal -->
+<!-- Settings modal -->
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettingsModal()">
+  <div class="modal">
+    <h3>⚙️ 설정</h3>
+    <div class="modal-desc">기능을 켜고 끌 수 있어요. 변경사항은 즉시 적용됩니다.</div>
+
+    <label class="settings-toggle">
+      <div>
+        <div class="settings-toggle-title">💰 가계부</div>
+        <div class="settings-toggle-desc">사이드바에 가계부 탭 추가 — 빠른 수입/지출 입력</div>
+      </div>
+      <input type="checkbox" id="setting-ledger-enabled" onchange="setSetting('ledgerEnabled', this.checked)">
+    </label>
+
+    <div class="modal-actions">
+      <button onclick="closeSettingsModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="drawing-modal-overlay" id="drawing-modal-overlay" onclick="if(event.target===this)closeDrawingModal()">
   <div class="drawing-modal">
     <div class="drawing-toolbar">
@@ -427,6 +478,7 @@
 <script src="js/mindmap.js" defer></script>
 <script src="js/timeblock.js" defer></script>
 <script src="js/memo.js" defer></script>
+<script src="js/ledger.js" defer></script>
 <script src="js/drawing.js" defer></script>
 <script src="js/sync.js" defer></script>
 <script src="js/main.js" defer></script>
