@@ -3239,7 +3239,10 @@ let driveLastSyncAt = null;
 let driveLastModifiedTime = null; // server-side mtime of folder for change detection
 let isLoadingFromDrive = false;
 let isPushingToDrive = false;
-let driveDirty = false; // local has unpushed changes
+// driveDirty is persisted across sessions: if user closes browser before the 2s
+// debounce push fires, we remember on next load that there are unflushed local
+// changes — push them first before pulling (otherwise pull would clobber them).
+let driveDirty = !!localStorage.getItem('mindflow_drive_dirty');
 let driveUserEmail = null;
 let driveStatus = 'idle';
 let driveAutoSaveTimer = null;
@@ -3596,8 +3599,8 @@ async function applyDriveData(files) {
       } catch (e) { console.warn(e); }
     }
 
-    // Memos
-    const newMemos = [];
+    // Memos — fetch all .md files
+    const remoteMemos = [];
     let maxId = 0;
     const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
     for (const f of mdFiles) {
@@ -3606,11 +3609,24 @@ async function applyDriveData(files) {
         const memo = parseFrontmatter(text, f.name, Date.now());
         if (!memo.id) memo.id = ++maxId + 100000;
         else if (memo.id > maxId) maxId = memo.id;
-        newMemos.push(memo);
+        remoteMemos.push(memo);
       } catch (e) { console.warn('Memo parse failed:', f.name, e); }
     }
+
+    // Per-memo timestamp merge: keep whichever side has the later date.
+    // This protects local edits that haven't pushed yet (browser closed,
+    // network hiccup, etc.) from being silently overwritten by stale remote.
+    const merged = new Map();
+    for (const m of remoteMemos) merged.set(m.id, m);
+    for (const m of memos) {
+      const r = merged.get(m.id);
+      if (!r || new Date(m.date) > new Date(r.date)) merged.set(m.id, m);
+      if (m.id > maxId) maxId = m.id;
+    }
+    const newMemos = [...merged.values()];
     newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
 
+    // Always preserve the in-progress edit, regardless of timestamp comparison
     if (editingMemoId != null) {
       const local = memos.find(m => m.id === editingMemoId);
       if (local) {
@@ -3719,11 +3735,13 @@ async function driveSyncNow() {
 function scheduleDriveSave() {
   if (!driveFolderId || isLoadingFromDrive) return;
   driveDirty = true;
+  localStorage.setItem('mindflow_drive_dirty', '1'); // survives browser close
   clearTimeout(driveAutoSaveTimer);
   driveAutoSaveTimer = setTimeout(async () => {
     try {
       await drivePushAll();
-      driveDirty = false; // only clear on success — failure keeps dirty so poll won't overwrite local edits
+      driveDirty = false;
+      localStorage.removeItem('mindflow_drive_dirty');
     } catch (e) {
       console.warn('Drive push failed; will retry on next change:', e);
     }
@@ -3785,6 +3803,21 @@ async function initDrive() {
         const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
         driveUserEmail = about.user?.emailAddress || null;
       } catch {}
+      // CRITICAL: if previous session had unflushed changes (e.g. browser closed
+      // mid-debounce), push them BEFORE pulling — otherwise pull would clobber
+      // local changes with stale Drive content.
+      if (driveDirty) {
+        try {
+          await drivePushAll();
+          driveDirty = false;
+          localStorage.removeItem('mindflow_drive_dirty');
+          toast('이전 세션 변경사항을 동기화했습니다', 'success');
+        } catch (e) {
+          console.warn('Pending push failed; skipping pull to preserve local changes:', e);
+          driveStartPolling();
+          return;
+        }
+      }
       await drivePullAll(true);
       driveStartPolling();
     } catch (e) {
