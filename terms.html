@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이용약관 — MindFlow</title>
+<meta name="theme-color" content="#0b0d14">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    background: #0b0d14;
+    background-image: radial-gradient(circle at 20% 0%, #1a1530 0%, #0b0d14 50%);
+    color: #e8eaf2;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+    min-height: 100dvh;
+  }
+  a { color: #a99bff; text-decoration: none; }
+  a:hover { color: #fff; }
+  header {
+    position: sticky; top: 0;
+    background: rgba(11,13,20,0.78);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid #2a2f3f;
+    z-index: 10;
+  }
+  header .wrap {
+    max-width: 800px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; color: #e8eaf2; font-weight: 700; font-size: 17px; }
+  .logo-mark {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, #7c6cf5, #ec4899);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800;
+  }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a { font-size: 14px; color: #8b8fa3; }
+  header nav a:hover { color: #e8eaf2; }
+  main {
+    max-width: 800px; margin: 0 auto;
+    padding: 50px 24px 80px;
+  }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .updated { color: #595d70; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; font-weight: 700; margin-top: 32px; margin-bottom: 12px; color: #a99bff; }
+  p { margin-bottom: 14px; color: #c5c8d4; }
+  ul { padding-left: 22px; margin-bottom: 14px; color: #c5c8d4; }
+  li { margin: 6px 0; }
+  strong { color: #e8eaf2; }
+  code { background: #1f2330; padding: 2px 7px; border-radius: 5px; font-family: ui-monospace, Menlo, monospace; font-size: 0.9em; color: #ffb3d1; }
+  .summary {
+    background: linear-gradient(135deg, rgba(124,108,245,0.08), rgba(236,72,153,0.06));
+    border: 1px solid rgba(124,108,245,0.2);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 24px 0 32px;
+  }
+  .summary p { color: #e8eaf2; margin: 0; }
+  footer {
+    border-top: 1px solid #2a2f3f;
+    padding: 24px;
+    text-align: center;
+    color: #595d70;
+    font-size: 13px;
+  }
+  footer .links { margin-bottom: 10px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./landing.html" class="logo">
+      <div class="logo-mark">M</div>
+      MindFlow
+    </a>
+    <nav>
+      <a href="./">앱</a>
+      <a href="./privacy.html">개인정보</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <h1>이용약관</h1>
+  <p class="updated">최종 업데이트: 2026년 4월 26일</p>
+
+  <div class="summary">
+    <p><strong>요약:</strong> MindFlow는 무료·오픈 소스로 제공되는 개인용 도구입니다. "있는 그대로(AS IS)" 제공되며 데이터 손실·서비스 중단 등에 대한 책임을 지지 않습니다. 사용자가 본인의 데이터를 직접 백업·관리할 책임이 있습니다.</p>
+  </div>
+
+  <h2>1. 서비스 소개</h2>
+  <p>MindFlow는 마인드맵, 타임블록(시간표 계획), 마크다운 메모 기능을 제공하는 정적 웹 애플리케이션입니다. 본 약관은 사용자가 서비스를 이용함에 있어 권리와 의무, 책임 사항을 규정합니다.</p>
+
+  <h2>2. 무료 제공</h2>
+  <p>본 서비스는 개인 사용 목적으로 무료 제공됩니다. 광고나 결제 시스템이 없으며, 향후에도 본 서비스의 핵심 기능에 대한 유료화를 계획하고 있지 않습니다.</p>
+
+  <h2>3. 오픈 소스</h2>
+  <p>본 서비스의 소스 코드는 <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">GitHub</a>에서 공개되어 있으며 MIT 라이선스에 따라 자유롭게 사용·수정·배포할 수 있습니다.</p>
+
+  <h2>4. 사용자의 책임</h2>
+  <ul>
+    <li>본인의 계정·기기 보안과 데이터는 본인이 관리합니다</li>
+    <li>중요한 데이터는 별도로 백업하시는 것을 권장합니다 (앱 내 JSON 내보내기 기능 제공)</li>
+    <li>Google Drive 등 외부 서비스 연동 시 해당 서비스의 약관·정책을 따릅니다</li>
+    <li>법령에 위반되는 콘텐츠를 본 서비스에 작성·저장해서는 안 됩니다</li>
+  </ul>
+
+  <h2>5. 면책 조항</h2>
+  <p>본 서비스는 <strong>"있는 그대로(AS IS)"</strong> 제공되며, 명시적·묵시적 어떠한 보증도 제공하지 않습니다. 다음 사항에 대해 책임을 지지 않습니다:</p>
+  <ul>
+    <li>버그·결함으로 인한 데이터 손실 또는 손상</li>
+    <li>서비스의 일시적 또는 영구적 중단</li>
+    <li>제3자 서비스(Google Drive, GitHub 등)의 장애나 정책 변경</li>
+    <li>호환성·정확성·완결성·신뢰성에 대한 보증</li>
+    <li>사용자가 본 서비스를 통해 얻은 정보의 활용으로 인한 손해</li>
+  </ul>
+
+  <h2>6. 외부 서비스 연동</h2>
+  <p>본 서비스는 다음 외부 서비스와 선택적으로 연동될 수 있으며, 각 서비스의 이용약관과 개인정보 정책은 해당 제공자의 정책을 따릅니다:</p>
+  <ul>
+    <li><strong>GitHub Pages</strong> — 정적 호스팅</li>
+    <li><strong>Google Drive</strong> — 데이터 동기화 (사용자 선택)</li>
+    <li><strong>GitHub Gist</strong> — 데이터 동기화 (사용자 선택)</li>
+  </ul>
+
+  <h2>7. 약관 변경</h2>
+  <p>본 약관은 변경될 수 있으며, 변경 시 본 페이지의 "최종 업데이트" 날짜가 갱신됩니다. 중대한 변경의 경우 앱 내에서 공지합니다.</p>
+
+  <h2>8. 서비스 종료</h2>
+  <p>사용자는 언제든지 별도의 절차 없이 서비스 사용을 중단할 수 있습니다. 데이터 삭제는 브라우저 설정 또는 Google Drive에서 직접 수행할 수 있습니다.</p>
+  <p>제공자는 본 서비스를 사전 통지 후 종료할 수 있으며, 종료 시 사용자가 데이터를 내보낼 수 있는 충분한 기간을 둡니다.</p>
+
+  <h2>9. 지적 재산권</h2>
+  <p>본 서비스의 소스 코드는 MIT 라이선스에 따릅니다. 사용자가 본 서비스를 통해 작성·생성한 콘텐츠(메모·마인드맵 등)의 저작권은 사용자에게 귀속됩니다.</p>
+
+  <h2>10. 준거법</h2>
+  <p>본 약관은 대한민국 법률에 따라 해석되고 시행됩니다. 본 서비스 이용과 관련한 분쟁이 발생할 경우, 사용자의 주소지 관할 법원을 우선합니다.</p>
+
+  <h2>11. 문의</h2>
+  <p>약관 관련 문의: <a href="mailto:thefirstplum@gmail.com">thefirstplum@gmail.com</a></p>
+</main>
+
+<footer>
+  <div class="links">
+    <a href="./">앱 열기</a>
+    <a href="./landing.html">소개</a>
+    <a href="./privacy.html">개인정보 처리방침</a>
+    <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <div>© 2026 MindFlow</div>
+</footer>
+</body>
+</html>

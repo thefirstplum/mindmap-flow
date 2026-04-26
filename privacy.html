@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>개인정보 처리방침 — MindFlow</title>
+<meta name="theme-color" content="#0b0d14">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    background: #0b0d14;
+    background-image: radial-gradient(circle at 20% 0%, #1a1530 0%, #0b0d14 50%);
+    color: #e8eaf2;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.7;
+    min-height: 100dvh;
+  }
+  a { color: #a99bff; text-decoration: none; }
+  a:hover { color: #fff; }
+  header {
+    position: sticky; top: 0;
+    background: rgba(11,13,20,0.78);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid #2a2f3f;
+    z-index: 10;
+  }
+  header .wrap {
+    max-width: 800px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .logo { display: flex; align-items: center; gap: 10px; color: #e8eaf2; font-weight: 700; font-size: 17px; }
+  .logo-mark {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, #7c6cf5, #ec4899);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800;
+  }
+  header nav { margin-left: auto; display: flex; gap: 18px; }
+  header nav a { font-size: 14px; color: #8b8fa3; }
+  header nav a:hover { color: #e8eaf2; }
+  main {
+    max-width: 800px; margin: 0 auto;
+    padding: 50px 24px 80px;
+  }
+  h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+  .updated { color: #595d70; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; font-weight: 700; margin-top: 32px; margin-bottom: 12px; color: #a99bff; }
+  p { margin-bottom: 14px; color: #c5c8d4; }
+  ul { padding-left: 22px; margin-bottom: 14px; color: #c5c8d4; }
+  li { margin: 6px 0; }
+  strong { color: #e8eaf2; }
+  code { background: #1f2330; padding: 2px 7px; border-radius: 5px; font-family: ui-monospace, Menlo, monospace; font-size: 0.9em; color: #ffb3d1; }
+  .summary {
+    background: linear-gradient(135deg, rgba(124,108,245,0.08), rgba(236,72,153,0.06));
+    border: 1px solid rgba(124,108,245,0.2);
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 24px 0 32px;
+  }
+  .summary p { color: #e8eaf2; margin: 0; }
+  footer {
+    border-top: 1px solid #2a2f3f;
+    padding: 24px;
+    text-align: center;
+    color: #595d70;
+    font-size: 13px;
+  }
+  footer .links { margin-bottom: 10px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a href="./landing.html" class="logo">
+      <div class="logo-mark">M</div>
+      MindFlow
+    </a>
+    <nav>
+      <a href="./">앱</a>
+      <a href="./terms.html">이용약관</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <h1>개인정보 처리방침</h1>
+  <p class="updated">최종 업데이트: 2026년 4월 26일</p>
+
+  <div class="summary">
+    <p><strong>요약:</strong> MindFlow는 사용자의 메모·마인드맵·일정 데이터를 사용자의 브라우저(localStorage)에 저장합니다. 사용자가 직접 연결한 Google Drive 외에는 <strong>어떠한 외부 서버로도 데이터가 전송되지 않습니다</strong>. 회원가입·광고·추적이 없습니다.</p>
+  </div>
+
+  <h2>1. 수집하는 정보</h2>
+  <p>MindFlow는 별도의 회원가입을 요구하지 않으며, 다음 정보를 <strong>수집하지 않습니다</strong>:</p>
+  <ul>
+    <li>이름, 이메일, 전화번호 등 개인 식별 정보</li>
+    <li>IP 주소, 위치 정보, 기기 식별자</li>
+    <li>광고 추적, 분석 쿠키, 사용 통계</li>
+  </ul>
+
+  <h2>2. 사용자 데이터의 처리</h2>
+  <p>사용자가 앱에서 작성하는 모든 데이터(메모, 마인드맵, 일정, 이미지)는 다음 위치에 저장됩니다:</p>
+  <ul>
+    <li><strong>브라우저의 localStorage</strong> — 해당 기기의 브라우저 안에만 저장 (오프라인 사용 가능)</li>
+    <li><strong>사용자 본인의 Google Drive</strong> (선택적) — 사용자가 동기화를 활성화한 경우 자동 생성된 <code>MindFlow</code> 폴더 내</li>
+  </ul>
+  <p>개발자, 호스팅 제공자(GitHub Pages), 또는 제3자가 사용자 데이터에 접근할 수 없습니다.</p>
+
+  <h2>3. Google Drive 연동</h2>
+  <p>사용자가 Google Drive 동기화를 활성화한 경우:</p>
+  <ul>
+    <li>OAuth 2.0 표준을 통해 사용자가 직접 권한을 부여합니다</li>
+    <li>최소 권한 스코프 <code>drive.file</code> 사용 — <strong>본 앱이 만든 파일만</strong> 접근 가능. 사용자의 다른 Drive 파일·폴더는 접근하지 않습니다</li>
+    <li>액세스 토큰은 사용자의 브라우저 메모리에만 일시적으로 저장되며, 외부로 전송되지 않습니다</li>
+    <li>사용자는 언제든 <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google 계정 → 보안 → 제3자 앱</a>에서 권한을 취소할 수 있습니다</li>
+  </ul>
+
+  <h2>4. 정보 공유</h2>
+  <p>MindFlow는 사용자의 데이터를 <strong>어떤 제3자와도 공유하지 않습니다</strong>. Google Drive에 저장된 데이터는 Google의 개인정보 정책을 따릅니다.</p>
+
+  <h2>5. 데이터 보관 및 삭제</h2>
+  <p>사용자는 언제든지 다음 방법으로 모든 데이터를 삭제할 수 있습니다:</p>
+  <ul>
+    <li>앱 내에서 개별 항목 삭제 또는 동기화 모달의 "연결 해제"</li>
+    <li>브라우저의 localStorage 삭제 (브라우저 설정 → 사이트 데이터 지우기)</li>
+    <li>Google Drive에서 <code>MindFlow</code> 폴더 직접 삭제</li>
+  </ul>
+
+  <h2>6. 보안</h2>
+  <p>MindFlow는 정적 웹 애플리케이션으로 자체 서버를 운영하지 않습니다. GitHub Pages를 통해 HTTPS로 제공되며, Google Drive와의 통신도 모두 HTTPS로 암호화됩니다. 사용자의 기기 보안과 Google 계정 보안은 사용자가 직접 관리해야 합니다.</p>
+
+  <h2>7. 어린이 개인정보</h2>
+  <p>본 서비스는 만 14세 미만 어린이로부터 의도적으로 정보를 수집하지 않습니다. 어린이가 본 서비스를 사용한 정황이 발견되면 즉시 보호자에게 통지하고 관련 데이터를 삭제하도록 안내합니다.</p>
+
+  <h2>8. 정책 변경</h2>
+  <p>본 정책은 변경될 수 있으며, 변경 시 본 페이지의 "최종 업데이트" 날짜가 갱신됩니다. 중대한 변경의 경우 앱 내에서 공지합니다.</p>
+
+  <h2>9. 문의</h2>
+  <p>개인정보 관련 문의: <a href="mailto:thefirstplum@gmail.com">thefirstplum@gmail.com</a></p>
+  <p>오픈 소스 코드: <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">github.com/thefirstplum/mindmap-flow</a></p>
+</main>
+
+<footer>
+  <div class="links">
+    <a href="./">앱 열기</a>
+    <a href="./landing.html">소개</a>
+    <a href="./terms.html">이용약관</a>
+    <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">GitHub</a>
+  </div>
+  <div>© 2026 MindFlow</div>
+</footer>
+</body>
+</html>

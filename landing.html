@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindFlow — 마인드맵 · 타임블록 · 마크다운 메모</title>
+<meta name="description" content="마인드맵, 타임블록, 마크다운 메모를 한 곳에서 관리하는 무료 웹 앱. Google Drive로 모든 기기 동기화.">
+<meta name="theme-color" content="#0b0d14">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0b0d14;
+    --surface: #161922;
+    --surface2: #1f2330;
+    --border: #2a2f3f;
+    --text: #e8eaf2;
+    --text-dim: #8b8fa3;
+    --text-mute: #595d70;
+    --accent: #7c6cf5;
+    --accent2: #a99bff;
+    --pink: #ec4899;
+    --green: #10b981;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(circle at 20% 0%, #1a1530 0%, #0b0d14 50%);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.65;
+    min-height: 100dvh;
+  }
+  a { color: var(--accent2); text-decoration: none; }
+  a:hover { color: #fff; }
+
+  header.top {
+    position: sticky; top: 0;
+    background: rgba(11,13,20,0.78);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  header.top .wrap {
+    max-width: 1100px; margin: 0 auto;
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text); font-weight: 700; font-size: 17px;
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800;
+    box-shadow: 0 6px 20px rgba(124,108,245,0.35);
+  }
+  header.top nav { margin-left: auto; display: flex; gap: 20px; align-items: center; }
+  header.top nav a { font-size: 14px; color: var(--text-dim); }
+  header.top nav a:hover { color: var(--text); }
+  header.top .cta {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff !important;
+    padding: 8px 16px;
+    border-radius: 9px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(124,108,245,0.35);
+  }
+
+  .hero {
+    max-width: 900px; margin: 0 auto;
+    padding: 90px 24px 60px;
+    text-align: center;
+  }
+  .hero .badge {
+    display: inline-block;
+    background: rgba(124,108,245,0.12);
+    border: 1px solid rgba(124,108,245,0.3);
+    color: var(--accent2);
+    padding: 5px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    letter-spacing: 0.4px;
+  }
+  .hero h1 {
+    font-size: clamp(36px, 7vw, 64px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--accent2), var(--pink));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: clamp(15px, 2vw, 18px);
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto 32px;
+  }
+  .hero .actions {
+    display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 24px;
+    border-radius: 11px;
+    font-size: 15px;
+    font-weight: 600;
+    transition: transform 0.15s, box-shadow 0.15s;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff !important;
+    box-shadow: 0 8px 24px rgba(124,108,245,0.4);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgba(124,108,245,0.5); color: #fff !important; }
+  .btn-secondary {
+    background: var(--surface2);
+    color: var(--text) !important;
+    border-color: var(--border);
+  }
+  .btn-secondary:hover { background: #2a2f3f; color: var(--text) !important; }
+
+  .features {
+    max-width: 1100px; margin: 0 auto;
+    padding: 60px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+  }
+  .feature {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .feature:hover {
+    transform: translateY(-3px);
+    border-color: rgba(124,108,245,0.3);
+  }
+  .feature .icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+  }
+  .feature h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .feature p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .promise {
+    max-width: 900px; margin: 0 auto;
+    padding: 40px 24px;
+  }
+  .promise h2 {
+    font-size: 24px; font-weight: 700; margin-bottom: 20px; text-align: center;
+  }
+  .promise ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .promise li {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 14px 18px;
+    font-size: 14px;
+    color: var(--text-dim);
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .promise li::before {
+    content: '✓';
+    color: var(--green);
+    font-weight: 800;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+    padding: 30px 24px;
+    text-align: center;
+    color: var(--text-mute);
+    font-size: 13px;
+  }
+  footer .links { margin-bottom: 12px; display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
+  footer .links a { color: var(--text-dim); }
+  footer .links a:hover { color: var(--text); }
+
+  @media (max-width: 600px) {
+    header.top .wrap { padding: 12px 16px; gap: 10px; }
+    header.top nav { gap: 12px; }
+    header.top nav a:not(.cta) { display: none; }
+    .hero { padding: 60px 16px 40px; }
+    .features { padding: 40px 16px; }
+    .feature { padding: 22px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a href="./landing.html" class="logo">
+      <div class="logo-mark">M</div>
+      MindFlow
+    </a>
+    <nav>
+      <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">GitHub</a>
+      <a href="./privacy.html">개인정보</a>
+      <a href="./terms.html">약관</a>
+      <a href="./" class="cta">앱 열기</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="badge">FREE · OPEN SOURCE · NO ADS</div>
+  <h1>생각을 <span class="grad">한 곳에서</span> 정리하세요</h1>
+  <p>마인드맵으로 발산하고, 타임블록으로 계획하고, 마크다운으로 기록하세요. 모든 기기에서 자동 동기화되는 단 하나의 도구.</p>
+  <div class="actions">
+    <a href="./" class="btn btn-primary">
+      앱 시작하기 →
+    </a>
+    <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener" class="btn btn-secondary">
+      GitHub에서 보기
+    </a>
+  </div>
+</section>
+
+<section class="features">
+  <div class="feature">
+    <div class="icon">🧠</div>
+    <h3>마인드맵</h3>
+    <p>여러 개의 마인드맵을 만들고, 노드를 자유롭게 드래그·연결하세요. 핀치 줌, 색상 분류, 곡선 엣지로 아이디어가 살아납니다.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">📅</div>
+    <h3>타임블록</h3>
+    <p>하루를 시간 블록으로 계획하세요. 시간 길이만큼 시각적으로 채워지고, 완료 체크와 진행률 바로 하루를 한눈에.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">📝</div>
+    <h3>마크다운 메모</h3>
+    <p>Bear 스타일 라이브 편집기. 입력하면 그 자리에서 굵게·제목·코드가 적용됩니다. 옵시디언 호환 .md 형식.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">☁️</div>
+    <h3>Google Drive 동기화</h3>
+    <p>본인의 Drive 폴더에 자동 저장. 모든 기기에서 같은 데이터, 이미지까지 함께. 데이터는 본인 소유입니다.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">📱</div>
+    <h3>모바일 최적화</h3>
+    <p>iOS Safari · Android · 데스크톱 모두 지원. 홈 화면에 추가하면 앱처럼 동작. 터치·스와이프·핀치 제스처.</p>
+  </div>
+  <div class="feature">
+    <div class="icon">🔒</div>
+    <h3>프라이버시 우선</h3>
+    <p>자체 서버 없음. 모든 데이터는 사용자 브라우저와 사용자의 Google Drive에만 저장. 광고·추적·분석 없음.</p>
+  </div>
+</section>
+
+<section class="promise">
+  <h2>약속</h2>
+  <ul>
+    <li>모든 데이터는 사용자 본인 소유</li>
+    <li>회원가입 불필요</li>
+    <li>광고·추적·분석 없음</li>
+    <li>오픈 소스 (MIT 라이선스)</li>
+    <li>외부 서버 없음 (정적 호스팅)</li>
+    <li>언제든 데이터 내보내기</li>
+  </ul>
+</section>
+
+<footer>
+  <div class="links">
+    <a href="./">앱 열기</a>
+    <a href="https://github.com/thefirstplum/mindmap-flow" target="_blank" rel="noopener">GitHub</a>
+    <a href="./privacy.html">개인정보 처리방침</a>
+    <a href="./terms.html">이용약관</a>
+  </div>
+  <div>© 2026 MindFlow · Built with ❤️ in Seoul</div>
+</footer>
+</body>
+</html>
