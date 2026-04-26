@@ -1767,3 +1767,129 @@
     .memo-list { width: 100%; }
     .memo-editor-header input { font-size: 20px; }
   }
+
+/* ============================================================ */
+/* === iOS 24-style unified list design (overrides earlier) === */
+/* ============================================================ */
+
+/* All three list panels share width, header layout, and item style */
+.memo-list,
+.mindmap-list,
+.timeblock-list {
+  width: 300px;
+  background: rgba(22,25,34,0.55);
+  border-right: 1px solid var(--border);
+}
+
+/* iOS-style large header: oversized title + count pill + search/action */
+.memo-list-header,
+.mm-list-header,
+.tb-list-header {
+  padding: 18px 18px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, var(--surface) 0%, transparent 100%);
+}
+.memo-list-title-row,
+.mm-list-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.memo-list-title-row .title,
+.mm-list-title,
+.tb-list-header .memo-list-title-row .title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  text-transform: none;
+}
+.memo-list-title-row .count,
+.mm-list-title-row .count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-mute);
+  background: var(--surface2);
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Items: rounded, subtle, with iOS-like active highlight */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin: 2px 8px;
+  border-bottom: none;
+  border-left: none;
+  border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+.memo-item:hover,
+.mindmap-item:hover,
+.tb-list-item:hover {
+  background: var(--surface2);
+}
+.memo-item:active,
+.mindmap-item:active,
+.tb-list-item:active {
+  transform: scale(0.985);
+}
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: linear-gradient(135deg, rgba(124,108,245,0.15), rgba(124,108,245,0.06));
+  border-color: rgba(124,108,245,0.35);
+  box-shadow: 0 2px 12px rgba(124,108,245,0.12);
+}
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active {
+  background: linear-gradient(135deg, rgba(200,98,74,0.18), rgba(200,98,74,0.07));
+  border-color: rgba(200,98,74,0.4);
+}
+
+/* Item containers (when wrapped in swipe-row) */
+.memo-items > .swipe-row,
+.mindmap-items > .swipe-row,
+.timeblock-items > .swipe-row {
+  margin: 2px 0;
+}
+
+/* Hide list-collapse button on mobile (back button + bottom-nav suffice) */
+@media (max-width: 768px) {
+  .panel-collapse-btn { display: none; }
+  .panel-reopen-btn { display: none !important; }
+
+  /* Mobile: the unified list takes full width since it slides over the detail */
+  .memo-list,
+  .mindmap-list,
+  .timeblock-list {
+    width: 100%;
+  }
+  .memo-list-header,
+  .mm-list-header,
+  .tb-list-header {
+    padding: 16px 16px 10px;
+  }
+  .memo-list-title-row .title,
+  .mm-list-title,
+  .tb-list-header .memo-list-title-row .title {
+    font-size: 26px; /* iOS large-title feel on mobile */
+  }
+}
+
+/* Detail area: when list is collapsed on desktop, the flex:1 detail column
+   already fills the remaining width. Nothing extra needed — but be explicit
+   so future overrides can't accidentally constrain it. */
+.memo-page.list-collapsed .memo-editor,
+.mindmap-page.list-collapsed .mm-canvas-wrap,
+.timeblock-page.list-collapsed .tb-main {
+  flex: 1 1 100%;
+  width: 100%;
+}

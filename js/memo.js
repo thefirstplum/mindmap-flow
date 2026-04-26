@@ -241,108 +241,140 @@ function bearRenderContent(text) {
   ).join('');
 }
 
-// All offset/text functions use Range.toString() so block boundaries count
-// as \n consistently. Critically, set-caret walks BLOCKS (not just text
-// nodes) so the caret can land on an empty line (whose div has no text
-// node) — that's the case after pressing Enter at end of a line.
+// Text/offset model: each direct child of the editor is a "line".
+// Total text = children.map(textContent).join('\n'). Offset is computed
+// the same way — counting +1 per block boundary. This is fully
+// deterministic and doesn't depend on browser-specific Range.toString()
+// quirks around <br>/block-element line breaks.
+function bearGetText(editor) {
+  if (!editor.children.length) return editor.textContent.replace(/​/g, '');
+  return [...editor.children]
+    .map(c => (c.textContent || '').replace(/​/g, ''))
+    .join('\n');
+}
+
 function bearGetCaretOffset(editor) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return 0;
   const range = sel.getRangeAt(0);
   if (!editor.contains(range.startContainer)) return 0;
-  const tempRange = document.createRange();
-  tempRange.selectNodeContents(editor);
-  tempRange.setEnd(range.startContainer, range.startOffset);
-  return tempRange.toString().length;
+
+  let pos = 0;
+  for (const child of editor.children) {
+    if (child === range.startContainer || child.contains(range.startContainer)) {
+      const r = document.createRange();
+      r.selectNodeContents(child);
+      r.setEnd(range.startContainer, range.startOffset);
+      return pos + (r.toString() || '').replace(/​/g, '').length;
+    }
+    pos += (child.textContent || '').replace(/​/g, '').length + 1;
+  }
+  return Math.max(0, pos - 1);
 }
 
 function bearSetCaretOffset(editor, target) {
-  const blocks = [...editor.children];
-  if (blocks.length === 0) {
-    // Place caret in editor itself
+  const sel = window.getSelection();
+  if (!editor.children.length) {
     const r = document.createRange();
-    const sel = window.getSelection();
     r.setStart(editor, 0);
     r.collapse(true);
     sel.removeAllRanges();
     sel.addRange(r);
     return;
   }
-
-  // Find the LAST block whose start position <= target. That's the block
-  // the caret should live in. Using LAST handles the boundary case where
-  // target equals the position right after a \n separator (start of next
-  // block), not the end of the previous block.
-  let containingIdx = 0;
-  let containingStart = 0;
-  for (let i = 0; i < blocks.length; i++) {
-    const r = document.createRange();
-    r.selectNodeContents(editor);
-    r.setEndBefore(blocks[i]);
-    const startPos = r.toString().length;
-    if (startPos <= target) {
-      containingIdx = i;
-      containingStart = startPos;
-    } else {
-      break;
-    }
-  }
-
-  const block = blocks[containingIdx];
-  const offsetInBlock = target - containingStart;
-
-  // Walk text nodes within the block to place caret at offsetInBlock
-  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
-  let chars = 0;
-  let node;
-  let lastNode = null;
-  while ((node = walker.nextNode())) {
-    lastNode = node;
-    if (chars + node.length >= offsetInBlock) {
-      const sel = window.getSelection();
+  let pos = 0;
+  for (const child of editor.children) {
+    const childTextLen = (child.textContent || '').replace(/​/g, '').length;
+    if (target <= pos + childTextLen) {
+      const offsetInChild = target - pos;
+      // Walk text nodes inside child
+      const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null);
+      let chars = 0;
+      let node;
+      while ((node = walker.nextNode())) {
+        const len = node.length;
+        if (chars + len >= offsetInChild) {
+          const r = document.createRange();
+          r.setStart(node, Math.max(0, Math.min(node.length, offsetInChild - chars)));
+          r.collapse(true);
+          sel.removeAllRanges();
+          sel.addRange(r);
+          return;
+        }
+        chars += len;
+      }
+      // Empty block (no text node): place caret at start of block
       const r = document.createRange();
-      r.setStart(node, Math.max(0, Math.min(node.length, offsetInBlock - chars)));
+      r.setStart(child, 0);
       r.collapse(true);
       sel.removeAllRanges();
       sel.addRange(r);
       return;
     }
-    chars += node.length;
+    pos += childTextLen + 1;
   }
-  // No text nodes in block (empty line): place caret at the start of the
-  // block element itself — the browser renders it on the empty line.
-  const sel = window.getSelection();
+  // Past end
   const r = document.createRange();
-  if (lastNode) {
-    r.setStart(lastNode, lastNode.length);
-  } else {
-    r.setStart(block, 0);
-  }
-  r.collapse(true);
+  r.selectNodeContents(editor);
+  r.collapse(false);
   sel.removeAllRanges();
   sel.addRange(r);
 }
 
-function bearGetText(editor) {
-  // Range.toString() of full contents gives \n-separated text consistently,
-  // even when the browser inserted plain <div> blocks (e.g. after Enter).
-  const range = document.createRange();
-  range.selectNodeContents(editor);
-  return range.toString().replace(/​/g, '');
-}
-
 function setupBearEditor(editor, content, onChange) {
-  editor.innerHTML = bearRenderContent(content || '');
+  // Always force divs (not <br> or <p>) for new paragraphs across browsers
+  try { document.execCommand('defaultParagraphSeparator', false, 'div'); } catch {}
+
+  editor.innerHTML = bearRenderContent(content || '​');
+  // Ensure each child is a data-line div; if the editor renders empty,
+  // give it a single empty line so the caret has somewhere to live.
+  if (!editor.children.length) {
+    const div = document.createElement('div');
+    div.setAttribute('data-line', '');
+    editor.appendChild(div);
+  }
+
   let composing = false;
   let renderTimer = null;
 
+  function normalizeBlocks() {
+    // Convert any direct child that ISN'T a data-line div (e.g. a plain
+    // <div> the browser inserted on Enter, or a stray <br>) into
+    // <div data-line>...</div>. Ensures our coordinate model holds.
+    const children = [...editor.childNodes];
+    for (const node of children) {
+      if (node.nodeType === 1 && node.tagName === 'DIV' && node.hasAttribute('data-line')) continue;
+      if (node.nodeType === 3) {
+        // Wrap text node in a data-line div
+        const wrap = document.createElement('div');
+        wrap.setAttribute('data-line', '');
+        node.parentNode.insertBefore(wrap, node);
+        wrap.appendChild(node);
+      } else if (node.nodeType === 1 && node.tagName === 'DIV') {
+        // Plain div from browser — just add data-line attribute
+        node.setAttribute('data-line', '');
+      } else if (node.nodeType === 1 && node.tagName === 'BR') {
+        // A stray <br> at editor root — wrap into a data-line div
+        const wrap = document.createElement('div');
+        wrap.setAttribute('data-line', '');
+        node.parentNode.insertBefore(wrap, node);
+        wrap.appendChild(node);
+      }
+    }
+  }
+
   function rerender() {
     if (composing) return;
+    normalizeBlocks();
     const offset = bearGetCaretOffset(editor);
     const text = bearGetText(editor);
     onChange(text);
-    editor.innerHTML = bearRenderContent(text);
-    bearSetCaretOffset(editor, offset);
+    // Re-render with our markup
+    const newHtml = bearRenderContent(text);
+    if (newHtml !== editor.innerHTML) {
+      editor.innerHTML = newHtml;
+      bearSetCaretOffset(editor, offset);
+    }
   }
 
   editor.addEventListener('compositionstart', () => { composing = true; });
@@ -354,17 +386,86 @@ function setupBearEditor(editor, content, onChange) {
 
   editor.addEventListener('input', () => {
     if (composing) {
-      // Still notify changes during composition for autosave (no rerender)
       onChange(bearGetText(editor));
       return;
     }
+    // Always normalize structure first (cheap), so the caret model stays valid
+    // even before the debounced rerender runs.
+    normalizeBlocks();
     clearTimeout(renderTimer);
-    renderTimer = setTimeout(rerender, 120);
+    renderTimer = setTimeout(rerender, 140);
   });
 
-  // Plain-text paste: avoid pasting styled HTML which could break our layout
+  // Manually handle Enter to guarantee a new <div data-line> is created.
+  // Browser default behavior varies: Chrome/Safari may leave a plain <div>,
+  // Firefox prefers <br>, and on iOS the keyboard sometimes emits a textInput
+  // with embedded \n. By taking control we always produce a clean data-line.
+  editor.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.shiftKey || composing) return;
+    e.preventDefault();
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+    const range = sel.getRangeAt(0);
+    if (!range.collapsed) range.deleteContents();
+
+    // Find the data-line ancestor that holds the caret
+    let cur = range.startContainer;
+    while (cur && cur !== editor && !(cur.nodeType === 1 && cur.parentElement === editor)) {
+      cur = cur.parentNode;
+    }
+    if (!cur || cur === editor) {
+      // Nothing to split; just append a new line
+      const newDiv = document.createElement('div');
+      newDiv.setAttribute('data-line', '');
+      newDiv.appendChild(document.createElement('br'));
+      editor.appendChild(newDiv);
+      const r = document.createRange();
+      r.setStart(newDiv, 0);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    } else {
+      // Split current block at caret
+      const beforeR = document.createRange();
+      beforeR.selectNodeContents(cur);
+      beforeR.setEnd(range.startContainer, range.startOffset);
+      const beforeText = beforeR.toString().replace(/​/g, '');
+
+      const afterR = document.createRange();
+      afterR.selectNodeContents(cur);
+      afterR.setStart(range.startContainer, range.startOffset);
+      const afterText = afterR.toString().replace(/​/g, '');
+
+      cur.innerHTML = bearRenderLine(beforeText) || '<br>';
+
+      const newDiv = document.createElement('div');
+      newDiv.setAttribute('data-line', '');
+      newDiv.innerHTML = bearRenderLine(afterText) || '<br>';
+      cur.parentNode.insertBefore(newDiv, cur.nextSibling);
+
+      // Place caret at start of newDiv (or first text node inside)
+      const r = document.createRange();
+      const firstText = newDiv.querySelector('br') ? newDiv : (
+        document.createTreeWalker(newDiv, NodeFilter.SHOW_TEXT, null).nextNode() || newDiv
+      );
+      if (firstText.nodeType === 3) r.setStart(firstText, 0);
+      else r.setStart(newDiv, 0);
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+
+    // Notify save (skip rerender — we just made a clean structural edit)
+    onChange(bearGetText(editor));
+    clearTimeout(renderTimer);
+    // Schedule a deferred rerender so any markdown-style triggers (e.g.
+    // closing a list item) get re-styled, but at low priority.
+    renderTimer = setTimeout(rerender, 200);
+  });
+
+  // Plain-text paste — strip HTML so styled paste doesn't corrupt structure
   editor.addEventListener('paste', (e) => {
-    if (e.clipboardData?.types?.includes('Files')) return; // image paste handled elsewhere
+    if (e.clipboardData?.types?.includes('Files')) return;
     const text = e.clipboardData?.getData('text/plain');
     if (text == null) return;
     e.preventDefault();
