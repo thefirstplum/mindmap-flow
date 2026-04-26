@@ -1,39 +1,44 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  /* === LIQUID GLASS — light (default) ===
-     Subtle wallpaper, mostly-opaque surfaces — text contrast over polish. */
+  /* === SOFT DASHBOARD — light (default) ===
+     Warm peach → cool lavender pastel wallpaper. Solid white cards lift
+     off the background with soft drop shadows (no heavy glass). Lots of
+     air. */
   :root {
-    --bg: #f4f6fa;
+    --bg: #ebeef5;
     --bg-grad:
-      radial-gradient(ellipse at 100% 0%, rgba(120,180,255,0.16) 0%, transparent 60%),
-      radial-gradient(ellipse at 0% 100%, rgba(180,160,255,0.12) 0%, transparent 55%),
-      linear-gradient(135deg, #f7f9fc 0%, #ebeef4 100%);
-    --surface: rgba(255,255,255,0.85);
-    --surface2: rgba(255,255,255,0.92);
-    --surface3: rgba(245,247,250,0.95);
-    --border: rgba(0,0,0,0.09);
-    --border-light: rgba(0,0,0,0.14);
-    --glass-stroke: rgba(255,255,255,0.85);
-    --glass-shadow: 0 4px 20px rgba(20,30,55,0.08);
-    --text: #18181b;
+      radial-gradient(ellipse 90% 70% at 0% 0%, rgba(255,200,210,0.55) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 70% at 100% 0%, rgba(195,205,255,0.45) 0%, transparent 55%),
+      radial-gradient(ellipse 80% 60% at 100% 100%, rgba(220,210,250,0.35) 0%, transparent 55%),
+      linear-gradient(135deg, #f4ecf3 0%, #e8ecf3 100%);
+    --surface: #ffffff;          /* solid white cards */
+    --surface2: #fafafa;
+    --surface3: #f3f4f6;
+    --border: rgba(15,15,25,0.06);
+    --border-light: rgba(15,15,25,0.12);
+    --glass-stroke: rgba(255,255,255,0.8);
+    --glass-shadow: 0 1px 3px rgba(15,20,40,0.04), 0 12px 36px rgba(15,20,40,0.08);
+    --text: #0d0d12;             /* near-black */
     --text-dim: #3f3f46;
-    --text-mute: #6b6b73;
-    --accent: #0066ff;
-    --accent2: #4a9bff;
-    --accent-glow: rgba(0,102,255,0.22);
-    --green: #1da94c;
-    --orange: #e07a00;
-    --red: #d72b1e;
-    --blue: #0066ff;
-    --pink: #d12a52;
-    --cyan: #1d8db8;
-    --code-color: #8a36c4;
-    --paper-line: rgba(60,80,120,0.05);
-    --blur-amount: 22px;
-    --blur-strong: 36px;
-    --shadow-1: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(20,30,55,0.05);
-    --shadow-2: 0 8px 24px rgba(20,30,55,0.12);
-    --radius: 16px;
-    --radius-sm: 12px;
+    --text-mute: #71717a;
+    --accent: #1a1a1f;           /* dark accent (Skillhub-ish) for headings/active */
+    --accent2: #4a9bff;          /* secondary blue for links / progress */
+    --accent-glow: rgba(0,102,255,0.18);
+    --primary: #0066ff;          /* primary action button */
+    --green: #16a34a;
+    --orange: #ea580c;
+    --red: #dc2626;
+    --blue: #2563eb;
+    --pink: #db2777;
+    --cyan: #0891b2;
+    --code-color: #7c3aed;
+    --paper-line: rgba(60,80,120,0.04);
+    --blur-amount: 14px;         /* subtle blur, mostly for header/sticky bars */
+    --blur-strong: 24px;
+    --shadow-1: 0 1px 2px rgba(15,20,40,0.04), 0 2px 8px rgba(15,20,40,0.04);
+    --shadow-2: 0 4px 12px rgba(15,20,40,0.06), 0 16px 40px rgba(15,20,40,0.08);
+    --shadow-card: 0 1px 3px rgba(15,20,40,0.04), 0 8px 24px rgba(15,20,40,0.06);
+    --radius: 20px;              /* bigger, more dashboard-style */
+    --radius-sm: 14px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
@@ -41,36 +46,38 @@
     color-scheme: light;
   }
 
-  /* === LIQUID GLASS — dark === */
+  /* === SOFT DASHBOARD — dark === */
   body[data-theme="leather"] {
-    --bg: #0a0a12;
+    --bg: #0d0d14;
     --bg-grad:
-      radial-gradient(ellipse at 100% 0%, rgba(80,120,255,0.18) 0%, transparent 55%),
-      radial-gradient(ellipse at 0% 100%, rgba(150,90,220,0.14) 0%, transparent 55%),
-      linear-gradient(135deg, #0d0d18 0%, #04040a 100%);
-    --surface: rgba(28,28,38,0.78);
-    --surface2: rgba(48,48,62,0.86);
-    --surface3: rgba(70,70,90,0.9);
-    --border: rgba(255,255,255,0.12);
-    --border-light: rgba(255,255,255,0.22);
-    --glass-stroke: rgba(255,255,255,0.18);
-    --glass-shadow: 0 8px 28px rgba(0,0,0,0.45);
+      radial-gradient(ellipse 90% 70% at 0% 0%, rgba(180,80,120,0.16) 0%, transparent 55%),
+      radial-gradient(ellipse 90% 70% at 100% 0%, rgba(80,100,200,0.18) 0%, transparent 55%),
+      linear-gradient(135deg, #16161e 0%, #08080e 100%);
+    --surface: #1a1a22;
+    --surface2: #22222c;
+    --surface3: #2c2c38;
+    --border: rgba(255,255,255,0.06);
+    --border-light: rgba(255,255,255,0.12);
+    --glass-stroke: rgba(255,255,255,0.08);
+    --glass-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.4);
     --text: #f5f5f7;
     --text-dim: #c7c7cc;
-    --text-mute: #98989d;
-    --accent: #0A84FF;
+    --text-mute: #8a8a92;
+    --accent: #ffffff;           /* white accent on dark for active emphasis */
     --accent2: #5AC8FA;
-    --accent-glow: rgba(10,132,255,0.35);
-    --green: #30D158;
-    --orange: #FF9F0A;
-    --red: #FF453A;
-    --blue: #0A84FF;
-    --pink: #FF375F;
-    --cyan: #64D2FF;
-    --code-color: #DA8FFF;
+    --accent-glow: rgba(10,132,255,0.3);
+    --primary: #0A84FF;
+    --green: #34d399;
+    --orange: #fb923c;
+    --red: #f87171;
+    --blue: #60a5fa;
+    --pink: #f472b6;
+    --cyan: #38bdf8;
+    --code-color: #c4b5fd;
     --paper-line: rgba(255,255,255,0.04);
-    --shadow-1: 0 4px 16px rgba(0,0,0,0.35);
-    --shadow-2: 0 16px 48px rgba(0,0,0,0.55);
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+    --shadow-2: 0 4px 12px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.5);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
     color-scheme: dark;
   }
   html, body {
@@ -2257,3 +2264,313 @@ body[data-theme="leather"] .tb-list-item.active {
   /* Buttons keep some breathing room at edges */
   .sidebar > * { margin: 0; }
 }
+
+/* ============================================================ */
+/* === SOFT DASHBOARD — surface treatment overrides ========== */
+/* ============================================================ */
+
+/* Replace heavy glass blur with clean solid cards + soft drop shadows.
+   Keep a touch of blur on the sticky header / bottom-nav for a hint of
+   depth, but the rest is opaque. */
+body {
+  background: var(--bg);
+  background-image: var(--bg-grad);
+  background-attachment: fixed;
+}
+
+/* Big surfaces — list panels, modals, drawing toolbar — become solid cards */
+.memo-list,
+.mindmap-list,
+.timeblock-list {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.modal,
+.drawing-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.drawing-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Header — keep a subtle blur so background scroll feels nicer */
+.header {
+  background: rgba(255,255,255,0.78);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+body[data-theme="leather"] .header {
+  background: rgba(20,20,28,0.78);
+}
+
+/* Mindmap toolbar — solid */
+.mindmap-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+/* Memo editor body — solid white "page" */
+.memo-editor {
+  background: var(--surface);
+  background-image: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.memo-editor-toolbar,
+.timeblock-header,
+.tb-list-header,
+.memo-list-header,
+.mm-list-header {
+  background: var(--surface);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+}
+
+/* Buttons — clean solid look (not glass) */
+.tb-btn,
+.header-btn,
+.nav-arrow,
+.memo-icon-btn,
+.draw-tool,
+.panel-collapse-btn,
+.panel-reopen-btn,
+.tb-back-btn,
+.memo-back,
+.mm-list-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.tb-btn:hover,
+.header-btn:hover,
+.nav-arrow:hover,
+.memo-icon-btn:hover,
+.draw-tool:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+}
+
+/* Primary action buttons (Skillhub-style: solid black or solid blue pill) */
+.modal-actions button.primary,
+.memo-search-wrap .new-btn,
+.tb-list-header .today-jump-btn {
+  background: var(--text);          /* black on light, white on dark */
+  color: var(--surface);
+  border: none;
+  box-shadow: var(--shadow-1);
+}
+.modal-actions button.primary:hover,
+.memo-search-wrap .new-btn:hover,
+.tb-list-header .today-jump-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+}
+
+/* Mindmap "+" pane button: solid square icon button matching list cards */
+.mm-list-header button {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  font-size: 18px;
+  font-weight: 500;
+}
+.mm-list-header button:hover {
+  background: var(--text);
+  color: var(--surface);
+  border-color: var(--text);
+}
+
+/* List items — Skillhub card style: solid background, big radius, lift on hover */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin: 6px 8px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-1);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.memo-item:hover,
+.mindmap-item:hover,
+.tb-list-item:hover {
+  background: var(--surface);
+  border-color: var(--border-light);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-1px);
+}
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: var(--surface);
+  border-color: var(--text);            /* Skillhub: bold black border for active */
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+}
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active {
+  border-color: var(--text);
+}
+
+/* List headers — bigger, more dashboard-feel */
+.memo-list-header,
+.mm-list-header,
+.tb-list-header {
+  padding: 22px 18px 14px;
+}
+.memo-list-title-row .title,
+.mm-list-title,
+.tb-list-header .memo-list-title-row .title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Search inputs — pill shape */
+.memo-search-wrap .search-input,
+.modal input,
+.modal textarea,
+.modal select {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.memo-search-wrap .search-input:focus,
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus {
+  background: var(--surface);
+  border-color: var(--text);
+  box-shadow: none;
+}
+
+/* Bottom mobile bar — solid white card with soft top shadow */
+@media (max-width: 768px) {
+  .sidebar {
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 -4px 24px rgba(15,20,40,0.06);
+    border-top: 1px solid var(--border);
+  }
+}
+body[data-theme="leather"] .sidebar {
+  background: rgba(22,22,30,0.92);
+}
+
+/* Toast — pill, solid */
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Day summary — clean card */
+.day-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-1);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Sync error banner — soft red surface */
+.sync-error-banner {
+  background: linear-gradient(135deg, rgba(220,38,38,0.08), rgba(220,38,38,0.04));
+  border-bottom: 1px solid rgba(220,38,38,0.25);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Sync pill in header */
+.sync-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+/* Folder/Drive/Gist status cards — clean pastel hint when connected */
+.folder-status {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.folder-status.connected {
+  background: linear-gradient(135deg, rgba(22,163,74,0.06), transparent);
+  border-color: rgba(22,163,74,0.25);
+}
+
+/* Mode toggle pill (still relevant for drawing modal etc.) */
+.memo-mode-toggle {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Sidebar (desktop) — solid panel */
+@media (min-width: 769px) {
+  .sidebar {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* Cleaner "active tab" indicator on mobile bottom bar — Skillhub-like
+   bold text + small dot below */
+@media (max-width: 768px) {
+  .sidebar .nav-btn.active::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    top: auto;
+    bottom: 2px;
+    background: var(--text);
+    box-shadow: none;
+  }
+  .sidebar .nav-btn.active {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .sidebar .nav-btn.active .label { font-weight: 700; }
+}
+
+/* Larger, softer page padding so cards float */
+.timeblock-body {
+  padding: 16px 20px 32px;
+}
+
