@@ -3315,10 +3315,11 @@ async function driveDownloadFile(fileId) {
   return r.text();
 }
 
-async function driveUploadFile(name, content, mimeType, parentId) {
+async function driveUploadFile(name, content, mimeType, parentId, appProperties) {
   await ensureDriveToken();
   const metadata = { name, mimeType };
   if (parentId) metadata.parents = [parentId];
+  if (appProperties) metadata.appProperties = appProperties;
   const boundary = '----mfb' + Math.random().toString(36).slice(2);
   const isBlob = content instanceof Blob;
   if (isBlob) {
@@ -3368,7 +3369,7 @@ async function driveDeleteFile(fileId) {
 async function driveListInFolder(folderId) {
   return driveApi('GET', '/files', null, {
     q: `'${folderId}' in parents and trashed = false`,
-    fields: 'files(id,name,mimeType,modifiedTime,size)',
+    fields: 'files(id,name,mimeType,modifiedTime,size,appProperties)',
     pageSize: 1000
   });
 }
@@ -3473,10 +3474,6 @@ function sanitizeDriveName(s) {
   return (s || 'untitled').replace(/[\/\\?%*:|"<>]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'untitled';
 }
 
-function memoDriveFilename(memo) {
-  const safe = sanitizeDriveName(memo.title);
-  return `${memo.id}-${safe}.md`;
-}
 function parseMemoIdFromFilename(name) {
   const m = name.match(/^(\d+)-/);
   return m ? parseInt(m[1]) : null;
@@ -3496,7 +3493,10 @@ async function drivePushAll() {
     for (const f of current.files) {
       if (f.mimeType === 'application/vnd.google-apps.folder') continue;
       byName.set(f.name, f);
-      const id = parseMemoIdFromFilename(f.name);
+      // Match by appProperties.memoId (preferred) or legacy {id}-prefix filename
+      const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
+      const fnId = parseMemoIdFromFilename(f.name);
+      const id = propId || fnId;
       if (id) byMemoId.set(id, f);
     }
 
@@ -3517,32 +3517,50 @@ async function drivePushAll() {
       await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
     }
 
-    // Memos as .md — match by memo ID (filename prefix), allow rename
+    // Build clean filenames with deduplication for same-title memos
+    const usedNames = new Set([DRIVE_APP_FILENAME]);
+    const memoFilenames = new Map();
+    for (const memo of memos) {
+      const base = sanitizeDriveName(memo.title);
+      let fname = `${base}.md`;
+      let n = 2;
+      while (usedNames.has(fname)) { fname = `${base} (${n}).md`; n++; }
+      usedNames.add(fname);
+      memoFilenames.set(memo.id, fname);
+    }
+
+    // Push each memo: clean title.md filename + appProperties.memoId for matching
     const keptFiles = new Set([DRIVE_APP_FILENAME]);
     for (const memo of memos) {
-      const fname = memoDriveFilename(memo);
+      const fname = memoFilenames.get(memo.id);
       const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
       const existing = byMemoId.get(memo.id);
       if (existing) {
-        // Update content; rename in metadata if filename changed
         await driveUpdateFile(existing.id, content, 'text/markdown');
-        if (existing.name !== fname) {
-          try { await driveApi('PATCH', `/files/${existing.id}`, { name: fname }); } catch (e) { console.warn('Rename failed:', e); }
+        // Migrate from old "{id}-title.md" name and/or attach appProperties for stable matching
+        const needsRename = existing.name !== fname;
+        const needsProp = !existing.appProperties?.memoId;
+        if (needsRename || needsProp) {
+          const patch = {};
+          if (needsRename) patch.name = fname;
+          if (needsProp) patch.appProperties = { memoId: String(memo.id) };
+          try { await driveApi('PATCH', `/files/${existing.id}`, patch); } catch (e) { console.warn('Metadata patch failed:', e); }
         }
         keptFiles.add(fname);
         keptFiles.add(existing.name);
       } else {
-        await driveUploadFile(fname, content, 'text/markdown', driveFolderId);
+        await driveUploadFile(fname, content, 'text/markdown', driveFolderId, { memoId: String(memo.id) });
         keptFiles.add(fname);
       }
     }
 
-    // Delete orphan .md files (memos that were deleted locally)
+    // Delete orphan .md files (managed by us — has appProperties.memoId or legacy {id}- prefix — but no longer in memos)
     for (const [name, f] of byName) {
       if (keptFiles.has(name)) continue;
       if (!name.toLowerCase().endsWith('.md')) continue;
-      // Only delete if it has our id-prefix (managed by us) and that id is no longer in memos
-      const id = parseMemoIdFromFilename(name);
+      const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
+      const fnId = parseMemoIdFromFilename(f.name);
+      const id = propId || fnId;
       if (id && !memos.find(m => m.id === id)) {
         try { await driveDeleteFile(f.id); } catch {}
       }
