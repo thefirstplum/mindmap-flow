@@ -164,6 +164,23 @@ async function idbDel(key) {
 }
 
 
+// =================== DATE HELPERS ===================
+// Local-timezone YYYY-MM-DD for any Date or ISO string. Important: ISO
+// strings are UTC, so a Korea-morning entry's ISO date is YESTERDAY in
+// UTC. Using slice(0,10) on ISO would mis-bucket those entries.
+function localDateKey(d) {
+  const date = (d instanceof Date) ? d : new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function localMonthKey(d) {
+  const date = (d instanceof Date) ? d : new Date(d);
+  return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}`;
+}
+function localTimeHHMM(d) {
+  const date = (d instanceof Date) ? d : new Date(d);
+  return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+
 // =================== APP SETTINGS ===================
 let appSettings = load('settings', { ledgerEnabled: false });
 
