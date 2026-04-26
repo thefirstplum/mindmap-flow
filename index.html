@@ -3008,6 +3008,11 @@ let gistId = load('gist_id', null);
 let gistAutoSaveTimer = null;
 let gistStatus = 'idle'; // idle | saving | saved | error
 let isLoadingFromGist = false;
+let gistETag = null;
+let gistPollTimer = null;
+let gistLastPushAt = 0;
+let gistLastSyncAt = null;
+const GIST_POLL_INTERVAL = 30_000; // 30s
 
 async function gistApi(method, path, body) {
   if (!gistToken) throw new Error('Token not set');
@@ -3034,38 +3039,61 @@ async function gistConnect() {
   const tokenInput = document.getElementById('gist-token-input');
   const idInput = document.getElementById('gist-id-input');
   const token = tokenInput.value.trim();
-  const existingId = idInput.value.trim();
+  let existingId = idInput.value.trim();
   if (!token) { toast('GitHub Token을 입력하세요', 'error'); return; }
 
   gistToken = token;
+  gistStatus = 'saving';
+  updateGistStatus();
+  toast('GitHub에 연결 중...');
+
   try {
+    // Auto-discover: if no ID specified, try to find an existing MindFlow gist on this account
+    if (!existingId) {
+      try {
+        const list = await gistApi('GET', '/gists?per_page=100');
+        const found = list.find(g =>
+          (g.files && g.files['_mindflow-app.json']) ||
+          (g.description || '').toLowerCase().includes('mindflow')
+        );
+        if (found) {
+          existingId = found.id;
+          toast(`기존 Gist 발견: ${existingId.slice(0,8)}…`, 'success');
+        }
+      } catch (e) { /* ignore, will create new */ }
+    }
+
     if (existingId) {
-      // Verify and pull
       const r = await gistApi('GET', `/gists/${existingId}`);
       gistId = r.id;
       save('gist_token', gistToken);
       save('gist_id', gistId);
       updateGistStatus();
-      // Ask whether to overwrite local with remote, or push local
-      if (Object.keys(r.files || {}).filter(n => n.endsWith('.md')).length > 0 || r.files['_mindflow-app.json']) {
-        if (confirm('이 Gist에 데이터가 있습니다. 가져와서 현재 로컬 데이터를 덮어쓸까요?\n[확인] 가져오기  /  [취소] 로컬 유지 후 다음 저장 시 Gist 덮어쓰기')) {
+      const remoteHasMd = Object.keys(r.files || {}).some(n => n.toLowerCase().endsWith('.md') && n !== 'README.md');
+      const remoteHasApp = !!(r.files && r.files['_mindflow-app.json']);
+      const remoteHasData = remoteHasMd || remoteHasApp;
+      const localHasData = memos.length > 0 || mindmaps.some(m => m.nodes.length > 0) || Object.keys(load('tb_blocks', {})).length > 0;
+
+      if (remoteHasData && localHasData) {
+        if (confirm('이 Gist에 이미 데이터가 있습니다.\n\n[확인] 가져오기 — Gist 데이터로 로컬을 덮어씁니다\n[취소] 로컬 유지 — 다음 저장 시 Gist를 로컬로 덮어씁니다')) {
           await gistPullAll(true);
         } else {
           await gistPushAll();
           toast('로컬 데이터를 Gist에 업로드했습니다', 'success');
         }
+      } else if (remoteHasData) {
+        await gistPullAll(true);
       } else {
         await gistPushAll();
-        toast('Gist 연결 완료. 데이터 업로드됨', 'success');
+        toast('Gist에 데이터 업로드 완료', 'success');
       }
     } else {
-      // Create new
       const r = await gistApi('POST', '/gists', {
         description: 'MindFlow data sync',
         public: false,
         files: {
           'README.md': {
-            content: '# MindFlow Sync Vault\n\nThis private gist is used by MindFlow web app for cross-device data sync.\n\n- `_mindflow-app.json`: mindmaps & timeblocks\n- `*.md`: memos (Obsidian-compatible markdown with YAML frontmatter)\n\nDo not delete or rename files manually unless you know what you are doing.'
+            content: '# MindFlow Sync Vault\n\nThis private gist is used by MindFlow web app for cross-device data sync.\n\n- `_mindflow-app.json`: mindmaps & timeblocks\n- `*.md`: memos (Obsidian-compatible markdown with YAML frontmatter)\n\nDo not delete or rename files manually.'
           }
         }
       });
@@ -3074,22 +3102,36 @@ async function gistConnect() {
       save('gist_id', gistId);
       updateGistStatus();
       await gistPushAll();
-      toast('Gist 생성 및 동기화 완료', 'success');
+      toast('새 Gist 생성 및 데이터 업로드 완료', 'success');
     }
     tokenInput.value = '';
     idInput.value = gistId;
+    gistStartPolling();
   } catch (e) {
     gistToken = null;
     save('gist_token', null);
+    gistStatus = 'error';
     updateGistStatus();
-    toast('연결 실패: ' + e.message, 'error');
+    let msg = e.message;
+    let detail = '';
+    if (/bad credentials|401/i.test(msg)) {
+      detail = '\n\n해결:\n• 토큰이 만료되었거나 잘못됨\n• Account permissions → Gists 가 "Read and write" 인지 확인\n• https://github.com/settings/personal-access-tokens 에서 토큰 활성 여부 확인';
+    } else if (/resource not accessible|403/i.test(msg)) {
+      detail = '\n\n해결: 토큰에 Gist 권한이 없습니다.\nAccount permissions → Gists → Read and write 활성화 필요';
+    } else if (/not found|404/i.test(msg)) {
+      detail = '\n\n해결: 입력한 Gist ID가 존재하지 않거나 다른 계정의 Gist입니다';
+    }
+    toast('연결 실패: ' + msg, 'error');
+    alert('❌ 연결 실패\n\n' + msg + detail);
   }
 }
 
 async function gistDisconnect() {
   if (!confirm('Gist 연결을 해제하시겠습니까? 로컬 데이터는 그대로 유지됩니다.\n(Gist 자체는 GitHub에 그대로 남아있습니다)')) return;
+  gistStopPolling();
   gistToken = null;
   gistId = null;
+  gistETag = null;
   save('gist_token', null);
   save('gist_id', null);
   const ti = document.getElementById('gist-token-input');
@@ -3143,10 +3185,29 @@ async function gistPushAll() {
       if (!desiredMd.has(fn)) files[fn] = null;
     }
 
-    await gistApi('PATCH', `/gists/${gistId}`, {
-      description: `MindFlow — ${memos.length} memos · ${load('mindmaps', []).length} maps`,
-      files
+    // Use raw fetch so we can capture the ETag, preventing the next poll from
+    // refetching what we just pushed.
+    const patchRes = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + gistToken,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        description: `MindFlow — ${memos.length} memos · ${load('mindmaps', []).length} maps`,
+        files
+      })
     });
+    if (!patchRes.ok) {
+      let msg = `HTTP ${patchRes.status}`;
+      try { const j = await patchRes.json(); if (j.message) msg = j.message; } catch {}
+      throw new Error(msg);
+    }
+    gistETag = patchRes.headers.get('ETag');
+    gistLastPushAt = Date.now();
+    gistLastSyncAt = gistLastPushAt;
 
     gistStatus = 'saved';
     updateGistStatus();
@@ -3159,19 +3220,18 @@ async function gistPushAll() {
   }
 }
 
-async function gistPullAll(skipConfirm = false) {
-  if (!gistToken || !gistId) { toast('먼저 Gist를 연결하세요'); return; }
-  if (!skipConfirm && !confirm('Gist의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
-
+// Apply gist data to local state (used by both manual pull and polling)
+async function applyGistData(data) {
   isLoadingFromGist = true;
   try {
-    gistStatus = 'saving';
-    updateGistStatus();
-
-    const data = await gistApi('GET', `/gists/${gistId}`);
     const fileMap = data.files || {};
 
-    // App data
+    // Track which memo is being edited so we don't blow away the user's draft
+    const ae = document.activeElement;
+    const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
+      ? activeMemoId : null;
+
+    // App data (mindmaps + timeblocks)
     if (fileMap['_mindflow-app.json']) {
       try {
         const app = JSON.parse(fileMap['_mindflow-app.json'].content);
@@ -3191,13 +3251,12 @@ async function gistPullAll(skipConfirm = false) {
       } catch (e) { console.warn('Failed to parse app data:', e); }
     }
 
-    // Memos from .md files
+    // Memos from .md files (preserve currently-edited memo from local)
     const newMemos = [];
     let maxId = 0;
     for (const [filename, info] of Object.entries(fileMap)) {
       if (!info || filename === 'README.md' || !filename.toLowerCase().endsWith('.md')) continue;
       let content = info.content;
-      // If gist truncated, fetch raw
       if (info.truncated && info.raw_url) {
         try {
           const r = await fetch(info.raw_url);
@@ -3210,26 +3269,51 @@ async function gistPullAll(skipConfirm = false) {
       newMemos.push(memo);
     }
     newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    // Preserve the in-progress edit
+    if (editingMemoId != null) {
+      const local = memos.find(m => m.id === editingMemoId);
+      if (local) {
+        const idx = newMemos.findIndex(m => m.id === editingMemoId);
+        if (idx >= 0) newMemos[idx] = local;
+        else newMemos.unshift(local);
+      }
+    }
+
     memos = newMemos;
     memoIdCounter = Math.max(maxId, memos.length) + 1;
     localStorage.setItem('mindflow_memos', JSON.stringify(memos));
     localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
-    activeMemoId = memos[0]?.id || null;
+    if (!memos.find(m => m.id === activeMemoId)) {
+      activeMemoId = memos[0]?.id || null;
+    }
 
     renderMindmapList();
     drawMindMap();
     renderMemoList();
-    renderMemoEditor();
+    if (editingMemoId == null) renderMemoEditor();
     renderTimeBlocks();
     renderTimeblockList();
+  } finally {
+    isLoadingFromGist = false;
+  }
+}
 
+async function gistPullAll(skipConfirm = false) {
+  if (!gistToken || !gistId) { toast('먼저 Gist를 연결하세요'); return; }
+  if (!skipConfirm && !confirm('Gist의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
+
+  try {
+    gistStatus = 'saving';
+    updateGistStatus();
+    const data = await gistApi('GET', `/gists/${gistId}`);
+    await applyGistData(data);
+    gistLastSyncAt = Date.now();
     gistStatus = 'saved';
     updateGistStatus();
-    isLoadingFromGist = false;
-    toast(`동기화 완료 (메모 ${newMemos.length}개)`, 'success');
+    toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
     setTimeout(() => { if (gistStatus === 'saved') { gistStatus = 'idle'; updateGistStatus(); } }, 1800);
   } catch (e) {
-    isLoadingFromGist = false;
     gistStatus = 'error';
     updateGistStatus();
     console.error(e);
@@ -3251,10 +3335,18 @@ function updateGistStatus() {
   const idInput = document.getElementById('gist-id-input');
   if (gistToken && gistId) {
     el.classList.add('connected');
-    let statusText = '연결됨 · 변경사항이 자동 동기화됩니다';
+    let statusText;
     if (gistStatus === 'saving') statusText = '<span class="save-pulse"></span>동기화 중...';
-    else if (gistStatus === 'saved') statusText = '✓ 동기화됨';
-    else if (gistStatus === 'error') statusText = '⚠ 동기화 실패';
+    else if (gistStatus === 'error') statusText = '⚠ 동기화 실패 — 토큰/네트워크 확인';
+    else {
+      const ago = gistLastSyncAt ? Math.max(0, Math.floor((Date.now() - gistLastSyncAt) / 1000)) : null;
+      const agoText = ago == null ? '' :
+        ago < 5 ? '방금 동기화됨' :
+        ago < 60 ? `${ago}초 전 동기화` :
+        ago < 3600 ? `${Math.floor(ago/60)}분 전 동기화` :
+        `${Math.floor(ago/3600)}시간 전 동기화`;
+      statusText = `✓ 연결됨 · 30초마다 자동 폴링${agoText ? ' · ' + agoText : ''}`;
+    }
     el.innerHTML = `
       <div class="icon-circle" style="background:var(--green)">☁</div>
       <div class="text-area">
@@ -3279,8 +3371,63 @@ function updateGistStatus() {
   }
 }
 
+// Lightweight poll using ETag — only fetches data when remote actually changed
+async function gistPoll() {
+  if (!gistToken || !gistId || isLoadingFromGist) return;
+  if (document.hidden) return;
+  // Don't poll during/right after a local push (avoid race + saving our own write back)
+  if (Date.now() - gistLastPushAt < 4000) return;
+  // Don't disrupt user typing — skip if input/textarea focused
+  const ae = document.activeElement;
+  if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA')) return;
+
+  try {
+    const headers = {
+      'Authorization': 'Bearer ' + gistToken,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+    if (gistETag) headers['If-None-Match'] = gistETag;
+    const r = await fetch('https://api.github.com/gists/' + gistId, { headers });
+    if (r.status === 304) {
+      // No remote change since last fetch
+      return;
+    }
+    if (!r.ok) {
+      // 401/403/404 — surface to status
+      gistStatus = 'error';
+      updateGistStatus();
+      return;
+    }
+    gistETag = r.headers.get('ETag');
+    const data = await r.json();
+    await applyGistData(data);
+    gistLastSyncAt = Date.now();
+    gistStatus = 'saved';
+    updateGistStatus();
+    setTimeout(() => { if (gistStatus === 'saved') { gistStatus = 'idle'; updateGistStatus(); } }, 1500);
+  } catch (e) {
+    console.warn('Gist poll error:', e);
+  }
+}
+
+function gistStartPolling() {
+  if (gistPollTimer) clearInterval(gistPollTimer);
+  if (!gistToken || !gistId) return;
+  gistPollTimer = setInterval(gistPoll, GIST_POLL_INTERVAL);
+}
+
+function gistStopPolling() {
+  if (gistPollTimer) { clearInterval(gistPollTimer); gistPollTimer = null; }
+}
+
+// Pull immediately when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && gistToken && gistId) gistPoll();
+});
+
 async function initGist() {
-  // Silently restore: if we have token+id, pull latest on load
+  // Silently restore: if we have token+id, pull latest on load + start polling
   if (gistToken && gistId) {
     updateGistStatus();
     try {
@@ -3288,6 +3435,7 @@ async function initGist() {
     } catch (e) {
       console.warn('Auto-pull failed:', e);
     }
+    gistStartPolling();
   }
 }
 
