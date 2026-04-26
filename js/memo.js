@@ -648,13 +648,23 @@ document.addEventListener('drop', (e) => {
 });
 
 function triggerImageUpload() {
+  // iOS / iPadOS won't open the photo picker reliably for a detached input
+  // — append to DOM, click, then clean up. Also explicitly list common
+  // mobile image MIME types in addition to image/* so iPadOS surfaces the
+  // "사진 보관함" option alongside file browser & camera.
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = 'image/*';
+  input.accept = 'image/*,image/jpeg,image/png,image/heic,image/heif,image/webp,image/gif';
+  input.style.position = 'fixed';
+  input.style.left = '-9999px';
+  input.style.top = '-9999px';
+  input.style.opacity = '0';
   input.onchange = (e) => {
     const f = e.target.files?.[0];
     if (f) handleImageInsert(f);
+    setTimeout(() => { try { input.remove(); } catch {} }, 200);
   };
+  document.body.appendChild(input);
   input.click();
 }
 

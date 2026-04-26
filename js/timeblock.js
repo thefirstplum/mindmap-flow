@@ -55,8 +55,11 @@ function renderTimeBlocks() {
 
   // Ledger summary card — only when the ledger feature is enabled in settings
   if (typeof appSettings !== 'undefined' && appSettings.ledgerEnabled && typeof ledgerEntries !== 'undefined') {
+    // Local-timezone match — entries' ISO timestamps are UTC, so slicing
+     // would mis-bucket morning-Korea entries. localDateKey converts back
+     // to local before comparing.
     const dayKey = dateKey(currentDate);
-    const todays = ledgerEntries.filter(e => (e.date || '').slice(0, 10) === dayKey);
+    const todays = ledgerEntries.filter(e => localDateKey(e.date) === dayKey);
     let dayIncome = 0, dayExpense = 0;
     todays.forEach(e => {
       if (e.type === 'income') dayIncome += e.amount;
@@ -68,7 +71,7 @@ function renderTimeBlocks() {
     const recentList = recent.length === 0
       ? '<div class="tb-ledger-empty">이 날은 기록 없음</div>'
       : recent.map(e => {
-          const time = (e.date || '').slice(11, 16);
+          const time = localTimeHHMM(e.date);
           const sign = e.type === 'income' ? '+' : '-';
           const cls = e.type === 'income' ? 'income' : 'expense';
           const label = e.category || (e.type === 'income' ? '수입' : '지출');

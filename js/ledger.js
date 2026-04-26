@@ -96,12 +96,13 @@ function renderLedger() {
   const summary = document.getElementById('ledger-summary');
   if (!list || !summary) return;
 
-  // This-month summary
+  // This-month summary (LOCAL month, not UTC — so a Korea-morning entry
+  // doesn't get bucketed into the previous month)
   const now = new Date();
-  const ym = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const ym = localMonthKey(now);
   let monthIncome = 0, monthExpense = 0;
   for (const e of ledgerEntries) {
-    if (e.date.startsWith(ym)) {
+    if (localMonthKey(e.date) === ym) {
       if (e.type === 'income') monthIncome += e.amount;
       else monthExpense += e.amount;
     }
@@ -122,10 +123,10 @@ function renderLedger() {
     </div>
   `;
 
-  // Group entries by yyyy-mm-dd
+  // Group entries by LOCAL yyyy-mm-dd
   const groups = new Map();
   for (const e of ledgerEntries) {
-    const key = e.date.slice(0, 10);
+    const key = localDateKey(e.date);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(e);
   }
@@ -153,7 +154,7 @@ function renderLedger() {
     }
     const dayNet = dayIncome - dayExpense;
     const items = groups.get(k).map(e => {
-      const time = e.date.slice(11, 16);
+      const time = localTimeHHMM(e.date);
       const sign = e.type === 'income' ? '+' : '-';
       const catBadge = e.category ? `<span class="ledger-cat-badge">${escapeHtml(e.category)}</span>` : '';
       const noteText = e.note || (e.category ? '' : (e.type === 'income' ? '수입' : '지출'));
