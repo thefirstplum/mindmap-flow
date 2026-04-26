@@ -1448,7 +1448,44 @@
       옵시디언처럼 폴더를 지정하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
     </div>
 
-    <label>📁 Vault 폴더 (자동 동기화)</label>
+    <label>☁️ GitHub Gist 자동 동기화 <span style="color:var(--green);font-weight:600;font-size:10px;">iOS · Android · Desktop</span></label>
+    <div class="folder-status" id="gist-status">
+      <div class="icon-circle" style="background:var(--surface3)">☁</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">연결되지 않음</div>
+        <div class="desc">GitHub Token으로 모든 기기에서 자동 동기화 (iOS·Mac 모두)</div>
+      </div>
+    </div>
+    <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_xxx 또는 github_pat_xxx)" style="margin-top:8px;">
+    <input type="text" id="gist-id-input" placeholder="기존 Gist ID (선택, 비우면 자동 생성)" style="margin-top:6px;font-family:ui-monospace,Menlo,monospace;font-size:12px;">
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="tb-btn" onclick="gistConnect()" style="flex:1;min-width:100px;justify-content:center;">
+        🔗 연결
+      </button>
+      <button class="tb-btn" onclick="gistPullAll()" id="gist-pull-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        ⬇ 가져오기
+      </button>
+      <button class="tb-btn danger" onclick="gistDisconnect()" id="gist-disconnect-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
+        ✕ 연결 해제
+      </button>
+    </div>
+    <details style="margin-top:8px;font-size:11px;color:var(--text-dim);">
+      <summary style="cursor:pointer;color:var(--accent2);font-weight:600;">📖 GitHub Token 만드는 법 (3분)</summary>
+      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;">
+        <strong style="color:var(--text);">1.</strong> <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--accent2);text-decoration:underline;">github.com/settings/personal-access-tokens/new</a> 접속<br>
+        <strong style="color:var(--text);">2.</strong> Token name: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow Sync</code><br>
+        <strong style="color:var(--text);">3.</strong> Expiration: 원하는 기간 (최대 1년 권장)<br>
+        <strong style="color:var(--text);">4.</strong> Repository access: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">Public Repositories (read-only)</code> 그대로<br>
+        <strong style="color:var(--text);">5.</strong> 아래로 스크롤 → <strong style="color:var(--accent2);">Account permissions</strong> → <strong>Gists</strong> 항목 → <strong style="color:var(--green);">Read and write</strong> 선택<br>
+        <strong style="color:var(--text);">6.</strong> 맨 아래 <strong>Generate token</strong> → <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">github_pat_xxx</code> 복사 → 위 입력란에 붙여넣고 [연결]<br>
+        <br>
+        💡 다른 기기에서 동일하게 동작하려면: <strong>같은 Token</strong> + <strong>같은 Gist ID</strong> 입력<br>
+        💡 Gist ID는 처음 연결 시 자동 생성되어 표시됩니다 — 다른 기기 입력란에 복사해 주세요<br>
+        💡 Token은 이 브라우저 localStorage에만 저장됩니다 (외부 전송 안 됨)
+      </div>
+    </details>
+
+    <label style="margin-top:18px;">📁 Vault 폴더 (자동 동기화)</label>
     <div class="folder-status" id="folder-status">
       <div class="icon-circle" style="background:var(--surface3)">📁</div>
       <div class="text-area">
@@ -1587,8 +1624,11 @@ function toast(msg, type = '') {
 
 // =================== STORAGE ===================
 function save(key, data) {
-  try { localStorage.setItem('mindflow_' + key, JSON.stringify(data)); scheduleAutoSave(); }
-  catch (e) { toast('저장 실패: 저장 공간 부족', 'error'); }
+  try {
+    localStorage.setItem('mindflow_' + key, JSON.stringify(data));
+    scheduleAutoSave();
+    scheduleGistSave();
+  } catch (e) { toast('저장 실패: 저장 공간 부족', 'error'); }
 }
 function load(key, def) {
   try { const v = localStorage.getItem('mindflow_' + key); return v ? JSON.parse(v) : def; }
@@ -2832,7 +2872,8 @@ function openSyncModal() {
     document.getElementById('share-btn').style.display = 'none';
   }
 
-  // Update folder status (handles File System Access API availability)
+  // Update Gist & folder status
+  updateGistStatus();
   updateFolderStatus();
   if (!isFsApiSupported()) {
     const folderEl = document.getElementById('folder-status');
@@ -2906,6 +2947,295 @@ function importData(event) {
   };
   reader.readAsText(file);
   event.target.value = '';
+}
+
+// =================== GITHUB GIST SYNC (works on iOS & desktop) ===================
+let gistToken = load('gist_token', null);
+let gistId = load('gist_id', null);
+let gistAutoSaveTimer = null;
+let gistStatus = 'idle'; // idle | saving | saved | error
+let isLoadingFromGist = false;
+
+async function gistApi(method, path, body) {
+  if (!gistToken) throw new Error('Token not set');
+  const headers = {
+    'Authorization': 'Bearer ' + gistToken,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28'
+  };
+  if (body) headers['Content-Type'] = 'application/json';
+  const r = await fetch('https://api.github.com' + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (!r.ok) {
+    let msg = `HTTP ${r.status}`;
+    try { const t = await r.json(); if (t.message) msg = t.message; } catch {}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+async function gistConnect() {
+  const tokenInput = document.getElementById('gist-token-input');
+  const idInput = document.getElementById('gist-id-input');
+  const token = tokenInput.value.trim();
+  const existingId = idInput.value.trim();
+  if (!token) { toast('GitHub Token을 입력하세요', 'error'); return; }
+
+  gistToken = token;
+  try {
+    if (existingId) {
+      // Verify and pull
+      const r = await gistApi('GET', `/gists/${existingId}`);
+      gistId = r.id;
+      save('gist_token', gistToken);
+      save('gist_id', gistId);
+      updateGistStatus();
+      // Ask whether to overwrite local with remote, or push local
+      if (Object.keys(r.files || {}).filter(n => n.endsWith('.md')).length > 0 || r.files['_mindflow-app.json']) {
+        if (confirm('이 Gist에 데이터가 있습니다. 가져와서 현재 로컬 데이터를 덮어쓸까요?\n[확인] 가져오기  /  [취소] 로컬 유지 후 다음 저장 시 Gist 덮어쓰기')) {
+          await gistPullAll(true);
+        } else {
+          await gistPushAll();
+          toast('로컬 데이터를 Gist에 업로드했습니다', 'success');
+        }
+      } else {
+        await gistPushAll();
+        toast('Gist 연결 완료. 데이터 업로드됨', 'success');
+      }
+    } else {
+      // Create new
+      const r = await gistApi('POST', '/gists', {
+        description: 'MindFlow data sync',
+        public: false,
+        files: {
+          'README.md': {
+            content: '# MindFlow Sync Vault\n\nThis private gist is used by MindFlow web app for cross-device data sync.\n\n- `_mindflow-app.json`: mindmaps & timeblocks\n- `*.md`: memos (Obsidian-compatible markdown with YAML frontmatter)\n\nDo not delete or rename files manually unless you know what you are doing.'
+          }
+        }
+      });
+      gistId = r.id;
+      save('gist_token', gistToken);
+      save('gist_id', gistId);
+      updateGistStatus();
+      await gistPushAll();
+      toast('Gist 생성 및 동기화 완료', 'success');
+    }
+    tokenInput.value = '';
+    idInput.value = gistId;
+  } catch (e) {
+    gistToken = null;
+    save('gist_token', null);
+    updateGistStatus();
+    toast('연결 실패: ' + e.message, 'error');
+  }
+}
+
+async function gistDisconnect() {
+  if (!confirm('Gist 연결을 해제하시겠습니까? 로컬 데이터는 그대로 유지됩니다.\n(Gist 자체는 GitHub에 그대로 남아있습니다)')) return;
+  gistToken = null;
+  gistId = null;
+  save('gist_token', null);
+  save('gist_id', null);
+  const ti = document.getElementById('gist-token-input');
+  const ii = document.getElementById('gist-id-input');
+  if (ti) ti.value = '';
+  if (ii) ii.value = '';
+  updateGistStatus();
+  toast('연결 해제됨');
+}
+
+function sanitizeMdFilename(s) {
+  return (s || 'untitled').replace(/[\/\\?%*:|"<>#]/g, '-').replace(/\s+/g, ' ').trim().slice(0, 80) || 'untitled';
+}
+
+async function gistPushAll() {
+  if (!gistToken || !gistId || isLoadingFromGist) return;
+  try {
+    gistStatus = 'saving';
+    updateGistStatus();
+
+    const appData = {
+      version: 2,
+      app: 'mindflow',
+      exportedAt: new Date().toISOString(),
+      mindmaps: load('mindmaps', []),
+      activeMindmapId: load('mm_active', null),
+      timeBlocks: load('tb_blocks', {})
+    };
+
+    // Get current gist files to know which old files to delete
+    const current = await gistApi('GET', `/gists/${gistId}`);
+    const currentMdFiles = Object.keys(current.files || {}).filter(n => n.toLowerCase().endsWith('.md') && n !== 'README.md');
+
+    const files = {
+      '_mindflow-app.json': { content: JSON.stringify(appData, null, 2) }
+    };
+
+    const desiredMd = new Set();
+    for (const memo of memos) {
+      let base = sanitizeMdFilename(memo.title);
+      let fname = base + '.md';
+      let n = 2;
+      while (desiredMd.has(fname)) { fname = `${base} (${n}).md`; n++; }
+      desiredMd.add(fname);
+      const fm = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
+      files[fname] = { content: fm };
+    }
+
+    // Delete files that exist remotely but not in our desired set
+    for (const fn of currentMdFiles) {
+      if (!desiredMd.has(fn)) files[fn] = null;
+    }
+
+    await gistApi('PATCH', `/gists/${gistId}`, {
+      description: `MindFlow — ${memos.length} memos · ${load('mindmaps', []).length} maps`,
+      files
+    });
+
+    gistStatus = 'saved';
+    updateGistStatus();
+    setTimeout(() => { if (gistStatus === 'saved') { gistStatus = 'idle'; updateGistStatus(); } }, 1800);
+  } catch (e) {
+    gistStatus = 'error';
+    updateGistStatus();
+    console.error('Gist push failed:', e);
+    toast('Gist 동기화 실패: ' + e.message, 'error');
+  }
+}
+
+async function gistPullAll(skipConfirm = false) {
+  if (!gistToken || !gistId) { toast('먼저 Gist를 연결하세요'); return; }
+  if (!skipConfirm && !confirm('Gist의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
+
+  isLoadingFromGist = true;
+  try {
+    gistStatus = 'saving';
+    updateGistStatus();
+
+    const data = await gistApi('GET', `/gists/${gistId}`);
+    const fileMap = data.files || {};
+
+    // App data
+    if (fileMap['_mindflow-app.json']) {
+      try {
+        const app = JSON.parse(fileMap['_mindflow-app.json'].content);
+        if (app.app === 'mindflow') {
+          if (app.mindmaps) {
+            mindmaps = app.mindmaps;
+            activeMindmapId = app.activeMindmapId || (mindmaps[0]?.id ?? null);
+            localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+            localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+            bindActiveMap();
+          }
+          if (app.timeBlocks) {
+            timeBlocks = app.timeBlocks;
+            localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+          }
+        }
+      } catch (e) { console.warn('Failed to parse app data:', e); }
+    }
+
+    // Memos from .md files
+    const newMemos = [];
+    let maxId = 0;
+    for (const [filename, info] of Object.entries(fileMap)) {
+      if (!info || filename === 'README.md' || !filename.toLowerCase().endsWith('.md')) continue;
+      let content = info.content;
+      // If gist truncated, fetch raw
+      if (info.truncated && info.raw_url) {
+        try {
+          const r = await fetch(info.raw_url);
+          if (r.ok) content = await r.text();
+        } catch (e) { console.warn('Failed to fetch raw:', e); }
+      }
+      const memo = parseFrontmatter(content, filename, Date.now());
+      if (!memo.id) memo.id = ++maxId + 100000;
+      else if (memo.id > maxId) maxId = memo.id;
+      newMemos.push(memo);
+    }
+    newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
+    memos = newMemos;
+    memoIdCounter = Math.max(maxId, memos.length) + 1;
+    localStorage.setItem('mindflow_memos', JSON.stringify(memos));
+    localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
+    activeMemoId = memos[0]?.id || null;
+
+    renderMindmapList();
+    drawMindMap();
+    renderMemoList();
+    renderMemoEditor();
+    renderTimeBlocks();
+    renderTimeblockList();
+
+    gistStatus = 'saved';
+    updateGistStatus();
+    isLoadingFromGist = false;
+    toast(`동기화 완료 (메모 ${newMemos.length}개)`, 'success');
+    setTimeout(() => { if (gistStatus === 'saved') { gistStatus = 'idle'; updateGistStatus(); } }, 1800);
+  } catch (e) {
+    isLoadingFromGist = false;
+    gistStatus = 'error';
+    updateGistStatus();
+    console.error(e);
+    toast('가져오기 실패: ' + e.message, 'error');
+  }
+}
+
+function scheduleGistSave() {
+  if (!gistToken || !gistId || isLoadingFromGist) return;
+  clearTimeout(gistAutoSaveTimer);
+  gistAutoSaveTimer = setTimeout(gistPushAll, 2500);
+}
+
+function updateGistStatus() {
+  const el = document.getElementById('gist-status');
+  if (!el) return;
+  const reloadBtn = document.getElementById('gist-pull-btn');
+  const disconnectBtn = document.getElementById('gist-disconnect-btn');
+  const idInput = document.getElementById('gist-id-input');
+  if (gistToken && gistId) {
+    el.classList.add('connected');
+    let statusText = '연결됨 · 변경사항이 자동 동기화됩니다';
+    if (gistStatus === 'saving') statusText = '<span class="save-pulse"></span>동기화 중...';
+    else if (gistStatus === 'saved') statusText = '✓ 동기화됨';
+    else if (gistStatus === 'error') statusText = '⚠ 동기화 실패';
+    el.innerHTML = `
+      <div class="icon-circle" style="background:var(--green)">☁</div>
+      <div class="text-area">
+        <div class="name">Gist 연결됨</div>
+        <div class="desc">${statusText}</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = '';
+    if (disconnectBtn) disconnectBtn.style.display = '';
+    if (idInput && !idInput.value) idInput.value = gistId;
+  } else {
+    el.classList.remove('connected');
+    el.innerHTML = `
+      <div class="icon-circle" style="background:var(--surface3)">☁</div>
+      <div class="text-area">
+        <div class="name" style="color:var(--text-dim)">연결되지 않음</div>
+        <div class="desc">GitHub Token으로 모든 기기에서 자동 동기화 (iOS·Mac 모두)</div>
+      </div>
+    `;
+    if (reloadBtn) reloadBtn.style.display = 'none';
+    if (disconnectBtn) disconnectBtn.style.display = 'none';
+  }
+}
+
+async function initGist() {
+  // Silently restore: if we have token+id, pull latest on load
+  if (gistToken && gistId) {
+    updateGistStatus();
+    try {
+      await gistPullAll(true);
+    } catch (e) {
+      console.warn('Auto-pull failed:', e);
+    }
+  }
 }
 
 // =================== VAULT (Obsidian-style folder sync) ===================
@@ -3254,6 +3584,8 @@ document.body.addEventListener('touchmove', e => {
 
 // Initialize persistent folder handle
 initFolder();
+// Initialize Gist sync (silently pulls latest if connected)
+initGist();
 
 // When sync modal opens, attempt to verify folder permission silently
 async function tryRestoreFolder() {
