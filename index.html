@@ -251,8 +251,7 @@
         <div class="desc">메모·마인드맵·이미지를 Drive 폴더에 자동 동기화 (모든 기기)</div>
       </div>
     </div>
-    <input type="text" id="drive-client-id-input" placeholder="OAuth Client ID (xxx.apps.googleusercontent.com)" style="margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;">
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button class="tb-btn" onclick="driveConnect()" style="flex:1;min-width:100px;justify-content:center;">
         🔗 Google 연결
       </button>
@@ -266,27 +265,14 @@
         ✕ 연결 해제
       </button>
     </div>
-    <details style="margin-top:8px;font-size:11px;color:var(--text-dim);">
-      <summary style="cursor:pointer;color:var(--accent2);font-weight:600;">📖 OAuth Client ID 만드는 법 (10분)</summary>
-      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;">
-        <strong style="color:var(--text);">1.</strong> <a href="https://console.cloud.google.com" target="_blank" style="color:var(--accent2);text-decoration:underline;">console.cloud.google.com</a> 접속<br>
-        <strong style="color:var(--text);">2.</strong> 프로젝트 만들기 → 이름: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code><br>
-        <strong style="color:var(--text);">3.</strong> 좌측 메뉴 → <strong>API 및 서비스 → 라이브러리</strong> → "Google Drive API" 검색 → <strong style="color:var(--green);">사용 설정</strong><br>
-        <strong style="color:var(--text);">4.</strong> <strong>API 및 서비스 → OAuth 동의 화면</strong>:<br>
-        &nbsp;&nbsp;&nbsp;• User Type: <strong>외부(External)</strong> 선택<br>
-        &nbsp;&nbsp;&nbsp;• 앱 이름: MindFlow / 사용자 지원 이메일·개발자 이메일에 본인 메일 입력<br>
-        &nbsp;&nbsp;&nbsp;• 범위(Scopes)는 비워두고 저장<br>
-        &nbsp;&nbsp;&nbsp;• <strong>테스트 사용자</strong>에 본인 이메일 추가 (중요!)<br>
-        <strong style="color:var(--text);">5.</strong> <strong>API 및 서비스 → 사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID</strong>:<br>
-        &nbsp;&nbsp;&nbsp;• 애플리케이션 유형: <strong>웹 애플리케이션</strong><br>
-        &nbsp;&nbsp;&nbsp;• 승인된 JavaScript 원본: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">https://thefirstplum.github.io</code> 추가<br>
-        &nbsp;&nbsp;&nbsp;• <strong>로컬 테스트 시</strong>: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">http://localhost:8000</code> 도 추가<br>
-        &nbsp;&nbsp;&nbsp;• 만들기 → <strong style="color:var(--accent2);">클라이언트 ID 복사</strong><br>
-        <strong style="color:var(--text);">6.</strong> 위 입력란에 붙여넣고 <strong>[🔗 Google 연결]</strong> → 첫 로그인 시 "확인되지 않은 앱" 경고 → <strong>고급 → 진행</strong> (본인 앱이라 안전)<br>
-        <br>
-        💡 다른 기기에서도 같은 Client ID + 같은 Google 계정으로 로그인하면 자동 동기화<br>
-        💡 앱이 만든 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code> 폴더만 접근 (drive.file 스코프 — 안전)<br>
-        💡 이미지 업로드는 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow/assets/</code>에 자동 저장
+    <div style="font-size:11px;color:var(--text-mute);margin-top:8px;line-height:1.5;">
+      💡 본인 Google 계정으로 로그인 → <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code> 폴더에 자동 저장 · 이미지는 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">assets/</code>에 (drive.file 스코프, 본 앱이 만든 파일만 접근)
+    </div>
+    <details style="margin-top:8px;font-size:11px;color:var(--text-mute);">
+      <summary style="cursor:pointer;color:var(--text-dim);font-weight:500;">⚙️ 고급: 본인 OAuth Client ID 사용</summary>
+      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;color:var(--text-dim);">
+        기본 Client ID로 자동 연결됩니다. fork해서 자신의 Cloud 프로젝트로 쓰려면 아래 입력란에 직접 붙여넣고 [연결] 누르세요.
+        <input type="text" id="drive-client-id-input" placeholder="xxx.apps.googleusercontent.com (선택)" style="margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;width:100%;">
       </div>
     </details>
 

@@ -139,7 +139,12 @@ const DRIVE_FOLDER_NAME = 'MindFlow';
 const DRIVE_ASSETS_NAME = 'assets';
 const DRIVE_APP_FILENAME = '_mindflow-app.json';
 
-let driveClientId = load('drive_client_id', null);
+// Hardcoded default Client ID — published OAuth client for this app.
+// Public-by-design: identifies the app, not the user. User data lives in
+// each user's own Drive (drive.file scope). Override is still possible
+// via the (now-hidden) input field if someone forks the repo.
+const DEFAULT_DRIVE_CLIENT_ID = '47507563684-o5p5kjliou3bpddn6ae3ksabekjc6nlp.apps.googleusercontent.com';
+let driveClientId = load('drive_client_id', null) || DEFAULT_DRIVE_CLIENT_ID;
 let driveAccessToken = null;
 let driveTokenExpires = 0;
 let driveFolderId = load('drive_folder_id', null);
