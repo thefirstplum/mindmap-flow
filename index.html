@@ -1550,19 +1550,25 @@
     position: fixed;
     bottom: calc(30px + var(--safe-bot));
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
+    transform: translateX(-50%) translateY(20px);
     background: var(--surface);
     border: 1px solid var(--border-light);
     color: var(--text);
     padding: 12px 20px;
     border-radius: 100px;
     font-size: 13px;
-    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
-    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-    z-index: 500;
+    box-shadow: var(--shadow-2);
+    opacity: 0;
     pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    z-index: 500;
+    visibility: hidden;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+    visibility: visible;
+  }
   .toast.success { border-color: var(--green); }
   .toast.error { border-color: var(--red); }
 
@@ -1889,7 +1895,7 @@
             </div>
             <div class="mm-canvas-area">
               <canvas id="mindmap-canvas"></canvas>
-              <div class="mindmap-hint" id="mm-hint">노드 선택 후 우측 + 핸들을 끌어 다른 노드와 연결하세요</div>
+              <div class="mindmap-hint" id="mm-hint">빈 곳 더블탭 → 새 노드 · 노드 선택 후 우측 + 핸들로 연결</div>
             </div>
             <div class="node-edit-popup" id="node-edit-popup">
               <input type="text" id="node-edit-input" placeholder="노드 이름 입력..." onkeydown="if(event.key==='Enter')closeNodeEdit();if(event.key==='Escape')closeNodeEdit(true);">
@@ -2936,26 +2942,54 @@ canvas.addEventListener('touchstart', pointerDown, { passive: false });
 canvas.addEventListener('touchmove', pointerMove, { passive: false });
 canvas.addEventListener('touchend', pointerUp);
 
+function addNodeAtScreenPoint(sx, sy, clientX, clientY) {
+  const wp = screenToWorld(sx, sy);
+  const node = {
+    id: nodeIdCounter++,
+    text: '새 노드',
+    x: wp.x,
+    y: wp.y,
+    color: currentNodeColor
+  };
+  nodes.push(node);
+  selectedNode = node.id;
+  saveMindMap();
+  updateToolbarState();
+  drawMindMap();
+  openNodeEdit(node, clientX, clientY);
+}
+
 canvas.addEventListener('dblclick', e => {
   const p = getCanvasPoint(e);
   const node = getNodeAt(p.x, p.y);
   if (node) openNodeEdit(node, p.cx, p.cy);
+  else addNodeAtScreenPoint(p.x, p.y, p.cx, p.cy);
 });
 
-// Double tap on touch
+// Double tap on touch — works on both nodes and empty space
 let lastTap = 0;
+let lastTapPos = { x: 0, y: 0 };
 canvas.addEventListener('touchend', e => {
   const now = Date.now();
   if (now - lastTap < 300 && e.changedTouches.length === 1) {
     const t = e.changedTouches[0];
-    const rect = canvas.getBoundingClientRect();
-    const node = getNodeAt(t.clientX - rect.left, t.clientY - rect.top);
-    if (node) {
+    // Only treat as double-tap if both taps were near the same spot
+    const dx = t.clientX - lastTapPos.x;
+    const dy = t.clientY - lastTapPos.y;
+    if (Math.hypot(dx, dy) < 30) {
+      const rect = canvas.getBoundingClientRect();
+      const sx = t.clientX - rect.left;
+      const sy = t.clientY - rect.top;
+      const node = getNodeAt(sx, sy);
       e.preventDefault();
-      openNodeEdit(node, t.clientX, t.clientY);
+      if (node) openNodeEdit(node, t.clientX, t.clientY);
+      else addNodeAtScreenPoint(sx, sy, t.clientX, t.clientY);
+      lastTap = 0;
+      return;
     }
   }
   lastTap = now;
+  if (e.changedTouches[0]) lastTapPos = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
 });
 
 canvas.addEventListener('wheel', e => {
@@ -3775,10 +3809,10 @@ function bearRenderContent(text) {
   ).join('');
 }
 
-// All offset/text functions are Range-based so they correctly handle
-// browser-inserted blocks (e.g. when Enter creates a plain <div> without
-// our data-line class) and treat block boundaries as \n the same way
-// Range.toString() does.
+// All offset/text functions use Range.toString() so block boundaries count
+// as \n consistently. Critically, set-caret walks BLOCKS (not just text
+// nodes) so the caret can land on an empty line (whose div has no text
+// node) — that's the case after pressing Enter at end of a line.
 function bearGetCaretOffset(editor) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return 0;
@@ -3791,42 +3825,75 @@ function bearGetCaretOffset(editor) {
 }
 
 function bearSetCaretOffset(editor, target) {
-  // Walk text nodes; for each, use Range.toString() to get the position of
-  // the start of that node and place the caret at (target - startPos) within it.
-  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
-  let node;
-  let firstNode = null;
-  while ((node = walker.nextNode())) {
-    if (!firstNode) firstNode = node;
-    const startR = document.createRange();
-    startR.selectNodeContents(editor);
-    startR.setEnd(node, 0);
-    const startPos = startR.toString().length;
-    const endPos = startPos + node.length;
-    if (endPos >= target) {
-      const sel = window.getSelection();
-      const range = document.createRange();
-      const offsetInNode = Math.max(0, Math.min(node.length, target - startPos));
-      range.setStart(node, offsetInNode);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      return;
+  const blocks = [...editor.children];
+  if (blocks.length === 0) {
+    // Place caret in editor itself
+    const r = document.createRange();
+    const sel = window.getSelection();
+    r.setStart(editor, 0);
+    r.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(r);
+    return;
+  }
+
+  // Find the LAST block whose start position <= target. That's the block
+  // the caret should live in. Using LAST handles the boundary case where
+  // target equals the position right after a \n separator (start of next
+  // block), not the end of the previous block.
+  let containingIdx = 0;
+  let containingStart = 0;
+  for (let i = 0; i < blocks.length; i++) {
+    const r = document.createRange();
+    r.selectNodeContents(editor);
+    r.setEndBefore(blocks[i]);
+    const startPos = r.toString().length;
+    if (startPos <= target) {
+      containingIdx = i;
+      containingStart = startPos;
+    } else {
+      break;
     }
   }
-  // Fallback: place at end of editor
+
+  const block = blocks[containingIdx];
+  const offsetInBlock = target - containingStart;
+
+  // Walk text nodes within the block to place caret at offsetInBlock
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, null);
+  let chars = 0;
+  let node;
+  let lastNode = null;
+  while ((node = walker.nextNode())) {
+    lastNode = node;
+    if (chars + node.length >= offsetInBlock) {
+      const sel = window.getSelection();
+      const r = document.createRange();
+      r.setStart(node, Math.max(0, Math.min(node.length, offsetInBlock - chars)));
+      r.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return;
+    }
+    chars += node.length;
+  }
+  // No text nodes in block (empty line): place caret at the start of the
+  // block element itself — the browser renders it on the empty line.
   const sel = window.getSelection();
-  const range = document.createRange();
-  range.selectNodeContents(editor);
-  range.collapse(false);
+  const r = document.createRange();
+  if (lastNode) {
+    r.setStart(lastNode, lastNode.length);
+  } else {
+    r.setStart(block, 0);
+  }
+  r.collapse(true);
   sel.removeAllRanges();
-  sel.addRange(range);
+  sel.addRange(r);
 }
 
 function bearGetText(editor) {
-  // Range.toString() of full contents gives the same \n-separated text as
-  // innerText, but is consistent regardless of how the browser structured
-  // line breaks (works after Enter creates plain <div>).
+  // Range.toString() of full contents gives \n-separated text consistently,
+  // even when the browser inserted plain <div> blocks (e.g. after Enter).
   const range = document.createRange();
   range.selectNodeContents(editor);
   return range.toString().replace(/​/g, '');
@@ -4942,11 +5009,40 @@ function updateDrawEmptyHint() {
 }
 
 function setupDrawingPointer(canvas) {
-  // Idempotent: check if already wired
   if (canvas.dataset.drawReady) return;
   canvas.dataset.drawReady = '1';
 
+  // ---- Palm rejection ----
+  // If we ever see a pen (Apple Pencil) input on this canvas, we treat it as
+  // "stylus mode" and reject all touch pointers (which are almost certainly
+  // palm/wrist contact). The mode persists for a short buffer after the
+  // last pen event so palm contacts that linger on lift-off still get
+  // ignored. Touch-only devices (no Apple Pencil ever seen) keep working.
+  let stylusModeActive = false;       // true while a pen pointer is down
+  let lastPenAt = 0;                   // ms since epoch of last pen event
+  let everSawPen = false;              // sticky: any pen seen this session?
+  const PALM_BUFFER_MS = 1200;
+  let activePenPointerId = null;
+
+  function shouldRejectTouch() {
+    if (stylusModeActive) return true;
+    if (!everSawPen) return false; // no Apple Pencil device involved → finger drawing OK
+    return (Date.now() - lastPenAt) < PALM_BUFFER_MS;
+  }
+
   const start = (e) => {
+    if (e.pointerType === 'touch' && shouldRejectTouch()) {
+      // Palm / unintended touch — drop silently
+      return;
+    }
+    if (e.pointerType === 'pen') {
+      everSawPen = true;
+      stylusModeActive = true;
+      lastPenAt = Date.now();
+      activePenPointerId = e.pointerId;
+      // Cancel any in-progress finger stroke if pen takes over
+      drawCurrentStroke = null;
+    }
     e.preventDefault();
     if (e.pointerId != null) {
       try { canvas.setPointerCapture(e.pointerId); } catch {}
@@ -4958,15 +5054,20 @@ function setupDrawingPointer(canvas) {
       tool: drawTool,
       color: drawColor,
       width: drawWidthBase,
-      points: [{ x, y, p: e.pressure > 0 ? e.pressure : 0.5 }]
+      points: [{ x, y, p: e.pressure > 0 ? e.pressure : 0.5 }],
+      pointerId: e.pointerId,
+      pointerType: e.pointerType
     };
     updateDrawEmptyHint();
   };
+
   const move = (e) => {
     if (!drawCurrentStroke) return;
+    // Only accept moves from the same pointer that started the stroke
+    if (e.pointerId !== drawCurrentStroke.pointerId) return;
+    if (e.pointerType === 'pen') lastPenAt = Date.now();
     e.preventDefault();
     const rect = canvas.getBoundingClientRect();
-    // Coalesced events for smoother strokes (Apple Pencil reports 240Hz)
     const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for (const ev of events) {
       drawCurrentStroke.points.push({
@@ -4977,7 +5078,15 @@ function setupDrawingPointer(canvas) {
     }
     redrawAllStrokes();
   };
-  const end = () => {
+
+  const end = (e) => {
+    // If a non-stroke pointer ends, ignore
+    if (drawCurrentStroke && e.pointerId !== drawCurrentStroke.pointerId) return;
+    if (e.pointerType === 'pen') {
+      stylusModeActive = false;
+      lastPenAt = Date.now();
+      activePenPointerId = null;
+    }
     if (!drawCurrentStroke) return;
     if (drawCurrentStroke.points.length > 0) drawStrokes.push(drawCurrentStroke);
     drawCurrentStroke = null;
