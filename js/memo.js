@@ -557,41 +557,70 @@ async function uploadImageToDrive(blob) {
   }
 }
 
-function insertAtCursor(textarea, text) {
-  const start = textarea.selectionStart;
-  const end = textarea.selectionEnd;
-  const before = textarea.value.slice(0, start);
-  const after = textarea.value.slice(end);
-  textarea.value = before + text + after;
-  textarea.selectionStart = textarea.selectionEnd = start + text.length;
-  // Trigger input event so updateMemoContent runs
-  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+// Insert markdown into the active memo. Works with the Bear editor
+// (contenteditable) — there's no longer a textarea to target. Inserts at
+// the current caret offset when possible, otherwise appends.
+function insertIntoActiveMemo(insertText) {
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (!memo) return false;
+  const editor = document.querySelector('.bear-editor');
+  let offset = (memo.content || '').length;
+  if (editor) {
+    try {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount && editor.contains(sel.anchorNode)) {
+        offset = bearGetCaretOffset(editor);
+      }
+    } catch {}
+  }
+  const text = memo.content || '';
+  memo.content = text.slice(0, offset) + insertText + text.slice(offset);
+  memo.date = new Date().toISOString();
+  saveMemos();
+  renderMemoEditor();
+  // Restore caret right after the inserted text so the user can keep typing
+  setTimeout(() => {
+    const newEditor = document.querySelector('.bear-editor');
+    if (newEditor) {
+      newEditor.focus();
+      bearSetCaretOffset(newEditor, offset + insertText.length);
+    }
+  }, 30);
+  return true;
 }
 
 async function handleImageInsert(blob) {
-  const ta = document.querySelector('.memo-editor textarea');
-  if (!ta) return;
+  if (!activeMemoId) { toast('먼저 메모를 선택하세요'); return; }
+  let insertText;
   if (driveAssetsFolderId) {
     const result = await uploadImageToDrive(blob);
-    if (result) insertAtCursor(ta, `\n![${result.name}](${result.url})\n`);
+    if (!result) return;
+    insertText = `\n![${result.name}](${result.url})\n`;
   } else {
-    // Fallback: base64 inline (small images only)
     if (blob.size > 800_000) {
       toast('Drive 미연결 + 파일 800KB 초과 → 업로드 불가', 'error');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      insertAtCursor(ta, `\n![image](${reader.result})\n`);
-      toast('인라인 이미지로 삽입됨 (Drive 연결하면 자동 업로드)', 'success');
-    };
-    reader.readAsDataURL(blob);
+    const dataUrl = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(blob);
+    });
+    insertText = `\n![image](${dataUrl})\n`;
+    toast('인라인 이미지로 삽입됨 (Drive 연결하면 자동 업로드)', 'success');
   }
+  insertIntoActiveMemo(insertText);
 }
 
 document.addEventListener('paste', (e) => {
-  const ta = document.activeElement;
-  if (!ta || ta.tagName !== 'TEXTAREA' || !ta.closest('.memo-editor')) return;
+  const ae = document.activeElement;
+  // Active editor is the contenteditable Bear editor (or fallback textarea)
+  const inEditor = ae && (
+    ae.classList?.contains('bear-editor') ||
+    (ae.tagName === 'TEXTAREA' && ae.closest('.memo-editor'))
+  );
+  if (!inEditor) return;
   const items = e.clipboardData?.items || [];
   for (const item of items) {
     if (item.type.startsWith('image/')) {
