@@ -1,44 +1,42 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  /* === SOFT DASHBOARD — light (default) ===
-     Warm peach → cool lavender pastel wallpaper. Solid white cards lift
-     off the background with soft drop shadows (no heavy glass). Lots of
-     air. */
+  /* === MOLESKINE JOURNEY — light (default) ===
+     Warm cream paper · clean white cards · signature amber accent ·
+     soft warm hairline borders · minimal flat shadows. */
   :root {
-    --bg: #ebeef5;
+    --bg: #f3eedf;
     --bg-grad:
-      radial-gradient(ellipse 90% 70% at 0% 0%, rgba(255,200,210,0.55) 0%, transparent 55%),
-      radial-gradient(ellipse 90% 70% at 100% 0%, rgba(195,205,255,0.45) 0%, transparent 55%),
-      radial-gradient(ellipse 80% 60% at 100% 100%, rgba(220,210,250,0.35) 0%, transparent 55%),
-      linear-gradient(135deg, #f4ecf3 0%, #e8ecf3 100%);
-    --surface: #ffffff;          /* solid white cards */
-    --surface2: #fafafa;
-    --surface3: #f3f4f6;
-    --border: rgba(15,15,25,0.06);
-    --border-light: rgba(15,15,25,0.12);
-    --glass-stroke: rgba(255,255,255,0.8);
-    --glass-shadow: 0 1px 3px rgba(15,20,40,0.04), 0 12px 36px rgba(15,20,40,0.08);
-    --text: #0d0d12;             /* near-black */
-    --text-dim: #3f3f46;
-    --text-mute: #71717a;
-    --accent: #1a1a1f;           /* dark accent (Skillhub-ish) for headings/active */
-    --accent2: #4a9bff;          /* secondary blue for links / progress */
-    --accent-glow: rgba(0,102,255,0.18);
-    --primary: #0066ff;          /* primary action button */
-    --green: #16a34a;
-    --orange: #ea580c;
-    --red: #dc2626;
-    --blue: #2563eb;
-    --pink: #db2777;
-    --cyan: #0891b2;
-    --code-color: #7c3aed;
-    --paper-line: rgba(60,80,120,0.04);
-    --blur-amount: 14px;         /* subtle blur, mostly for header/sticky bars */
-    --blur-strong: 24px;
-    --shadow-1: 0 1px 2px rgba(15,20,40,0.04), 0 2px 8px rgba(15,20,40,0.04);
-    --shadow-2: 0 4px 12px rgba(15,20,40,0.06), 0 16px 40px rgba(15,20,40,0.08);
-    --shadow-card: 0 1px 3px rgba(15,20,40,0.04), 0 8px 24px rgba(15,20,40,0.06);
-    --radius: 20px;              /* bigger, more dashboard-style */
-    --radius-sm: 14px;
+      radial-gradient(ellipse at 100% 0%, rgba(245,210,120,0.10) 0%, transparent 60%),
+      radial-gradient(ellipse at 0% 100%, rgba(220,200,150,0.08) 0%, transparent 60%),
+      linear-gradient(160deg, #f6f1e2 0%, #ede5d0 100%);
+    --surface: #fffdf6;
+    --surface2: #faf5e6;
+    --surface3: #f0e9d3;
+    --border: #e1d8be;
+    --border-light: #c9bf9d;
+    --glass-stroke: #fffdf6;
+    --glass-shadow: 0 1px 2px rgba(60,40,20,0.04), 0 4px 14px rgba(60,40,20,0.05);
+    --text: #1d1a14;
+    --text-dim: #5a5346;
+    --text-mute: #908775;
+    --accent: #d99e1f;
+    --accent2: #f3c04a;
+    --accent-glow: rgba(217,158,31,0.22);
+    --primary: #1d1a14;
+    --green: #6a8c4f;
+    --orange: #c97a2c;
+    --red: #b44236;
+    --blue: #4a6c8a;
+    --pink: #b85577;
+    --cyan: #4d7d8f;
+    --code-color: #8b5cf6;
+    --paper-line: rgba(60,40,20,0.04);
+    --blur-amount: 12px;
+    --blur-strong: 20px;
+    --shadow-1: 0 1px 2px rgba(60,40,20,0.04), 0 2px 6px rgba(60,40,20,0.04);
+    --shadow-2: 0 2px 8px rgba(60,40,20,0.06), 0 8px 22px rgba(60,40,20,0.07);
+    --shadow-card: 0 1px 3px rgba(60,40,20,0.04), 0 4px 14px rgba(60,40,20,0.05);
+    --radius: 16px;
+    --radius-sm: 12px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
@@ -46,38 +44,37 @@
     color-scheme: light;
   }
 
-  /* === SOFT DASHBOARD — dark === */
+  /* === MOLESKINE JOURNEY — dark (espresso leather) === */
   body[data-theme="leather"] {
-    --bg: #0d0d14;
+    --bg: #16110a;
     --bg-grad:
-      radial-gradient(ellipse 90% 70% at 0% 0%, rgba(180,80,120,0.16) 0%, transparent 55%),
-      radial-gradient(ellipse 90% 70% at 100% 0%, rgba(80,100,200,0.18) 0%, transparent 55%),
-      linear-gradient(135deg, #16161e 0%, #08080e 100%);
-    --surface: #1a1a22;
-    --surface2: #22222c;
-    --surface3: #2c2c38;
-    --border: rgba(255,255,255,0.06);
-    --border-light: rgba(255,255,255,0.12);
-    --glass-stroke: rgba(255,255,255,0.08);
-    --glass-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 12px 36px rgba(0,0,0,0.4);
-    --text: #f5f5f7;
-    --text-dim: #c7c7cc;
-    --text-mute: #8a8a92;
-    --accent: #ffffff;           /* white accent on dark for active emphasis */
-    --accent2: #5AC8FA;
-    --accent-glow: rgba(10,132,255,0.3);
-    --primary: #0A84FF;
-    --green: #34d399;
-    --orange: #fb923c;
-    --red: #f87171;
-    --blue: #60a5fa;
-    --pink: #f472b6;
-    --cyan: #38bdf8;
+      radial-gradient(ellipse at 100% 0%, rgba(245,210,120,0.10) 0%, transparent 60%),
+      linear-gradient(160deg, #1c160e 0%, #0e0a06 100%);
+    --surface: #221a10;
+    --surface2: #2a2114;
+    --surface3: #34291a;
+    --border: #463524;
+    --border-light: #5a4530;
+    --glass-stroke: rgba(255,235,180,0.06);
+    --glass-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35);
+    --text: #f5ecd5;
+    --text-dim: #c2b294;
+    --text-mute: #8a7e64;
+    --accent: #f3c04a;
+    --accent2: #ffd870;
+    --accent-glow: rgba(243,192,74,0.25);
+    --primary: #f5ecd5;
+    --green: #97b06f;
+    --orange: #e09b58;
+    --red: #d97464;
+    --blue: #8caab8;
+    --pink: #d18799;
+    --cyan: #95b5c1;
     --code-color: #c4b5fd;
-    --paper-line: rgba(255,255,255,0.04);
-    --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
-    --shadow-2: 0 4px 12px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.5);
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+    --paper-line: rgba(245,236,213,0.04);
+    --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.3);
+    --shadow-2: 0 2px 8px rgba(0,0,0,0.5), 0 8px 22px rgba(0,0,0,0.4);
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.3);
     color-scheme: dark;
   }
   html, body {
@@ -3298,4 +3295,332 @@ body[data-theme="leather"] .modal input[type="date"]::-webkit-calendar-picker-in
 .mindmap-toolbar {
   min-height: 56px;
   padding: 10px 16px;
+}
+
+/* ============================================================ */
+/* === Moleskine Journey — typography & surface fine-tuning === */
+/* ============================================================ */
+
+/* Tighter, more refined type — Moleskine Journey uses a clean modern
+   sans with confident sizing and warm letter-spacing. */
+body {
+  font-feature-settings: "ss01", "cv01", "cv11";
+  letter-spacing: -0.005em;
+}
+
+/* Header: smaller, more refined */
+.header h1 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.header .subtitle {
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--text-mute);
+}
+
+/* List panel titles: slightly more restrained than 24px */
+.memo-list-title-row .title,
+.mm-list-title,
+.tb-list-header .memo-list-title-row .title {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  color: var(--text);
+}
+
+.memo-list-title-row .count,
+.mm-list-title-row .count {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--surface3);
+  color: var(--text-mute);
+  padding: 2px 9px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  letter-spacing: 0;
+}
+
+/* List items — flatter, hairline border, no lift on hover (Journey style) */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin: 5px 8px;
+  padding: 13px 14px;
+  box-shadow: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.memo-item:hover,
+.mindmap-item:hover,
+.tb-list-item:hover {
+  background: var(--surface2);
+  border-color: var(--border-light);
+  transform: none;
+  box-shadow: none;
+}
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: var(--surface);
+  border-color: var(--text);
+  box-shadow: 0 0 0 1px var(--text);
+}
+
+.memo-item-title { font-size: 14.5px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); }
+.memo-item-preview { font-size: 12.5px; color: var(--text-dim); line-height: 1.55; }
+.memo-item-meta { font-size: 11px; color: var(--text-mute); margin-top: 7px; }
+.tb-list-date { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); }
+.tb-list-meta { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+.mm-name { font-size: 14px; font-weight: 700; letter-spacing: -0.2px; color: var(--text); }
+.mm-meta { font-size: 11.5px; color: var(--text-mute); }
+
+/* Panels — clean borders, no blur, no shadow */
+.memo-list,
+.mindmap-list,
+.timeblock-list {
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.memo-list-header,
+.mm-list-header,
+.tb-list-header {
+  background: var(--bg) !important;
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Header — keep subtle blur for sticky feel, but cream background */
+.header {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+body[data-theme="leather"] .header { background: var(--bg); }
+
+/* Mindmap toolbar — same tone */
+.mindmap-toolbar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Memo editor — pure paper white, no shadow */
+.memo-editor {
+  background: var(--surface);
+  background-image: none;
+  box-shadow: none;
+}
+.memo-editor-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+/* Buttons — Moleskine Journey leans on filled black/cream pills for primary,
+   transparent ghost for secondary */
+.tb-btn,
+.header-btn,
+.nav-arrow,
+.memo-icon-btn,
+.draw-tool,
+.panel-collapse-btn,
+.panel-reopen-btn,
+.tb-back-btn,
+.memo-back,
+.mm-list-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+.tb-btn:hover,
+.header-btn:hover,
+.nav-arrow:hover,
+.memo-icon-btn:hover,
+.draw-tool:hover {
+  background: var(--surface3);
+  border-color: var(--border-light);
+}
+
+/* Primary action: dark filled pill (or amber for accent CTAs) */
+.modal-actions button.primary,
+.memo-search-wrap .new-btn,
+.tb-list-header .today-jump-btn,
+.mm-list-header .today-jump-btn,
+.ledger-add-btn {
+  background: var(--text);
+  color: var(--surface);
+  border: none;
+  box-shadow: none;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+.modal-actions button.primary:hover,
+.memo-search-wrap .new-btn:hover,
+.tb-list-header .today-jump-btn:hover,
+.mm-list-header .today-jump-btn:hover,
+.ledger-add-btn:hover {
+  background: var(--text-dim);
+}
+
+/* Sidebar (desktop): paper column with subtle right border */
+@media (min-width: 769px) {
+  .sidebar {
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .sidebar .nav-btn { color: var(--text-dim); }
+  .sidebar .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .sidebar .nav-btn.active {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+}
+
+/* Mobile bottom bar — matching tone */
+@media (max-width: 768px) {
+  .sidebar {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    box-shadow: none;
+    backdrop-filter: blur(12px) saturate(140%);
+    -webkit-backdrop-filter: blur(12px) saturate(140%);
+  }
+  .sidebar .nav-btn.active::before {
+    background: var(--accent);
+    box-shadow: none;
+  }
+  .sidebar .nav-btn.active { color: var(--text); }
+}
+
+/* Modals — clean cream sheets */
+.modal,
+.drawing-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.modal-overlay,
+.drawing-modal-overlay {
+  background: rgba(40,30,15,0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Ledger amount input — Moleskine Journey number display style */
+.ledger-quick-add #ledger-amount {
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
+  color: var(--text);
+}
+.ledger-currency { color: var(--text-dim); font-weight: 600; }
+
+/* Day summary cards — flatter */
+.day-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Ledger summary stat cards: amber accent for income, soft red for expense */
+.ledger-stat .value.income { color: var(--green); }
+.ledger-stat .value.expense { color: var(--red); }
+
+/* Ledger card on timeblock — subtle warm tint */
+.tb-ledger-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.tb-ledger-totals .net {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+/* Toast — clean */
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+}
+
+/* Bear editor — paper-feel typography */
+.bear-editor {
+  font-size: 16px;
+  line-height: 1.75;
+  color: var(--text);
+  letter-spacing: -0.005em;
+}
+.bear-editor .md-h1 { font-size: 1.5em; font-weight: 800; letter-spacing: -0.4px; color: var(--text); }
+.bear-editor .md-h2 { font-size: 1.25em; font-weight: 700; letter-spacing: -0.3px; color: var(--text); }
+.bear-editor .md-h3 { font-size: 1.1em; font-weight: 700; color: var(--accent); }
+.bear-editor .md-marker { color: var(--text-mute); opacity: 0.45; font-weight: normal; font-style: normal; }
+.bear-editor .md-bold { color: var(--text); font-weight: 700; }
+.bear-editor .md-em { color: var(--text); font-style: italic; }
+.bear-editor .md-link { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Memo editor title — refined */
+.memo-editor-header input {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Body sans for memo editor (Journey doesn't use serif here) */
+.bear-editor,
+.memo-editor textarea,
+.markdown-body,
+.memo-editor-header input {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Apple SD Gothic Neo', sans-serif;
+}
+
+/* Subtle accent dot on active mobile tab — Moleskine Journey signature */
+@media (max-width: 768px) {
+  .sidebar .nav-btn.active::before {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    bottom: 3px;
+    top: auto;
+  }
+}
+
+/* Inputs — softer, warm */
+.modal input, .modal textarea, .modal select,
+.memo-search-wrap .search-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+}
+.modal input:focus, .modal textarea:focus, .modal select:focus,
+.memo-search-wrap .search-input:focus {
+  background: var(--surface);
+  border-color: var(--text);
+  box-shadow: none;
 }
