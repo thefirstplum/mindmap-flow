@@ -1165,57 +1165,126 @@
   /* ============== MOBILE ============== */
   @media (max-width: 768px) {
     .app { flex-direction: column; padding: 0; }
+    .main { order: 1; padding-top: var(--safe-top); }
 
-    /* Sidebar → bottom tab bar */
+    /* ======= Sticky frosted header ======= */
+    .header {
+      padding: 0 14px;
+      height: 50px;
+      gap: 10px;
+      background: rgba(11,13,20,0.78);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+    }
+    .header h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+    .header .subtitle { display: none; }
+    .header-icon { width: 30px; height: 30px; border-radius: 9px; }
+    .header-icon svg { width: 16px; height: 16px; }
+    .header-btn { padding: 0; width: 36px; height: 36px; justify-content: center; }
+    .header-btn .btn-label { display: none; }
+
+    /* ======= iOS-style bottom tab bar ======= */
     .sidebar {
       order: 2;
       width: 100%;
       height: auto;
       flex-direction: row;
       justify-content: space-around;
-      padding: 8px 8px calc(8px + var(--safe-bot));
+      padding: 6px 6px calc(4px + var(--safe-bot));
       border-right: none;
       border-top: 1px solid var(--border);
+      background: rgba(11,13,20,0.92);
+      backdrop-filter: saturate(180%) blur(24px);
+      -webkit-backdrop-filter: saturate(180%) blur(24px);
       gap: 0;
     }
-    .sidebar .logo { display: none; }
-    .sidebar .spacer { display: none; }
-    .sidebar .nav-btn { width: 56px; height: 48px; flex-direction: column; gap: 2px; }
+    .sidebar .logo, .sidebar .spacer { display: none; }
+    .sidebar .nav-btn {
+      width: 64px;
+      height: 50px;
+      flex-direction: column;
+      gap: 3px;
+      border-radius: 0;
+      background: transparent !important;
+      box-shadow: none !important;
+      color: var(--text-mute);
+      position: relative;
+      transition: color 0.15s;
+    }
+    .sidebar .nav-btn .icon { width: 22px; height: 22px; }
     .sidebar .nav-btn .label {
       position: static;
       opacity: 1;
       background: none;
       padding: 0;
       font-size: 10px;
-      font-weight: 500;
+      font-weight: 600;
+      letter-spacing: 0.1px;
     }
     .sidebar .nav-btn:hover .label { left: 0; }
-    .sidebar .nav-btn .icon { width: 20px; height: 20px; }
-    .sidebar .nav-btn.active { background: transparent; color: var(--accent2); box-shadow: none; }
-    .sidebar .nav-btn.active .icon { filter: drop-shadow(0 0 6px var(--accent-glow)); }
-
-    .main { order: 1; padding-top: var(--safe-top); }
-
-    .header { padding: 0 16px; height: 52px; gap: 10px; }
-    .header h1 { font-size: 16px; }
-    .header .subtitle { display: none; }
-    .header-icon { width: 32px; height: 32px; }
-    .header-btn .btn-label { display: none; }
-    .header-btn { padding: 0 10px; height: 32px; }
-
-    .mindmap-toolbar { padding: 0 12px; height: 48px; }
-    .tb-btn { padding: 0 10px; height: 32px; font-size: 12px; }
-
-    .timeblock-header { padding: 0 16px; height: 52px; }
-    .date-display { font-size: 14px; min-width: 0; }
-    .timeblock-body { padding: 12px 16px calc(20px + var(--safe-bot)); }
-
-    /* Memo: list/editor toggle */
-    .memo-page { position: relative; }
-    .memo-list {
-      width: 100%;
-      transition: transform 0.25s ease;
+    .sidebar .nav-btn.active { color: var(--accent2); }
+    .sidebar .nav-btn.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 26px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 0 0 4px 4px;
+      box-shadow: 0 0 12px var(--accent-glow);
     }
+    .sidebar .nav-btn.active .icon { filter: none; }
+
+    /* ======= Modal as bottom sheet ======= */
+    .modal-overlay { padding: 0; align-items: flex-end; }
+    .modal {
+      width: 100%;
+      max-width: 100%;
+      max-height: 92dvh;
+      border-radius: 22px 22px 0 0;
+      padding: 14px 18px calc(20px + var(--safe-bot));
+      animation: sheetUp 0.28s cubic-bezier(0.32,0.72,0.16,1);
+    }
+    @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal::before {
+      content: '';
+      display: block;
+      width: 36px;
+      height: 4px;
+      background: var(--text-mute);
+      border-radius: 100px;
+      margin: 0 auto 14px;
+      opacity: 0.4;
+    }
+    .modal h3 { font-size: 17px; }
+    .modal label { font-size: 11px; }
+    .modal .modal-actions {
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .modal .modal-actions button { flex: 1; padding: 12px; font-size: 14px; }
+
+    /* ======= Page content ======= */
+    .mindmap-toolbar { padding: 0 10px; height: 46px; gap: 6px; }
+    .tb-btn { padding: 0 10px; height: 32px; font-size: 12px; }
+    .color-dot { width: 22px; height: 22px; }
+
+    .timeblock-header { padding: 0 12px; height: 50px; gap: 6px; }
+    .date-display { font-size: 14px; min-width: 0; }
+    .timeblock-body { padding: 12px 14px 28px !important; }
+    .day-summary { padding: 12px 14px; gap: 14px; flex-wrap: wrap; }
+    .day-summary .stat .value { font-size: 16px; }
+    .day-summary .stat .label { font-size: 10px; }
+    .time-row { min-height: 56px; }
+    .time-label { width: 56px; font-size: 11px; padding: 8px 10px 8px 0; }
+    .time-slot { padding: 4px 8px; }
+    .time-block-item { padding: 11px 13px; border-radius: 10px; }
+
+    /* ======= Memo list/editor slide ======= */
+    .memo-page { position: relative; }
+    .memo-list { width: 100%; transition: transform 0.25s ease; }
     .memo-editor {
       position: absolute;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -1225,20 +1294,25 @@
       z-index: 5;
     }
     .memo-page.show-editor .memo-editor { transform: translateX(0); }
-    .memo-back { display: flex; }
-    .memo-editor-header { padding: 14px 16px 4px; }
-    .memo-editor-header input { font-size: 22px; }
-    .memo-meta { padding: 0 16px 12px; }
+    .memo-back { display: flex; width: 32px; height: 32px; font-size: 18px; }
+    .memo-list-header { padding: 14px 14px 10px; }
+    .memo-search-wrap .search-input { height: 38px; font-size: 14px; }
+    .memo-search-wrap .new-btn { width: 38px; height: 38px; }
+    .memo-item { padding: 14px 16px; }
+    .memo-item-title { font-size: 14px; }
+    .memo-item-preview { font-size: 12px; }
     .memo-editor-toolbar { padding: 8px 12px; gap: 8px; }
-    .memo-editor textarea { padding: 16px; font-size: 15px; }
-    .markdown-body { padding: 16px; font-size: 15px; }
-    .memo-mode-toggle button { padding: 6px 9px; font-size: 11px; }
+    .memo-editor-header { padding: 12px 16px 4px; gap: 8px; }
+    .memo-editor-header input { font-size: 22px; }
+    .memo-meta { padding: 0 16px 14px; font-size: 11px; gap: 6px; }
+    .memo-editor textarea, .markdown-body { padding: 16px; font-size: 16px; padding-bottom: 32px; }
+    .memo-mode-toggle button { padding: 7px 10px; font-size: 11px; }
     .memo-mode-toggle button .label-text { display: none; }
     .memo-body-wrap.split { flex-direction: column; }
     .memo-body-wrap.split textarea { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
     .memo-body-wrap.split .markdown-body { width: 100%; height: 50%; }
 
-    /* Mindmap list as drawer on mobile */
+    /* ======= Mindmap drawer ======= */
     .mindmap-list {
       position: absolute;
       top: 0; bottom: 0; left: 0;
@@ -1251,7 +1325,7 @@
     .mindmap-list.show { transform: translateX(0); }
     .mm-list-toggle { display: flex; }
 
-    /* Timeblock list/detail slide pattern on mobile */
+    /* ======= Timeblock list/detail slide ======= */
     .timeblock-page { position: relative; }
     .timeblock-list { width: 100%; transition: transform 0.25s ease; }
     .tb-main {
@@ -1263,25 +1337,29 @@
       z-index: 5;
     }
     .timeblock-page.show-detail .tb-main { transform: translateX(0); }
-    .tb-back-btn { display: flex; }
-    .timeblock-header { gap: 6px; padding: 0 12px; }
-    .timeblock-body { padding: 12px 16px 24px !important; }
+    .tb-back-btn { display: flex; width: 32px; height: 32px; font-size: 18px; }
     .nav-arrow { width: 32px; height: 32px; }
+    .tb-list-header { padding: 14px 14px 10px; }
+    .tb-list-item { padding: 14px 16px; }
 
-    /* Bottom nav sit above home indicator with reduced padding on small phones */
-    .sidebar { padding: 6px 4px calc(6px + var(--safe-bot)); }
-    .sidebar .nav-btn { width: 52px; height: 44px; }
+    /* ======= Toast positioned above tab bar ======= */
+    .toast { bottom: calc(70px + var(--safe-bot)); }
 
-    /* Memo: tighten bottom padding (no longer needs safe-bot, sidebar handles it) */
-    .memo-editor textarea, .markdown-body { padding-bottom: 24px; }
-
-    .modal { padding: 20px; border-radius: 16px; }
-    .modal h3 { font-size: 16px; }
+    /* ======= Node edit popup compact ======= */
+    .node-edit-popup { padding: 8px; }
+    .node-edit-popup input { width: 200px; padding: 8px 12px; font-size: 14px; }
   }
 
-  @media (max-width: 480px) {
-    .day-summary { padding: 12px 14px; gap: 16px; }
-    .day-summary .stat .value { font-size: 16px; }
+  /* Smaller phones */
+  @media (max-width: 380px) {
+    .sidebar .nav-btn { width: 56px; }
+    .sidebar .nav-btn .label { font-size: 9.5px; }
+    .header h1 { font-size: 15px; }
+    .header-icon { width: 28px; height: 28px; }
+    .day-summary { gap: 12px; }
+    .day-summary .stat .value { font-size: 15px; }
+    .memo-list { width: 100%; }
+    .memo-editor-header input { font-size: 20px; }
   }
 </style>
 </head>
