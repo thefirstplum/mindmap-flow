@@ -1,31 +1,42 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  /* === MOLESKINE PAPER (default) — cream notebook page === */
+  /* === LIQUID GLASS — light (default) === */
+  /* Vibrant gradient wallpaper showing through translucent glass surfaces.
+     Surfaces use --surface (rgba) + backdrop-filter blur to refract the
+     wallpaper. iOS system colors for accent. */
   :root {
-    --bg: #f1ead2;
-    --bg-grad: radial-gradient(ellipse at 30% 0%, #faf3d9 0%, #ebe2c2 75%);
-    --surface: #fbf5e1;
-    --surface2: #ece2c2;
-    --surface3: #d8cba6;
-    --border: #cdbe98;
-    --border-light: #b8a679;
-    --text: #1f1a14;
-    --text-dim: #6b5a3e;
-    --text-mute: #9a8a68;
-    --accent: #8b3a3a;        /* oxblood ribbon red */
-    --accent2: #b15151;
-    --accent-glow: rgba(139,58,58,0.18);
-    --green: #4a7c59;
-    --orange: #b8841a;
-    --red: #9a3922;
-    --blue: #3a5577;
-    --pink: #a04a6a;
-    --cyan: #3a6577;
-    --code-color: #8b3a3a;
-    --paper-line: rgba(60,40,20,0.08);
-    --shadow-1: 0 2px 8px rgba(80,60,30,0.08);
-    --shadow-2: 0 8px 24px rgba(80,60,30,0.14);
-    --radius: 14px;
-    --radius-sm: 10px;
+    --bg: #eef2f7;
+    --bg-grad:
+      radial-gradient(circle at 0% 0%, rgba(255,143,209,0.55) 0%, transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(120,170,255,0.6) 0%, transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(180,140,255,0.5) 0%, transparent 55%),
+      linear-gradient(135deg, #f8fbff 0%, #eaf0fa 100%);
+    --surface: rgba(255,255,255,0.55);
+    --surface2: rgba(255,255,255,0.7);
+    --surface3: rgba(255,255,255,0.85);
+    --border: rgba(255,255,255,0.5);
+    --border-light: rgba(255,255,255,0.7);
+    --glass-stroke: rgba(255,255,255,0.6);   /* inner highlight on top edge */
+    --glass-shadow: 0 8px 32px rgba(31,38,135,0.12);
+    --text: #1c1c1e;
+    --text-dim: #3a3a3c;
+    --text-mute: #8e8e93;
+    --accent: #007AFF;        /* iOS system blue */
+    --accent2: #5AC8FA;
+    --accent-glow: rgba(0,122,255,0.3);
+    --green: #34C759;
+    --orange: #FF9500;
+    --red: #FF3B30;
+    --blue: #007AFF;
+    --pink: #FF2D55;
+    --cyan: #32ADE6;
+    --code-color: #AF52DE;
+    --paper-line: rgba(60,80,120,0.06);
+    --blur-amount: 28px;
+    --blur-strong: 40px;
+    --shadow-1: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(31,38,135,0.08);
+    --shadow-2: 0 8px 32px rgba(31,38,135,0.18);
+    --radius: 16px;
+    --radius-sm: 12px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bot: env(safe-area-inset-bottom, 0px);
     --safe-left: env(safe-area-inset-left, 0px);
@@ -33,31 +44,37 @@
     color-scheme: light;
   }
 
-  /* === MOLESKINE LEATHER (dark) — embossed brown cover === */
+  /* === LIQUID GLASS — dark === */
   body[data-theme="leather"] {
-    --bg: #221810;
-    --bg-grad: radial-gradient(ellipse at 30% 0%, #322419 0%, #1a1108 75%);
-    --surface: #2e2317;
-    --surface2: #3d2f1f;
-    --surface3: #50402a;
-    --border: #4a3a25;
-    --border-light: #5d4a30;
-    --text: #efe2c5;
-    --text-dim: #b59b76;
-    --text-mute: #806a4f;
-    --accent: #c8624a;
-    --accent2: #e07f6a;
-    --accent-glow: rgba(200,98,74,0.3);
-    --green: #6f9b65;
-    --orange: #d4a64a;
-    --red: #c8624a;
-    --blue: #6088a6;
-    --pink: #d27a8e;
-    --cyan: #6e9aa6;
-    --code-color: #f4b3a0;
-    --paper-line: rgba(255,220,180,0.05);
-    --shadow-1: 0 4px 12px rgba(0,0,0,0.4);
-    --shadow-2: 0 12px 32px rgba(0,0,0,0.5);
+    --bg: #0a0a14;
+    --bg-grad:
+      radial-gradient(circle at 0% 0%, rgba(180,90,255,0.4) 0%, transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(60,140,255,0.45) 0%, transparent 50%),
+      radial-gradient(circle at 50% 100%, rgba(255,90,180,0.35) 0%, transparent 55%),
+      linear-gradient(135deg, #0e0e1c 0%, #050510 100%);
+    --surface: rgba(28,28,40,0.55);
+    --surface2: rgba(40,40,55,0.7);
+    --surface3: rgba(60,60,80,0.8);
+    --border: rgba(255,255,255,0.12);
+    --border-light: rgba(255,255,255,0.2);
+    --glass-stroke: rgba(255,255,255,0.15);
+    --glass-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    --text: #ffffff;
+    --text-dim: #c7c7cc;
+    --text-mute: #8e8e93;
+    --accent: #0A84FF;        /* iOS dark mode blue */
+    --accent2: #64D2FF;
+    --accent-glow: rgba(10,132,255,0.4);
+    --green: #30D158;
+    --orange: #FF9F0A;
+    --red: #FF453A;
+    --blue: #0A84FF;
+    --pink: #FF375F;
+    --cyan: #64D2FF;
+    --code-color: #DA8FFF;
+    --paper-line: rgba(255,255,255,0.04);
+    --shadow-1: 0 4px 16px rgba(0,0,0,0.35);
+    --shadow-2: 0 16px 48px rgba(0,0,0,0.55);
     color-scheme: dark;
   }
   html, body {
@@ -1892,4 +1909,231 @@ body[data-theme="leather"] .tb-list-item.active {
 .timeblock-page.list-collapsed .tb-main {
   flex: 1 1 100%;
   width: 100%;
+}
+
+/* ============================================================ */
+/* === LIQUID GLASS — surface materials & polish ============== */
+/* ============================================================ */
+
+/* Make ALL major surfaces glass-like.
+   Most components already use var(--surface) — that's now an rgba value,
+   so we just need to add backdrop-filter wherever the background is set. */
+
+.header,
+.sidebar,
+.mindmap-toolbar,
+.mindmap-list,
+.timeblock-list,
+.memo-list,
+.memo-editor-toolbar,
+.timeblock-header,
+.tb-list-header,
+.memo-list-header,
+.mm-list-header,
+.modal,
+.drawing-modal,
+.drawing-toolbar {
+  backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+}
+
+/* Stronger blur on overlays / modals */
+.modal-overlay,
+.drawing-modal-overlay {
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.modal,
+.drawing-modal {
+  background: var(--surface2);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-stroke);
+}
+
+/* Glass effect on list panels: thin glass edge + top inner highlight */
+.memo-list,
+.mindmap-list,
+.timeblock-list {
+  border-right: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-stroke);
+}
+
+/* Header glass */
+.header {
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--border), inset 0 1px 0 var(--glass-stroke);
+  border-bottom: none;
+}
+
+/* Bottom tab bar (mobile) glass */
+@media (max-width: 768px) {
+  .sidebar {
+    background: var(--surface);
+    box-shadow: inset 0 1px 0 var(--glass-stroke), 0 -8px 24px rgba(0,0,0,0.04);
+    border-top: 1px solid var(--border);
+  }
+}
+
+/* List items get crystalline highlight on active */
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: linear-gradient(135deg, rgba(0,122,255,0.18) 0%, rgba(90,200,250,0.12) 100%);
+  border-color: rgba(0,122,255,0.45);
+  box-shadow:
+    0 4px 16px rgba(0,122,255,0.18),
+    inset 0 1px 0 rgba(255,255,255,0.4);
+}
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active {
+  background: linear-gradient(135deg, rgba(10,132,255,0.25) 0%, rgba(100,210,255,0.18) 100%);
+  border-color: rgba(10,132,255,0.55);
+  box-shadow:
+    0 4px 16px rgba(10,132,255,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Buttons: glassy */
+.tb-btn,
+.header-btn,
+.nav-arrow,
+.memo-icon-btn,
+.draw-tool,
+.panel-collapse-btn,
+.panel-reopen-btn,
+.tb-back-btn,
+.memo-back,
+.mm-list-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-stroke), 0 1px 3px rgba(0,0,0,0.04);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+.tb-btn:hover,
+.header-btn:hover,
+.nav-arrow:hover,
+.memo-icon-btn:hover,
+.draw-tool:hover {
+  background: var(--surface3);
+}
+
+/* Primary buttons keep their accent fill (no glass) but get a glow */
+.modal-actions button.primary,
+.memo-search-wrap .new-btn,
+.tb-list-header .today-jump-btn,
+.mm-list-header button {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none;
+  color: #fff;
+  box-shadow: 0 4px 16px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+/* Sidebar (desktop): floating glass column */
+@media (min-width: 769px) {
+  .sidebar {
+    background: var(--surface);
+    box-shadow: inset -1px 0 0 var(--border), inset 0 1px 0 var(--glass-stroke);
+    border-right: none;
+  }
+}
+
+/* Toast: floating frosted glass pill */
+.toast {
+  background: var(--surface2);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-stroke);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+}
+
+/* Day summary: tinted glass card */
+.day-summary {
+  background: linear-gradient(135deg, rgba(0,122,255,0.08), rgba(255,45,85,0.05));
+  border: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-stroke), 0 2px 12px rgba(0,0,0,0.04);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Sync error banner: red-tinted glass */
+.sync-error-banner {
+  background: linear-gradient(135deg, rgba(255,59,48,0.18), rgba(255,59,48,0.08));
+  border-bottom: 1px solid rgba(255,59,48,0.35);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Mindmap toolbar */
+.mindmap-toolbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: inset 0 1px 0 var(--glass-stroke);
+}
+
+/* Memo editor: paper texture sits on glass */
+.memo-editor {
+  background: var(--surface);
+  backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+}
+
+/* Search inputs and form fields */
+.memo-search-wrap .search-input,
+.modal input,
+.modal textarea,
+.modal select,
+.node-edit-popup input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.memo-search-wrap .search-input:focus,
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Mode toggle pill */
+.memo-mode-toggle {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.memo-mode-toggle button.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+/* Sidebar nav active indicator (mobile bottom bar) */
+@media (max-width: 768px) {
+  .sidebar .nav-btn.active::before {
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .sidebar .nav-btn.active { color: var(--accent); }
+}
+
+/* Folder/Drive/Gist status cards in sync modal */
+.folder-status {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+}
+.folder-status.connected {
+  background: linear-gradient(135deg, rgba(52,199,89,0.12), rgba(52,199,89,0.05));
+  border-color: rgba(52,199,89,0.4);
+}
+
+/* Reduce paper-line texture (clashes with vibrant background) */
+.memo-editor {
+  background-image: none;
 }
