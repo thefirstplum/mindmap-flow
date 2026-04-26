@@ -206,7 +206,7 @@
         <div class="ledger-page">
           <div class="ledger-quick-add">
             <div class="ledger-quick-row">
-              <input type="number" inputmode="numeric" id="ledger-amount" placeholder="0" autocomplete="off" autofocus>
+              <input type="number" inputmode="numeric" pattern="[0-9]*" id="ledger-amount" placeholder="0" autocomplete="off">
               <span class="ledger-currency">원</span>
             </div>
             <div class="ledger-quick-row">
@@ -214,6 +214,10 @@
                 <button class="active" data-type="expense" onclick="setLedgerType('expense')">지출</button>
                 <button data-type="income" onclick="setLedgerType('income')">수입</button>
               </div>
+              <select id="ledger-category" class="ledger-select" aria-label="카테고리"></select>
+              <input type="date" id="ledger-date" class="ledger-date-input" aria-label="날짜">
+            </div>
+            <div class="ledger-quick-row">
               <input type="text" id="ledger-note" placeholder="메모 (선택)" autocomplete="off">
               <button class="ledger-add-btn" onclick="addLedgerEntry()">추가</button>
             </div>
