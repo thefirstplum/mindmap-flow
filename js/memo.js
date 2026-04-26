@@ -130,7 +130,9 @@ function renderMemoEditor() {
 
   let bodyHtml;
   if (!isEdit) {
-    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body" id="memo-preview">${renderedHtml}</div></div>`;
+    // Click anywhere on the rendered body switches to edit mode (unless
+    // clicking a link). Matches Bear's "tap to edit" behavior.
+    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a'))setMemoMode('edit')">${renderedHtml}</div></div>`;
   } else if (isMobile) {
     bodyHtml = `<div class="memo-body-wrap edit-only">
       <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
@@ -143,9 +145,10 @@ function renderMemoEditor() {
   }
 
   const editLabel = isEdit ? '뷰어' : '편집';
+  // Cleaner SF Symbols-style icons: square.and.pencil for edit, doc.text for view
   const editIcon = isEdit
-    ? `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
-    : `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
+    ? `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`
+    : `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/><path d="M18.375 2.625a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.375-9.375z"/></svg>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">

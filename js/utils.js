@@ -71,32 +71,55 @@ function md2html(md) {
   return s;
 }
 
-// =================== THEME (Moleskine paper / leather) ===================
+// =================== THEME (4 Bear themes) ===================
+// 'leather' kept as the internal name for the warm-graphite Charcoal
+// theme so existing body[data-theme="leather"] CSS keeps working.
+const THEMES = ['solarized', 'leather', 'solarized-dark', 'dracula'];
+const THEME_LABELS = {
+  'solarized': 'Solarized Light',
+  'leather': 'Charcoal',
+  'solarized-dark': 'Solarized Dark',
+  'dracula': 'Dracula'
+};
+const THEME_META_COLOR = {
+  'solarized': '#fdf6e3',
+  'leather': '#1f2226',
+  'solarized-dark': '#002b36',
+  'dracula': '#282a36'
+};
+
+function migrateThemeName(t) {
+  if (t === 'paper' || t == null) return 'solarized';
+  if (t === 'charcoal') return 'leather';
+  return THEMES.includes(t) ? t : 'solarized';
+}
+
 let currentTheme = (function () {
-  try { return JSON.parse(localStorage.getItem('mindflow_theme')) || 'paper'; } catch { return 'paper'; }
+  try { return migrateThemeName(JSON.parse(localStorage.getItem('mindflow_theme'))); }
+  catch { return 'solarized'; }
 })();
 
 function applyTheme(theme) {
-  if (theme === 'leather') document.body.setAttribute('data-theme', 'leather');
-  else document.body.removeAttribute('data-theme');
+  theme = migrateThemeName(theme);
+  if (theme === 'solarized') document.body.removeAttribute('data-theme');
+  else document.body.setAttribute('data-theme', theme);
+
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === 'leather' ? '#221810' : '#f1ead2';
-  // Swap icon
-  const paperIcon = document.getElementById('theme-icon-paper');
-  const leatherIcon = document.getElementById('theme-icon-leather');
-  if (paperIcon && leatherIcon) {
-    if (theme === 'leather') { paperIcon.style.display = ''; leatherIcon.style.display = 'none'; }
-    else { paperIcon.style.display = 'none'; leatherIcon.style.display = ''; }
-  }
+  if (meta) meta.content = THEME_META_COLOR[theme] || '#fdf6e3';
+
+  const themeBtn = document.getElementById('theme-toggle');
+  if (themeBtn) themeBtn.title = `테마: ${THEME_LABELS[theme]} (눌러서 다음)`;
+
   currentTheme = theme;
+  try { localStorage.setItem('mindflow_theme', JSON.stringify(theme)); } catch {}
 }
 
 function toggleTheme() {
-  const next = currentTheme === 'paper' ? 'leather' : 'paper';
-  try { localStorage.setItem('mindflow_theme', JSON.stringify(next)); } catch {}
+  const idx = THEMES.indexOf(currentTheme);
+  const next = THEMES[(idx + 1) % THEMES.length];
   applyTheme(next);
-  // Mindmap canvas needs redraw because some colors are computed
   if (typeof drawMindMap === 'function') drawMindMap();
+  if (typeof toast === 'function') toast(THEME_LABELS[next]);
 }
 
 applyTheme(currentTheme);

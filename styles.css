@@ -4786,3 +4786,128 @@ body[data-theme="leather"] .tb-list-item.active {
   .memo-editor textarea { padding: 12px 18px 24px; font-size: 16px; }
   .markdown-body { padding: 12px 18px 24px; font-size: 16px; }
 }
+
+/* ============================================================ */
+/* === Active list item — refined Bear-style highlight ======== */
+/* ============================================================ */
+/* Selected note in Bear: subtle accent-tinted fill, accent-colored
+   title, no harsh borders. Dot pseudo-element on the left for the
+   selected indicator. */
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+  box-shadow: none;
+  position: relative;
+}
+.memo-item.active .memo-item-title,
+.mindmap-item.active .mm-name,
+.tb-list-item.active .tb-list-date {
+  color: var(--accent);
+}
+.memo-item.active .memo-item-preview,
+.mindmap-item.active .mm-meta,
+.tb-list-item.active .tb-list-meta {
+  color: var(--text);
+}
+
+/* Cursor on the rendered viewer to hint that clicking enters edit */
+.markdown-body.view-clickable {
+  cursor: text;
+}
+.markdown-body.view-clickable a { cursor: pointer; }
+
+/* ============================================================ */
+/* === BEAR — Solarized Dark theme ============================ */
+/* ============================================================ */
+body[data-theme="solarized-dark"] {
+  --bg: #002b36;                /* base03 */
+  --bg-grad: none;
+  --surface: #002b36;
+  --surface2: #073642;          /* base02 — sidebar */
+  --surface3: #0e4a5c;
+  --border: #0e4a5c;
+  --border-light: #1a6377;
+  --text: #93a1a1;              /* base1 */
+  --text-dim: #839496;          /* base0 */
+  --text-mute: #586e75;         /* base01 */
+  --accent: #dc322f;            /* red */
+  --accent2: #cb4b16;           /* orange */
+  --accent-glow: rgba(220,50,47,0.16);
+  --primary: #fdf6e3;
+  --green: #859900;
+  --orange: #cb4b16;
+  --red: #dc322f;
+  --blue: #268bd2;
+  --pink: #d33682;
+  --cyan: #2aa198;
+  --code-color: #b58900;
+  color-scheme: dark;
+}
+body[data-theme="solarized-dark"] .memo-item.active,
+body[data-theme="solarized-dark"] .mindmap-item.active,
+body[data-theme="solarized-dark"] .tb-list-item.active {
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+}
+
+/* ============================================================ */
+/* === BEAR — Dracula theme =================================== */
+/* ============================================================ */
+body[data-theme="dracula"] {
+  --bg: #282a36;
+  --bg-grad: none;
+  --surface: #282a36;
+  --surface2: #21222c;          /* sidebar darker */
+  --surface3: #44475a;          /* current line */
+  --border: #44475a;
+  --border-light: #6272a4;      /* comment */
+  --text: #f8f8f2;              /* foreground */
+  --text-dim: #c8c8b8;
+  --text-mute: #6272a4;         /* comment */
+  --accent: #ff79c6;            /* pink */
+  --accent2: #bd93f9;           /* purple */
+  --accent-glow: rgba(255,121,198,0.18);
+  --primary: #f8f8f2;
+  --green: #50fa7b;
+  --orange: #ffb86c;
+  --red: #ff5555;
+  --blue: #8be9fd;              /* cyan */
+  --pink: #ff79c6;
+  --cyan: #8be9fd;
+  --code-color: #f1fa8c;        /* yellow */
+  color-scheme: dark;
+}
+body[data-theme="dracula"] .memo-item.active,
+body[data-theme="dracula"] .mindmap-item.active,
+body[data-theme="dracula"] .tb-list-item.active {
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+}
+body[data-theme="dracula"] .markdown-body h3 { color: var(--accent2); }
+body[data-theme="dracula"] .markdown-body code {
+  background: rgba(241,250,140,0.10);
+  border-color: rgba(241,250,140,0.18);
+}
+body[data-theme="dracula"] .markdown-body blockquote {
+  border-left-color: var(--accent2);
+}
+body[data-theme="dracula"] .markdown-body a {
+  color: var(--accent);
+  border-bottom-color: var(--accent-glow);
+}
+
+/* The Charcoal (leather) theme also gets the refined active state */
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active {
+  background: var(--accent-glow);
+  border-left-color: var(--accent);
+  box-shadow: none;
+}
+body[data-theme="leather"] .memo-item.active .memo-item-title,
+body[data-theme="leather"] .mindmap-item.active .mm-name,
+body[data-theme="leather"] .tb-list-item.active .tb-list-date {
+  color: var(--accent);
+}
