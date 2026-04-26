@@ -3254,3 +3254,48 @@ body[data-theme="leather"] .modal input[type="date"]::-webkit-calendar-picker-in
 .modal .time-row-input { display: flex; gap: 10px; align-items: stretch; }
 .modal .time-row-input > div { flex: 1; display: flex; flex-direction: column; }
 .modal .time-row-input label { margin-top: 0 !important; margin-bottom: 6px; }
+
+/* ============================================================ */
+/* === Image block atomicity (Bear live editor) ============== */
+/* ============================================================ */
+.bear-editor .md-image-block {
+  display: inline-block;
+  user-select: none;
+  -webkit-user-select: none;
+  vertical-align: middle;
+}
+.bear-editor .md-image-block .md-marker {
+  /* Markers are still visible faintly so the source is editable-feeling
+     when needed, but ce=false on parent prevents accidental edits */
+  user-select: none;
+}
+
+/* ============================================================ */
+/* === Mindmap list header — match memo/timeblock heights ==== */
+/* ============================================================ */
+/* The mindmap header had become tall (title row + CTA button row) but the
+   adjacent .mindmap-toolbar was a short single-row strip — the two
+   columns' tops were out of alignment. Make the header's vertical
+   structure consistent and size the toolbar to match. */
+.mm-list-header,
+.memo-list-header,
+.tb-list-header {
+  /* Same outer padding as before, but ensure title row + CTA row stack
+     with consistent gap. */
+  padding: 18px 18px 14px;
+  gap: 10px;
+}
+.mm-list-header .today-jump-btn,
+.tb-list-header .today-jump-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Mindmap toolbar: keep its own height but ensure top alignment with the
+   list-header's TITLE ROW (the first sub-row). The title row is roughly
+   38px tall; padding 12px above gives the toolbar's button row the same
+   visual baseline as the title row. */
+.mindmap-toolbar {
+  min-height: 56px;
+  padding: 10px 16px;
+}
