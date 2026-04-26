@@ -1067,6 +1067,59 @@
   .memo-mode-toggle button svg { width: 14px; height: 14px; }
   .memo-toolbar-spacer { flex: 1; }
 
+  /* Bear-style live WYSIWYG editor */
+  .bear-editor {
+    flex: 1;
+    padding: 24px 28px;
+    background: transparent;
+    color: var(--text);
+    outline: none;
+    font-size: 16px;
+    line-height: 1.75;
+    overflow-y: auto;
+    font-family: inherit;
+    -webkit-user-select: text;
+    user-select: text;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    caret-color: var(--accent2);
+  }
+  .bear-editor [data-line] {
+    min-height: 1.75em;
+    padding: 1px 0;
+  }
+  .bear-editor [data-line]:empty::before {
+    content: '\200B';
+  }
+  .bear-editor .md-marker {
+    color: var(--text-mute);
+    opacity: 0.4;
+    font-weight: normal;
+    font-style: normal;
+  }
+  .bear-editor .md-bold { font-weight: 700; color: var(--text); }
+  .bear-editor .md-em { font-style: italic; color: var(--text); }
+  .bear-editor .md-strike { text-decoration: line-through; color: var(--text-mute); }
+  .bear-editor .md-code {
+    background: var(--surface2);
+    color: #ffb3d1;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-size: 0.92em;
+  }
+  .bear-editor .md-h1 { font-size: 1.55em; font-weight: 700; line-height: 1.3; }
+  .bear-editor .md-h2 { font-size: 1.3em; font-weight: 700; color: var(--accent2); line-height: 1.35; }
+  .bear-editor .md-h3 { font-size: 1.12em; font-weight: 600; line-height: 1.4; }
+  .bear-editor .md-link { color: var(--accent2); text-decoration: underline; }
+  .bear-editor .md-bullet { color: var(--accent2); margin-right: 6px; }
+  .bear-editor .md-quote {
+    color: var(--text-dim);
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+    display: inline-block;
+  }
+
   /* Markdown rendered preview */
   .memo-body-wrap { flex: 1; display: flex; min-height: 0; }
   .memo-body-wrap.split { display: flex; }
@@ -1161,6 +1214,73 @@
   .folder-status .name { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .folder-status .desc { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
   .folder-status.connected .desc { color: var(--green); }
+  /* Collapsible list panels (memo/mindmap/timeblock middle column) */
+  .panel-collapse-btn {
+    width: 22px; height: 22px;
+    background: transparent;
+    border: none;
+    color: var(--text-mute);
+    cursor: pointer;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .panel-collapse-btn:hover { background: var(--surface3); color: var(--text); }
+  .panel-collapse-btn svg { width: 14px; height: 14px; }
+  .memo-page.list-collapsed .memo-list,
+  .timeblock-page.list-collapsed .timeblock-list,
+  .mindmap-page.list-collapsed .mindmap-list { display: none; }
+  .panel-reopen-btn {
+    display: none;
+    width: 28px; height: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-dim);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-right: 4px;
+  }
+  .panel-reopen-btn:hover { background: var(--surface3); color: var(--text); }
+  .memo-page.list-collapsed ~ * .panel-reopen-btn,
+  .memo-page.list-collapsed .panel-reopen-btn,
+  .timeblock-page.list-collapsed .panel-reopen-btn,
+  .mindmap-page.list-collapsed .panel-reopen-btn { display: flex; }
+
+  /* Swipe-to-delete on list items (mobile) */
+  .swipe-row {
+    position: relative;
+    overflow: hidden;
+  }
+  .swipe-content {
+    position: relative;
+    background: var(--bg);
+    transition: transform 0.2s ease;
+    will-change: transform;
+  }
+  .swipe-row.swiped .swipe-content { transform: translateX(-88px); }
+  .swipe-action {
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 88px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .swipe-row.swiped .swipe-action { display: flex; }
+
   .save-pulse {
     display: inline-block;
     width: 6px; height: 6px;
@@ -1463,6 +1583,9 @@
             <div class="mm-list-header">
               <div class="mm-list-title">마인드맵</div>
               <button onclick="createMindmap()" title="새 마인드맵">+</button>
+              <button class="panel-collapse-btn" onclick="togglePanel('mindmap-page-root')" title="목록 닫기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              </button>
             </div>
             <div class="mindmap-items" id="mindmap-items"></div>
           </aside>
@@ -1470,6 +1593,9 @@
 
           <div class="mm-canvas-wrap">
             <div class="mindmap-toolbar">
+              <button class="panel-reopen-btn" onclick="togglePanel('mindmap-page-root')" title="목록 열기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
               <button class="mm-list-toggle" onclick="toggleMindmapList()" title="마인드맵 목록">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
               </button>
@@ -1517,6 +1643,9 @@
               <div class="memo-list-title-row">
                 <div class="title">일정</div>
                 <div class="count" id="tb-count">0</div>
+                <button class="panel-collapse-btn" onclick="togglePanel('timeblock-page-root')" title="목록 닫기" style="margin-left:6px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
               </div>
               <button class="today-jump-btn" onclick="goToday()">
                 <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1527,6 +1656,9 @@
           </aside>
           <div class="tb-main">
             <div class="timeblock-header">
+              <button class="panel-reopen-btn" onclick="togglePanel('timeblock-page-root')" title="목록 열기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+              </button>
               <button class="tb-back-btn" onclick="backToTbList()" aria-label="목록으로">‹</button>
               <button class="nav-arrow" onclick="prevDay()">‹</button>
               <div class="date-display" id="tb-date">—</div>
@@ -1545,6 +1677,9 @@
               <div class="memo-list-title-row">
                 <div class="title">메모</div>
                 <div class="count" id="memo-count">0</div>
+                <button class="panel-collapse-btn" onclick="togglePanel('memo-page')" title="목록 닫기" style="margin-left:6px;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
               </div>
               <div class="memo-search-wrap">
                 <svg class="search-icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
@@ -2004,17 +2139,40 @@ function renderMindmapList() {
   }
   container.innerHTML = mindmaps.map(m => {
     const isActive = m.id === activeMindmapId;
-    return `<div class="mindmap-item ${isActive ? 'active' : ''}" onclick="switchMindmap(${m.id})">
-      <div class="mm-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><line x1="9.7" y1="10.5" x2="6.3" y2="7.5"/><line x1="14.3" y1="10.5" x2="17.7" y2="7.5"/><line x1="9.7" y1="13.5" x2="6.3" y2="16.5"/><line x1="14.3" y1="13.5" x2="17.7" y2="16.5"/></svg>
+    return `<div class="swipe-row" data-id="${m.id}">
+      <div class="mindmap-item swipe-content ${isActive ? 'active' : ''}" onclick="switchMindmap(${m.id})">
+        <div class="mm-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><line x1="9.7" y1="10.5" x2="6.3" y2="7.5"/><line x1="14.3" y1="10.5" x2="17.7" y2="7.5"/><line x1="9.7" y1="13.5" x2="6.3" y2="16.5"/><line x1="14.3" y1="13.5" x2="17.7" y2="16.5"/></svg>
+        </div>
+        <div class="mm-content">
+          <div class="mm-name">${escapeHtml(m.name)}</div>
+          <div class="mm-meta">노드 ${m.nodes.length}개 · 연결 ${m.edges.length}개</div>
+        </div>
+        <button class="mm-menu-btn" onclick="event.stopPropagation();showMindmapMenu(${m.id})" title="이름 변경 / 삭제">⋯</button>
       </div>
-      <div class="mm-content">
-        <div class="mm-name">${escapeHtml(m.name)}</div>
-        <div class="mm-meta">노드 ${m.nodes.length}개 · 연결 ${m.edges.length}개</div>
-      </div>
-      <button class="mm-menu-btn" onclick="event.stopPropagation();showMindmapMenu(${m.id})" title="이름 변경 / 삭제">⋯</button>
+      <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
     </div>`;
   }).join('');
+  if (!container.dataset.swipeReady) {
+    attachSwipeToDelete(container, {
+      resolveId: (row) => parseInt(row.dataset.id),
+      onDelete: (id) => {
+        if (mindmaps.length <= 1) { toast('최소 1개의 마인드맵이 필요합니다'); return; }
+        const m = mindmaps.find(x => x.id === id);
+        if (!m || !confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
+        mindmaps = mindmaps.filter(x => x.id !== id);
+        if (activeMindmapId === id) {
+          activeMindmapId = mindmaps[0].id;
+          bindActiveMap();
+        }
+        save('mindmaps', mindmaps);
+        save('mm_active', activeMindmapId);
+        renderMindmapList();
+        drawMindMap();
+      }
+    });
+    container.dataset.swipeReady = '1';
+  }
 }
 
 function createMindmap() {
@@ -2768,11 +2926,27 @@ function renderTimeblockList() {
     const meta = blocks.length === 0
       ? '<span style="color:var(--text-mute)">일정 없음</span>'
       : `<span>${done}/${blocks.length}</span><div class="progress"><div class="progress-fill" style="width:${pct}%"></div></div>`;
-    return `<div class="tb-list-item ${isActive ? 'active' : ''} ${isToday ? 'is-today' : ''}" onclick="goToDate('${k}')">
-      <div class="tb-list-date">${date.getMonth()+1}월 ${date.getDate()}일 (${dayName})${isToday ? '<span class="today-tag">TODAY</span>' : ''}</div>
-      <div class="tb-list-meta">${meta}</div>
+    return `<div class="swipe-row" data-id="${k}">
+      <div class="tb-list-item swipe-content ${isActive ? 'active' : ''} ${isToday ? 'is-today' : ''}" onclick="goToDate('${k}')">
+        <div class="tb-list-date">${date.getMonth()+1}월 ${date.getDate()}일 (${dayName})${isToday ? '<span class="today-tag">TODAY</span>' : ''}</div>
+        <div class="tb-list-meta">${meta}</div>
+      </div>
+      ${blocks.length > 0 ? '<button class="swipe-action" aria-label="이날 일정 모두 삭제">🗑 모두 삭제</button>' : ''}
     </div>`;
   }).join('');
+  if (!container.dataset.swipeReady) {
+    attachSwipeToDelete(container, {
+      resolveId: (row) => row.dataset.id,
+      onDelete: (key) => {
+        if (!confirm(`${key} 의 모든 일정을 삭제하시겠습니까?`)) return;
+        delete timeBlocks[key];
+        save('tb_blocks', timeBlocks);
+        renderTimeBlocks();
+        renderTimeblockList();
+      }
+    });
+    container.dataset.swipeReady = '1';
+  }
 }
 
 function openTbModal(hour) {
@@ -2942,16 +3116,27 @@ function renderMemoList() {
     }
     const preview = m.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
     const wordCount = m.content.length;
-    return `<div class="memo-item ${m.id === activeMemoId ? 'active' : ''}" onclick="selectMemo(${m.id})">
-      <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
-      <div class="memo-item-preview">${escapeHtml(preview)}</div>
-      <div class="memo-item-meta">
-        <span>${dateStr}</span>
-        <span class="dot"></span>
-        <span>${wordCount}자</span>
+    return `<div class="swipe-row" data-id="${m.id}">
+      <div class="memo-item swipe-content ${m.id === activeMemoId ? 'active' : ''}" onclick="selectMemo(${m.id})">
+        <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
+        <div class="memo-item-preview">${escapeHtml(preview)}</div>
+        <div class="memo-item-meta">
+          <span>${dateStr}</span>
+          <span class="dot"></span>
+          <span>${wordCount}자</span>
+        </div>
       </div>
+      <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
     </div>`;
   }).join('');
+  // Wire swipe-to-delete (idempotent — handler attached once via flag)
+  if (!container.dataset.swipeReady) {
+    attachSwipeToDelete(container, {
+      resolveId: (row) => parseInt(row.dataset.id),
+      onDelete: (id) => deleteMemo(id)
+    });
+    container.dataset.swipeReady = '1';
+  }
 }
 
 function renderMemoEditor() {
@@ -2979,23 +3164,28 @@ function renderMemoEditor() {
 
   const editPart = `<textarea placeholder="# 제목\n\n마크다운으로 자유롭게 작성하세요..." oninput="updateMemoContent(this.value)">${escapeHtml(memo.content)}</textarea>`;
   const previewPart = `<div class="markdown-body">${memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">미리볼 내용이 없습니다</div>'}</div>`;
+  const livePart = `<div class="bear-editor" contenteditable="true" id="bear-editor-${memo.id}" spellcheck="false"></div>`;
 
   let bodyHtml = '';
-  if (memoMode === 'edit') bodyHtml = `<div class="memo-body-wrap">${editPart}</div>`;
+  if (memoMode === 'live') bodyHtml = `<div class="memo-body-wrap">${livePart}</div>`;
+  else if (memoMode === 'edit') bodyHtml = `<div class="memo-body-wrap">${editPart}</div>`;
   else if (memoMode === 'preview') bodyHtml = `<div class="memo-body-wrap">${previewPart}</div>`;
   else bodyHtml = `<div class="memo-body-wrap split">${editPart}${previewPart}</div>`;
 
-  const editIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const liveIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>`;
   const splitIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
   const eyeIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
+      <button class="panel-reopen-btn" onclick="togglePanel('memo-page')" title="목록 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-mode-toggle">
-        <button class="${memoMode==='edit'?'active':''}" onclick="setMemoMode('edit')">${editIcon}<span class="label-text">편집</span></button>
-        <button class="${memoMode==='split'?'active':''}" onclick="setMemoMode('split')">${splitIcon}<span class="label-text">분할</span></button>
-        <button class="${memoMode==='preview'?'active':''}" onclick="setMemoMode('preview')">${eyeIcon}<span class="label-text">미리보기</span></button>
+        <button class="${memoMode==='live'?'active':''}" onclick="setMemoMode('live')" title="라이브 (Bear 스타일)">${liveIcon}<span class="label-text">라이브</span></button>
+        <button class="${memoMode==='split'?'active':''}" onclick="setMemoMode('split')" title="분할">${splitIcon}<span class="label-text">분할</span></button>
+        <button class="${memoMode==='preview'?'active':''}" onclick="setMemoMode('preview')" title="미리보기">${eyeIcon}<span class="label-text">미리보기</span></button>
       </div>
       <div class="memo-toolbar-spacer"></div>
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
@@ -3017,11 +3207,277 @@ function renderMemoEditor() {
     </div>
     ${bodyHtml}
   `;
-  // Wire scroll sync once the new DOM exists
-  setTimeout(setupSplitScrollSync, 0);
+  // Wire interactions once the new DOM exists
+  setTimeout(() => {
+    if (memoMode === 'split') setupSplitScrollSync();
+    if (memoMode === 'live') {
+      const ed = document.getElementById('bear-editor-' + memo.id);
+      if (ed) {
+        setupBearEditor(ed, memo.content, (newContent) => {
+          memo.content = newContent;
+          memo.date = new Date().toISOString();
+          saveMemos();
+          // Live char-count update in meta (optional)
+          const meta = document.querySelector('.memo-meta');
+          if (meta) {
+            const date = new Date(memo.date);
+            const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
+            const wc = newContent.trim().split(/\s+/).filter(Boolean).length;
+            meta.querySelector('span:nth-child(1)').textContent = dateStr;
+            meta.querySelector('span:nth-child(3)').textContent = `${newContent.length}자 · ${wc}단어`;
+          }
+          clearTimeout(window._memoListTimer);
+          window._memoListTimer = setTimeout(renderMemoList, 500);
+        });
+      }
+    }
+  }, 0);
 }
 
-let memoMode = load('memo_mode', 'split'); // edit | preview | split (default: split = 편집+미리보기 동시)
+// =================== PANEL COLLAPSE / SWIPE-TO-DELETE ===================
+function togglePanel(pageId) {
+  const el = document.getElementById(pageId);
+  if (!el) return;
+  el.classList.toggle('list-collapsed');
+}
+
+// Generic touch swipe handler — apply to any container with .swipe-row children.
+// Pass an item-id resolver and a delete callback.
+function attachSwipeToDelete(rootEl, options) {
+  const { resolveId, onDelete, threshold = 50, max = 88 } = options;
+  let startX = 0, startY = 0, currentRow = null, currentContent = null, locked = false, swiping = false;
+
+  function onStart(e) {
+    const t = e.touches ? e.touches[0] : e;
+    const row = e.target.closest('.swipe-row');
+    if (!row) return;
+    // Reset other swiped rows
+    rootEl.querySelectorAll('.swipe-row.swiped').forEach(r => { if (r !== row) r.classList.remove('swiped'); });
+    currentRow = row;
+    currentContent = row.querySelector('.swipe-content');
+    startX = t.clientX;
+    startY = t.clientY;
+    locked = false;
+    swiping = false;
+  }
+  function onMove(e) {
+    if (!currentRow) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (!locked) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      // Decide axis
+      locked = true;
+      if (Math.abs(dy) > Math.abs(dx)) { currentRow = null; return; }
+      swiping = true;
+    }
+    if (!swiping) return;
+    const offset = Math.max(-max - 20, Math.min(0, dx));
+    currentContent.style.transition = 'none';
+    currentContent.style.transform = `translateX(${offset}px)`;
+    if (e.cancelable) e.preventDefault();
+  }
+  function onEnd(e) {
+    if (!currentRow || !swiping) { currentRow = null; return; }
+    const t = (e.changedTouches && e.changedTouches[0]) || e;
+    const dx = t.clientX - startX;
+    currentContent.style.transition = '';
+    currentContent.style.transform = '';
+    if (dx <= -threshold) {
+      currentRow.classList.add('swiped');
+    } else {
+      currentRow.classList.remove('swiped');
+    }
+    currentRow = null;
+    currentContent = null;
+    swiping = false;
+  }
+
+  rootEl.addEventListener('touchstart', onStart, { passive: true });
+  rootEl.addEventListener('touchmove', onMove, { passive: false });
+  rootEl.addEventListener('touchend', onEnd);
+  rootEl.addEventListener('touchcancel', onEnd);
+
+  // Mouse fallback (desktop testing)
+  rootEl.addEventListener('mousedown', (e) => {
+    if (!e.target.closest('.swipe-row')) return;
+    onStart(e);
+    const move = (ev) => onMove(ev);
+    const up = (ev) => { onEnd(ev); document.removeEventListener('mousemove', move); document.removeEventListener('mouseup', up); };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
+
+  // Click on the swipe-action button → delete
+  rootEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.swipe-action');
+    if (!btn) return;
+    e.stopPropagation();
+    const row = btn.closest('.swipe-row');
+    if (!row) return;
+    const id = resolveId(row);
+    if (id != null) onDelete(id, row);
+    row.classList.remove('swiped');
+  });
+
+  // Tap outside any swiped row → close
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.swipe-row.swiped') && !e.target.closest('.swipe-action')) {
+      rootEl.querySelectorAll('.swipe-row.swiped').forEach(r => r.classList.remove('swiped'));
+    }
+  });
+}
+
+// =================== BEAR-STYLE LIVE EDITOR ===================
+function bearRenderLine(text) {
+  if (!text) return '';
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // Block-level: headers, bullets, quote
+  let m;
+  if (m = text.match(/^(#{1,3}) (.*)$/)) {
+    const level = m[1].length;
+    return `<span class="md-marker">${m[1]} </span><span class="md-h${level}">${esc(m[2])}</span>`;
+  }
+  if (m = text.match(/^([-*+]) (.*)$/)) {
+    return `<span class="md-bullet">•</span><span class="md-marker">${esc(m[1])} </span>${bearInline(esc(m[2]))}`;
+  }
+  if (m = text.match(/^(\d+)\. (.*)$/)) {
+    return `<span class="md-marker">${m[1]}. </span>${bearInline(esc(m[2]))}`;
+  }
+  if (m = text.match(/^&gt; (.*)$/) || text.match(/^> (.*)$/)) {
+    const body = m ? m[1] : text.slice(2);
+    return `<span class="md-quote"><span class="md-marker">&gt; </span>${bearInline(esc(body))}</span>`;
+  }
+  return bearInline(esc(text));
+}
+
+function bearInline(html) {
+  // Bold ** **
+  html = html.replace(/\*\*([^\*\n]+)\*\*/g,
+    '<span class="md-marker">**</span><span class="md-bold">$1</span><span class="md-marker">**</span>');
+  // Italic * * (not **)
+  html = html.replace(/(^|[^\*])\*([^\*\n]+)\*(?!\*)/g,
+    '$1<span class="md-marker">*</span><span class="md-em">$2</span><span class="md-marker">*</span>');
+  // Strikethrough ~~ ~~
+  html = html.replace(/~~([^~\n]+)~~/g,
+    '<span class="md-marker">~~</span><span class="md-strike">$1</span><span class="md-marker">~~</span>');
+  // Inline code `
+  html = html.replace(/`([^`\n]+)`/g,
+    '<span class="md-marker">`</span><span class="md-code">$1</span><span class="md-marker">`</span>');
+  // Link [text](url)
+  html = html.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g,
+    '<span class="md-marker">[</span><span class="md-link">$1</span><span class="md-marker">](</span><span class="md-marker">$2</span><span class="md-marker">)</span>');
+  return html;
+}
+
+function bearRenderContent(text) {
+  return text.split('\n').map(line =>
+    `<div data-line>${bearRenderLine(line)}</div>`
+  ).join('');
+}
+
+function bearGetCaretOffset(editor) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return 0;
+  const range = sel.getRangeAt(0);
+  if (!editor.contains(range.startContainer)) return 0;
+  // Count text length from editor start to caret
+  let chars = 0;
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    if (node === range.startContainer) {
+      return chars + range.startOffset;
+    }
+    chars += node.length;
+  }
+  // Fallback: count line breaks between div[data-line] elements
+  return chars;
+}
+
+function bearSetCaretOffset(editor, offset) {
+  let chars = 0;
+  const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while ((node = walker.nextNode())) {
+    const len = node.length;
+    if (chars + len >= offset) {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.setStart(node, Math.min(offset - chars, len));
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    chars += len;
+  }
+  // Place at end if offset overshoots
+  const range = document.createRange();
+  range.selectNodeContents(editor);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function bearGetText(editor) {
+  // Reconstruct markdown source from rendered DOM, line by line
+  const lines = [];
+  editor.querySelectorAll('[data-line]').forEach(div => {
+    // Use textContent (preserves text without HTML)
+    let t = div.textContent || '';
+    // Strip zero-width space placeholder
+    t = t.replace(/​/g, '');
+    lines.push(t);
+  });
+  return lines.length ? lines.join('\n') : '';
+}
+
+function setupBearEditor(editor, content, onChange) {
+  editor.innerHTML = bearRenderContent(content || '');
+  let composing = false;
+  let renderTimer = null;
+
+  function rerender() {
+    if (composing) return;
+    const offset = bearGetCaretOffset(editor);
+    const text = bearGetText(editor);
+    onChange(text);
+    editor.innerHTML = bearRenderContent(text);
+    bearSetCaretOffset(editor, offset);
+  }
+
+  editor.addEventListener('compositionstart', () => { composing = true; });
+  editor.addEventListener('compositionend', () => {
+    composing = false;
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(rerender, 80);
+  });
+
+  editor.addEventListener('input', () => {
+    if (composing) {
+      // Still notify changes during composition for autosave (no rerender)
+      onChange(bearGetText(editor));
+      return;
+    }
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(rerender, 120);
+  });
+
+  // Plain-text paste: avoid pasting styled HTML which could break our layout
+  editor.addEventListener('paste', (e) => {
+    if (e.clipboardData?.types?.includes('Files')) return; // image paste handled elsewhere
+    const text = e.clipboardData?.getData('text/plain');
+    if (text == null) return;
+    e.preventDefault();
+    document.execCommand('insertText', false, text);
+  });
+}
+
+let memoMode = load('memo_mode', 'live'); // live (Bear-style WYSIWYG) | split | preview
 function setMemoMode(mode) {
   memoMode = mode;
   save('memo_mode', mode);
