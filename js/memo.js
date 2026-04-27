@@ -12,9 +12,9 @@ function createMemo() {
   const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString() };
   memos.unshift(memo);
   activeMemoId = memo.id;
-  // New memos open in edit mode so the user can start typing immediately
-  memoMode = 'edit';
-  save('memo_mode', 'edit');
+  // New memos open in live mode so user gets Bear-style inline editing
+  memoMode = 'live';
+  save('memo_mode', 'live');
   saveMemos();
   renderMemoList();
   renderMemoEditor();
@@ -126,29 +126,27 @@ function renderMemoEditor() {
   const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
 
   // Three editor modes:
-  //   'view' — rendered markdown only (tap to enter edit)
-  //   'live' — split textarea + live preview (both desktop & mobile)
-  //   'edit' — textarea only (no preview, faster on mobile)
-  const renderedHtml = memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">내용을 추가하려면 편집 모드로 전환하세요</div>';
+  //   'view' — read-only rendered HTML (tap body to enter live)
+  //   'live' — Bear-style contenteditable: markdown renders inline as you type
+  //   'edit' — raw textarea (fastest on mobile, plain source)
+  const renderedHtml = memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">내용을 추가하려면 라이브뷰 또는 편집 모드로 전환하세요</div>';
 
   let bodyHtml;
   if (memoMode === 'view') {
-    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('edit')">${renderedHtml}</div></div>`;
+    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('live')">${renderedHtml}</div></div>`;
   } else if (memoMode === 'live') {
-    bodyHtml = `<div class="memo-body-wrap split">
-      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
-      <div class="markdown-body" id="memo-preview">${renderedHtml}</div>
-    </div>`;
+    // contenteditable Bear editor — setup happens after innerHTML is set
+    bodyHtml = `<div class="memo-body-wrap edit-only"><div class="bear-editor" id="memo-live-editor" contenteditable="true" spellcheck="false"></div></div>`;
   } else {
     bodyHtml = `<div class="memo-body-wrap edit-only">
       <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
     </div>`;
   }
 
-  // 3-way segmented mode control
-  const viewIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`;
-  const liveIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="9" height="18" rx="1.5"/><rect x="13" y="3" width="9" height="18" rx="1.5"/></svg>`;
-  const editIcon   = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h6"/><path d="M18.375 2.625a2.121 2.121 0 113 3L12 15l-4 1 1-4 9.375-9.375z"/></svg>`;
+  // 3-way segmented mode control icons
+  const viewIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const liveIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/><circle cx="18" cy="5" r="0" fill="currentColor"/></svg>`;
+  const editIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
 
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
@@ -185,7 +183,15 @@ function renderMemoEditor() {
 
   // Restore decoded images to avoid iOS re-decode flicker
   _patchImagesAfterRender(editor, _imgCache);
-  if (memoMode === 'live') setupSplitScrollSync();
+
+  if (memoMode === 'live') {
+    const bearEl = document.getElementById('memo-live-editor');
+    if (bearEl) {
+      setupBearEditor(bearEl, memo.content, (text) => updateMemoContent(text));
+      setTimeout(() => { try { bearEl.focus(); } catch {} }, 30);
+    }
+  }
+
   // Mark cached images as loaded so the skeleton shimmer goes away
   setTimeout(markLoadedImages, 0);
 }
@@ -468,10 +474,15 @@ function setupBearEditor(editor, content, onChange) {
     const offset = bearGetCaretOffset(editor);
     const text = bearGetText(editor);
     onChange(text);
-    // Re-render with our markup
     const newHtml = bearRenderContent(text);
     if (newHtml !== editor.innerHTML) {
+      // Preserve already-decoded images across re-render (iOS anti-flicker)
+      const imgCache = new Map();
+      editor.querySelectorAll('img').forEach(img => {
+        if (img.complete && img.naturalWidth > 0) imgCache.set(img.src, img);
+      });
       editor.innerHTML = newHtml;
+      _patchImagesAfterRender(editor, imgCache);
       bearSetCaretOffset(editor, offset);
     }
   }
@@ -582,7 +593,9 @@ function setMemoMode(mode) {
   memoMode = mode;
   save('memo_mode', mode);
   renderMemoEditor();
-  if (mode === 'edit' || mode === 'live') {
+  // Focus is handled inside renderMemoEditor for live mode;
+  // for edit mode focus the textarea here.
+  if (mode === 'edit') {
     setTimeout(() => {
       const ta = document.getElementById('memo-textarea');
       if (ta) {
@@ -684,38 +697,40 @@ async function uploadImageToDrive(blob) {
   }
 }
 
-// Insert markdown into the active memo at the textarea caret. If the user
-// is in viewer mode, switch to edit mode and append at the end.
+// Insert markdown at cursor. In live mode, append to the Bear editor's content.
 function insertIntoActiveMemo(insertText) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return false;
+
+  // Raw textarea (edit mode)
   const ta = document.getElementById('memo-textarea');
-  if (ta && (memoMode === 'edit' || memoMode === 'live')) {
-    // Native insert preserves undo history
+  if (ta && memoMode === 'edit') {
     const start = ta.selectionStart ?? ta.value.length;
     const end = ta.selectionEnd ?? ta.value.length;
-    const before = ta.value.slice(0, start);
-    const after = ta.value.slice(end);
-    ta.value = before + insertText + after;
+    ta.value = ta.value.slice(0, start) + insertText + ta.value.slice(end);
     const caret = start + insertText.length;
     try { ta.setSelectionRange(caret, caret); } catch {}
     ta.focus();
     updateMemoContent(ta.value);
     return true;
   }
-  // Viewer mode (or no textarea yet) — append and re-render in edit mode
+
+  // Bear live editor — append at end and re-init
+  const bearEl = document.getElementById('memo-live-editor');
+  if (bearEl && memoMode === 'live') {
+    memo.content = (memo.content || '') + insertText;
+    memo.date = new Date().toISOString();
+    saveMemos();
+    setupBearEditor(bearEl, memo.content, (text) => updateMemoContent(text));
+    setTimeout(() => { try { bearEl.focus(); } catch {} }, 30);
+    return true;
+  }
+
+  // View mode — switch to live and append
   memo.content = (memo.content || '') + insertText;
   memo.date = new Date().toISOString();
   saveMemos();
-  setMemoMode('edit');
-  setTimeout(() => {
-    const newTa = document.getElementById('memo-textarea');
-    if (newTa) {
-      const len = newTa.value.length;
-      try { newTa.setSelectionRange(len, len); } catch {}
-      newTa.focus();
-    }
-  }, 50);
+  setMemoMode('live');
   return true;
 }
 
