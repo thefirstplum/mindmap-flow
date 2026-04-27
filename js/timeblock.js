@@ -1,6 +1,13 @@
 // =================== TIME BLOCK ===================
 let currentDate = new Date();
 let timeBlocks = load('tb_blocks', {});
+let tbMeta = load('tb_meta', {}); // { 'YYYY-MM-DD': ISO_TIMESTAMP } — tracks last local write per day
+// Stamp existing days so sync doesn't blindly overwrite them after upgrade
+if (Object.keys(tbMeta).length === 0 && Object.keys(timeBlocks).length > 0) {
+  const now = new Date().toISOString();
+  Object.keys(timeBlocks).forEach(k => { tbMeta[k] = now; });
+  save('tb_meta', tbMeta);
+}
 
 // Migrate old color names to current palette
 (function migrateTbColors() {
@@ -13,9 +20,15 @@ let timeBlocks = load('tb_blocks', {});
   });
   if (changed) save('tb_blocks', timeBlocks);
 })();
-let tbSelectedColor = 'accent';
+function updateTbMeta(key) {
+  tbMeta[key] = new Date().toISOString();
+  save('tb_meta', tbMeta);
+}
+
+let tbSelectedColor = 'yellow';
 let tbClickedHour = null;
 let tbEditingIdx = null;
+let tbTodos = [];
 
 const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -141,12 +154,15 @@ function renderTimeBlocks() {
     if (visibleHeight <= 0) return;
     const top = visibleStart;
     const height = visibleHeight;
+    const todoTotal = (b.todos || []).length;
+    const todoDone = (b.todos || []).filter(t => t.done).length;
     html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}" style="top:${top}px;height:${height}px;">
       <div class="block-title">
         <span class="block-checkbox" data-toggle="${idx}" title="완료 토글" aria-label="완료 토글"></span>
         <span class="block-title-text">${escapeHtml(b.title)}</span>
       </div>
       ${height > 36 ? `<div class="block-time">${b.start} – ${b.end}</div>` : ''}
+      ${todoTotal > 0 && height > 50 ? `<div class="block-todo-chip">${todoDone}/${todoTotal} ✓</div>` : ''}
       ${b.desc && height > 78 ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
       <button class="block-delete" data-del="${idx}">✕</button>
     </div>`;
@@ -265,9 +281,12 @@ function openTbModal(hour) {
   document.getElementById('tb-end').value = (hour + 1).toString().padStart(2, '0') + ':00';
   document.getElementById('tb-desc').value = '';
   document.getElementById('tb-done').checked = false;
-  tbSelectedColor = 'accent';
+  tbTodos = [];
+  renderTbTodos();
+  const firstDot = document.querySelector('.modal-colors .mc');
+  tbSelectedColor = firstDot?.dataset.color || 'yellow';
   document.querySelectorAll('.modal-colors .mc').forEach(m => m.classList.remove('active'));
-  document.querySelector('.modal-colors .mc').classList.add('active');
+  if (firstDot) firstDot.classList.add('active');
   document.getElementById('tb-modal').classList.add('show');
   setTimeout(() => document.getElementById('tb-title').focus(), 100);
 }
@@ -282,6 +301,8 @@ function editTbBlock(key, idx) {
   document.getElementById('tb-end').value = block.end;
   document.getElementById('tb-desc').value = block.desc || '';
   document.getElementById('tb-done').checked = !!block.done;
+  tbTodos = (block.todos || []).map(t => ({ ...t }));
+  renderTbTodos();
   tbSelectedColor = block.color;
   document.querySelectorAll('.modal-colors .mc').forEach(m => {
     m.classList.toggle('active', m.dataset.color === block.color);
@@ -289,7 +310,37 @@ function editTbBlock(key, idx) {
   document.getElementById('tb-modal').classList.add('show');
 }
 
-function closeTbModal() { document.getElementById('tb-modal').classList.remove('show'); tbEditingIdx = null; }
+function closeTbModal() { document.getElementById('tb-modal').classList.remove('show'); tbEditingIdx = null; tbTodos = []; }
+
+function renderTbTodos() {
+  const list = document.getElementById('tb-todo-list');
+  if (!list) return;
+  list.innerHTML = tbTodos.map((t, i) => `
+    <div class="tb-todo-item${t.done ? ' done' : ''}">
+      <button class="tb-todo-check" onclick="toggleTbTodoItem(${i},${!t.done})">${t.done ? '✓' : ''}</button>
+      <span class="tb-todo-text">${escapeHtml(t.text)}</span>
+      <button class="tb-todo-del" onclick="removeTbTodo(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addTbTodo() {
+  const input = document.getElementById('tb-todo-input');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  tbTodos.push({ text, done: false });
+  input.value = '';
+  renderTbTodos();
+}
+
+function toggleTbTodoItem(idx, done) {
+  if (tbTodos[idx]) { tbTodos[idx].done = done; renderTbTodos(); }
+}
+
+function removeTbTodo(idx) {
+  tbTodos.splice(idx, 1);
+  renderTbTodos();
+}
 
 function setTbColor(el) {
   document.querySelectorAll('.modal-colors .mc').forEach(m => m.classList.remove('active'));
@@ -310,7 +361,8 @@ function saveTbBlock() {
     title, start, end,
     desc: document.getElementById('tb-desc').value.trim(),
     color: tbSelectedColor,
-    done: document.getElementById('tb-done').checked
+    done: document.getElementById('tb-done').checked,
+    todos: tbTodos.filter(t => t.text.trim())
   };
 
   if (tbEditingIdx !== null) {
@@ -322,6 +374,7 @@ function saveTbBlock() {
   }
   timeBlocks[key].sort((a, b) => a.start.localeCompare(b.start));
   save('tb_blocks', timeBlocks);
+  updateTbMeta(key);
   closeTbModal();
   renderTimeBlocks();
   renderTimeblockList();
@@ -329,7 +382,12 @@ function saveTbBlock() {
 
 function deleteTbBlock(key, idx) {
   timeBlocks[key].splice(idx, 1);
-  if (timeBlocks[key].length === 0) delete timeBlocks[key];
+  if (timeBlocks[key].length === 0) {
+    delete timeBlocks[key];
+    delete tbMeta[key]; save('tb_meta', tbMeta);
+  } else {
+    updateTbMeta(key);
+  }
   save('tb_blocks', timeBlocks);
   renderTimeBlocks();
   renderTimeblockList();
@@ -339,6 +397,7 @@ function toggleTbDone(key, idx) {
   if (!timeBlocks[key] || !timeBlocks[key][idx]) return;
   timeBlocks[key][idx].done = !timeBlocks[key][idx].done;
   save('tb_blocks', timeBlocks);
+  updateTbMeta(key);
   renderTimeBlocks();
   renderTimeblockList();
 }
@@ -346,6 +405,13 @@ function toggleTbDone(key, idx) {
 renderDate();
 renderTimeBlocks();
 renderTimeblockList();
+
+// Wire todo input Enter key
+(function() {
+  const inp = document.getElementById('tb-todo-input');
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTbTodo(); } });
+})();
+
 // Refresh "now" indicator every minute
 setInterval(() => {
   if (document.getElementById('page-timeblock').classList.contains('active')) renderTimeBlocks();

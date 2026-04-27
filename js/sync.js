@@ -7,6 +7,7 @@ function getAllData() {
     mindmaps: load('mindmaps', []),
     activeMindmapId: load('mm_active', null),
     timeBlocks: load('tb_blocks', {}),
+    tbMeta: load('tb_meta', {}),
     memos: load('memos', []),
     memoIdCounter: load('memo_idcounter', 1),
     ledger: load('ledger', []),
@@ -37,6 +38,15 @@ function applyData(data) {
     save('mm_active', m.id);
   }
   save('tb_blocks', data.timeBlocks || {});
+  // Rebuild tbMeta from imported data so sync knows these are fresh
+  if (data.tbMeta) {
+    save('tb_meta', data.tbMeta);
+  } else {
+    const now = new Date().toISOString();
+    const meta = {};
+    Object.keys(data.timeBlocks || {}).forEach(k => { meta[k] = now; });
+    save('tb_meta', meta);
+  }
   save('memos', data.memos || []);
   save('memo_idcounter', data.memoIdCounter || 1);
   if (data.ledger) save('ledger', data.ledger);
@@ -200,10 +210,13 @@ async function driveAuth(promptUser = false) {
         client_id: driveClientId,
         scope: DRIVE_SCOPE,
         prompt: promptUser ? 'consent' : '',
+        login_hint: driveUserEmail || undefined,
         callback: (resp) => {
           if (resp.error) return reject(new Error(resp.error_description || resp.error));
           driveAccessToken = resp.access_token;
           driveTokenExpires = Date.now() + (resp.expires_in - 60) * 1000;
+          // Cache in sessionStorage so page reloads within the same tab don't re-prompt
+          try { sessionStorage.setItem('drive_tok', JSON.stringify({ t: driveAccessToken, e: driveTokenExpires })); } catch {}
           resolve();
         },
         error_callback: (err) => reject(new Error(err.message || '인증 거부됨'))
@@ -215,6 +228,15 @@ async function driveAuth(promptUser = false) {
 
 async function ensureDriveToken() {
   if (driveAccessToken && Date.now() < driveTokenExpires) return;
+  // Restore from sessionStorage before showing login popup
+  try {
+    const cached = JSON.parse(sessionStorage.getItem('drive_tok') || 'null');
+    if (cached?.t && Date.now() < cached.e) {
+      driveAccessToken = cached.t;
+      driveTokenExpires = cached.e;
+      return;
+    }
+  } catch {}
   await driveAuth(false);
 }
 
@@ -356,22 +378,17 @@ async function driveConnect() {
     updateDriveStatus();
 
     const list = await driveListInFolder(driveFolderId);
-    const remoteHasMd = list.files.some(f => f.name.toLowerCase().endsWith('.md'));
-    const remoteHasApp = list.files.some(f => f.name === DRIVE_APP_FILENAME);
-    const remoteHasData = remoteHasMd || remoteHasApp;
-    const localHasData = memos.length > 0 || mindmaps.some(m => m.nodes.length > 0) || Object.keys(load('tb_blocks', {})).length > 0;
+    const remoteHasData = list.files.some(f =>
+      f.name.toLowerCase().endsWith('.md') ||
+      f.name === DRIVE_APP_FILENAME ||
+      (f.name.startsWith('mindmap-') && f.name.endsWith('.json')) ||
+      (f.name.startsWith('timeblock-') && f.name.endsWith('.json'))
+    );
 
-    if (remoteHasData && localHasData) {
-      if (confirm('Drive 폴더에 이미 데이터가 있습니다.\n\n[확인] 가져오기 — Drive 데이터로 로컬을 덮어씁니다\n[취소] 로컬 유지 — 다음 저장 시 Drive를 로컬로 덮어씁니다')) {
-        await drivePullAll(true);
-      } else {
-        await drivePushAll();
-      }
-    } else if (remoteHasData) {
-      await drivePullAll(true);
-    } else {
-      await drivePushAll();
+    if (remoteHasData) {
+      await drivePullAll(true); // 타임스탬프 기준 항목별 병합
     }
+    await drivePushAll(); // 로컬에만 있는 항목 업로드
     if (cidInput) cidInput.value = '';
     driveStartPolling();
     toast('Google Drive 연결 완료', 'success');
@@ -392,6 +409,7 @@ async function driveDisconnect() {
   driveStopPolling();
   driveAccessToken = null;
   driveTokenExpires = 0;
+  try { sessionStorage.removeItem('drive_tok'); } catch {}
   driveFolderId = null;
   driveAssetsFolderId = null;
   driveLastModifiedTime = null;
@@ -432,14 +450,13 @@ async function drivePushAll() {
       if (id) byMemoId.set(id, f);
     }
 
-    // App data
+    // Slim meta file — settings only; mindmaps/timeblocks stored as individual files
     const appData = {
-      version: 2,
+      version: 3,
       app: 'mindflow',
       exportedAt: new Date().toISOString(),
-      mindmaps: load('mindmaps', []),
       activeMindmapId: load('mm_active', null),
-      timeBlocks: load('tb_blocks', {})
+      settings: load('settings', {})
     };
     const appJson = JSON.stringify(appData, null, 2);
     const appFile = byName.get(DRIVE_APP_FILENAME);
@@ -447,6 +464,36 @@ async function drivePushAll() {
       await driveUpdateFile(appFile.id, appJson, 'application/json');
     } else {
       await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
+    }
+
+    // Individual mindmap files — one per map, enables per-map timestamp merge
+    const localMmFnames = new Set();
+    for (const mm of load('mindmaps', [])) {
+      const fname = `mindmap-${mm.id}.json`;
+      localMmFnames.add(fname);
+      const existing = byName.get(fname);
+      if (existing) await driveUpdateFile(existing.id, JSON.stringify(mm, null, 2), 'application/json');
+      else await driveUploadFile(fname, JSON.stringify(mm, null, 2), 'application/json', driveFolderId);
+    }
+    for (const [name, f] of byName) {
+      if (name.startsWith('mindmap-') && name.endsWith('.json') && !localMmFnames.has(name))
+        try { await driveDeleteFile(f.id); } catch {}
+    }
+
+    // Individual timeblock day files — one per day, enables per-day timestamp merge
+    const tbMetaPush = load('tb_meta', {});
+    const localTbFnames = new Set();
+    for (const [dayKey, blocks] of Object.entries(load('tb_blocks', {}))) {
+      const fname = `timeblock-${dayKey}.json`;
+      localTbFnames.add(fname);
+      const payload = JSON.stringify({ blocks, updatedAt: tbMetaPush[dayKey] || new Date().toISOString() }, null, 2);
+      const existing = byName.get(fname);
+      if (existing) await driveUpdateFile(existing.id, payload, 'application/json');
+      else await driveUploadFile(fname, payload, 'application/json', driveFolderId);
+    }
+    for (const [name, f] of byName) {
+      if (name.startsWith('timeblock-') && name.endsWith('.json') && !localTbFnames.has(name))
+        try { await driveDeleteFile(f.id); } catch {}
     }
 
     // Build clean filenames with deduplication for same-title memos
@@ -527,26 +574,74 @@ async function applyDriveData(files) {
     const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
       ? activeMemoId : null;
 
-    // App data
+    // Mindmaps: per-file merge — newest updatedAt wins per map
+    const remoteMmFiles = files.filter(f => f.name.startsWith('mindmap-') && f.name.endsWith('.json'));
+    // Timeblocks: per-file merge — newest updatedAt wins per day
+    const remoteTbFiles = files.filter(f => f.name.startsWith('timeblock-') && f.name.endsWith('.json'));
+    // Legacy _mindflow-app.json fallback for data written before v3
     const appFile = files.find(f => f.name === DRIVE_APP_FILENAME);
+    let legacyApp = null;
+    if (appFile && (remoteMmFiles.length === 0 || remoteTbFiles.length === 0)) {
+      try { legacyApp = JSON.parse(await driveDownloadFile(appFile.id)); } catch {}
+    }
+
+    if (remoteMmFiles.length > 0) {
+      const mmMap = new Map(mindmaps.map(m => [m.id, m]));
+      for (const f of remoteMmFiles) {
+        try {
+          let text = await driveDownloadFile(f.id);
+          const remote = JSON.parse(text);
+          if (!remote.id) continue;
+          const local = mmMap.get(remote.id);
+          if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0))
+            mmMap.set(remote.id, remote);
+        } catch {}
+      }
+      mindmaps = [...mmMap.values()];
+      activeMindmapId = mindmaps.find(m => m.id === activeMindmapId)?.id ?? mindmaps[0]?.id ?? null;
+      localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+      localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+      bindActiveMap();
+    } else if (legacyApp?.app === 'mindflow' && legacyApp.mindmaps) {
+      mindmaps = legacyApp.mindmaps;
+      activeMindmapId = legacyApp.activeMindmapId ?? mindmaps[0]?.id ?? null;
+      localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+      localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+      bindActiveMap();
+    }
+
+    if (remoteTbFiles.length > 0) {
+      const localTbMeta = load('tb_meta', {});
+      for (const f of remoteTbFiles) {
+        const dayKey = f.name.slice('timeblock-'.length, -'.json'.length);
+        try {
+          const { blocks, updatedAt: rAt } = JSON.parse(await driveDownloadFile(f.id));
+          const lAt = localTbMeta[dayKey];
+          if (!lAt || new Date(rAt || 0) >= new Date(lAt)) {
+            timeBlocks[dayKey] = blocks;
+            if (rAt) localTbMeta[dayKey] = rAt;
+          }
+        } catch {}
+      }
+      localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+      save('tb_meta', localTbMeta);
+    } else if (legacyApp?.app === 'mindflow' && legacyApp.timeBlocks) {
+      timeBlocks = legacyApp.timeBlocks;
+      localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+    }
+
+    // Settings from meta file (reuse legacyApp if already fetched, else fetch fresh)
     if (appFile) {
       try {
-        const text = await driveDownloadFile(appFile.id);
-        const app = JSON.parse(text);
-        if (app.app === 'mindflow') {
-          if (app.mindmaps) {
-            mindmaps = app.mindmaps;
-            activeMindmapId = app.activeMindmapId || (mindmaps[0]?.id ?? null);
-            localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
-            localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
-            bindActiveMap();
-          }
-          if (app.timeBlocks) {
-            timeBlocks = app.timeBlocks;
-            localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+        const meta = legacyApp ?? JSON.parse(await driveDownloadFile(appFile.id));
+        if (meta?.app === 'mindflow' && meta.settings) {
+          save('settings', meta.settings);
+          if (typeof appSettings !== 'undefined') {
+            appSettings = meta.settings;
+            if (typeof applySettings === 'function') applySettings();
           }
         }
-      } catch (e) { console.warn(e); }
+      } catch {}
     }
 
     // Memos — fetch all .md files
@@ -607,7 +702,7 @@ async function applyDriveData(files) {
 
 async function drivePullAll(skipConfirm = false) {
   if (!driveFolderId) { toast('먼저 Drive를 연결하세요'); return; }
-  if (!skipConfirm && !confirm('Drive의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
+  if (!skipConfirm && !confirm('Drive 데이터를 가져와 병합합니다. (각 항목은 최신 수정 시각 기준) 계속하시겠습니까?')) return;
 
   try {
     driveStatus = 'saving';
@@ -957,24 +1052,17 @@ async function gistConnect() {
       save('gist_token', gistToken);
       save('gist_id', gistId);
       updateGistStatus();
-      const remoteHasMd = Object.keys(r.files || {}).some(n => n.toLowerCase().endsWith('.md') && n !== 'README.md');
-      const remoteHasApp = !!(r.files && r.files['_mindflow-app.json']);
-      const remoteHasData = remoteHasMd || remoteHasApp;
-      const localHasData = memos.length > 0 || mindmaps.some(m => m.nodes.length > 0) || Object.keys(load('tb_blocks', {})).length > 0;
+      const remoteHasData = Object.keys(r.files || {}).some(n =>
+        (n.toLowerCase().endsWith('.md') && n !== 'README.md') ||
+        n === '_mindflow-app.json' ||
+        (n.startsWith('mindmap-') && n.endsWith('.json')) ||
+        (n.startsWith('timeblock-') && n.endsWith('.json'))
+      );
 
-      if (remoteHasData && localHasData) {
-        if (confirm('이 Gist에 이미 데이터가 있습니다.\n\n[확인] 가져오기 — Gist 데이터로 로컬을 덮어씁니다\n[취소] 로컬 유지 — 다음 저장 시 Gist를 로컬로 덮어씁니다')) {
-          await gistPullAll(true);
-        } else {
-          await gistPushAll();
-          toast('로컬 데이터를 Gist에 업로드했습니다', 'success');
-        }
-      } else if (remoteHasData) {
-        await gistPullAll(true);
-      } else {
-        await gistPushAll();
-        toast('Gist에 데이터 업로드 완료', 'success');
+      if (remoteHasData) {
+        await gistPullAll(true); // 타임스탬프 기준 항목별 병합
       }
+      await gistPushAll(); // 로컬에만 있는 항목 업로드
     } else {
       const r = await gistApi('POST', '/gists', {
         description: 'MindFlow data sync',
@@ -1041,12 +1129,11 @@ async function gistPushAll() {
     updateGistStatus();
 
     const appData = {
-      version: 2,
+      version: 3,
       app: 'mindflow',
       exportedAt: new Date().toISOString(),
-      mindmaps: load('mindmaps', []),
       activeMindmapId: load('mm_active', null),
-      timeBlocks: load('tb_blocks', {})
+      settings: load('settings', {})
     };
 
     // Get current gist files to know which old files to delete
@@ -1056,6 +1143,31 @@ async function gistPushAll() {
     const files = {
       '_mindflow-app.json': { content: JSON.stringify(appData, null, 2) }
     };
+
+    // Individual mindmap files
+    const localMmFnames = new Set();
+    for (const mm of load('mindmaps', [])) {
+      const fname = `mindmap-${mm.id}.json`;
+      localMmFnames.add(fname);
+      files[fname] = { content: JSON.stringify(mm, null, 2) };
+    }
+    for (const fn of Object.keys(current.files || {})) {
+      if (fn.startsWith('mindmap-') && fn.endsWith('.json') && !localMmFnames.has(fn))
+        files[fn] = null;
+    }
+
+    // Individual timeblock day files
+    const tbMetaGist = load('tb_meta', {});
+    const localTbFnames = new Set();
+    for (const [dayKey, blocks] of Object.entries(load('tb_blocks', {}))) {
+      const fname = `timeblock-${dayKey}.json`;
+      localTbFnames.add(fname);
+      files[fname] = { content: JSON.stringify({ blocks, updatedAt: tbMetaGist[dayKey] || new Date().toISOString() }, null, 2) };
+    }
+    for (const fn of Object.keys(current.files || {})) {
+      if (fn.startsWith('timeblock-') && fn.endsWith('.json') && !localTbFnames.has(fn))
+        files[fn] = null;
+    }
 
     const desiredMd = new Set();
     for (const memo of memos) {
@@ -1119,28 +1231,85 @@ async function applyGistData(data) {
     const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
       ? activeMemoId : null;
 
-    // App data (mindmaps + timeblocks)
-    if (fileMap['_mindflow-app.json']) {
-      try {
-        const app = JSON.parse(fileMap['_mindflow-app.json'].content);
-        if (app.app === 'mindflow') {
-          if (app.mindmaps) {
-            mindmaps = app.mindmaps;
-            activeMindmapId = app.activeMindmapId || (mindmaps[0]?.id ?? null);
-            localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
-            localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
-            bindActiveMap();
+    // Mindmaps + timeblocks: per-file timestamp merge (newest wins per item)
+    const mmEntries = Object.entries(fileMap).filter(([n]) => n.startsWith('mindmap-') && n.endsWith('.json'));
+    const tbEntries = Object.entries(fileMap).filter(([n]) => n.startsWith('timeblock-') && n.endsWith('.json'));
+    let legacyApp = null;
+    if (fileMap['_mindflow-app.json'] && (mmEntries.length === 0 || tbEntries.length === 0)) {
+      try { legacyApp = JSON.parse(fileMap['_mindflow-app.json'].content); } catch {}
+    }
+
+    if (mmEntries.length > 0) {
+      const mmMap = new Map(mindmaps.map(m => [m.id, m]));
+      for (const [, info] of mmEntries) {
+        try {
+          let content = info.content;
+          if (info.truncated && info.raw_url) {
+            const r = await fetch(info.raw_url);
+            if (r.ok) content = await r.text();
           }
-          if (app.timeBlocks) {
-            timeBlocks = app.timeBlocks;
-            localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+          const remote = JSON.parse(content);
+          if (!remote.id) continue;
+          const local = mmMap.get(remote.id);
+          if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0))
+            mmMap.set(remote.id, remote);
+        } catch {}
+      }
+      mindmaps = [...mmMap.values()];
+      activeMindmapId = mindmaps.find(m => m.id === activeMindmapId)?.id ?? mindmaps[0]?.id ?? null;
+      localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+      localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+      bindActiveMap();
+    } else if (legacyApp?.app === 'mindflow' && legacyApp.mindmaps) {
+      mindmaps = legacyApp.mindmaps;
+      activeMindmapId = legacyApp.activeMindmapId ?? mindmaps[0]?.id ?? null;
+      localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
+      localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
+      bindActiveMap();
+    }
+
+    if (tbEntries.length > 0) {
+      const localTbMeta = load('tb_meta', {});
+      for (const [fname, info] of tbEntries) {
+        const dayKey = fname.slice('timeblock-'.length, -'.json'.length);
+        try {
+          let content = info.content;
+          if (info.truncated && info.raw_url) {
+            const r = await fetch(info.raw_url);
+            if (r.ok) content = await r.text();
           }
-        }
-      } catch (e) { console.warn('Failed to parse app data:', e); }
+          const { blocks, updatedAt: rAt } = JSON.parse(content);
+          const lAt = localTbMeta[dayKey];
+          if (!lAt || new Date(rAt || 0) >= new Date(lAt)) {
+            timeBlocks[dayKey] = blocks;
+            if (rAt) localTbMeta[dayKey] = rAt;
+          }
+        } catch {}
+      }
+      localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
+      save('tb_meta', localTbMeta);
+    } else if (legacyApp?.app === 'mindflow' && legacyApp.timeBlocks) {
+      timeBlocks = legacyApp.timeBlocks;
+      localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
     }
 
     // Memos from .md files (preserve currently-edited memo from local)
-    const newMemos = [];
+    // Settings from meta file
+    if (fileMap['_mindflow-app.json']?.content) {
+      try {
+        const meta = JSON.parse(fileMap['_mindflow-app.json'].content);
+        if (meta?.app === 'mindflow' && meta.settings) {
+          save('settings', meta.settings);
+          if (typeof appSettings !== 'undefined') {
+            appSettings = meta.settings;
+            if (typeof applySettings === 'function') applySettings();
+          }
+        }
+      } catch {}
+    }
+
+    // Memos from .md files
+    const remoteMemos = [];
     let maxId = 0;
     for (const [filename, info] of Object.entries(fileMap)) {
       if (!info || filename === 'README.md' || !filename.toLowerCase().endsWith('.md')) continue;
@@ -1154,11 +1323,21 @@ async function applyGistData(data) {
       const memo = parseFrontmatter(content, filename, Date.now());
       if (!memo.id) memo.id = ++maxId + 100000;
       else if (memo.id > maxId) maxId = memo.id;
-      newMemos.push(memo);
+      remoteMemos.push(memo);
     }
+
+    // Per-memo timestamp merge: keep whichever side has the later date
+    const mergedMemos = new Map();
+    for (const m of remoteMemos) mergedMemos.set(m.id, m);
+    for (const m of memos) {
+      const r = mergedMemos.get(m.id);
+      if (!r || new Date(m.date) > new Date(r.date)) mergedMemos.set(m.id, m);
+      if (m.id > maxId) maxId = m.id;
+    }
+    const newMemos = [...mergedMemos.values()];
     newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    // Preserve the in-progress edit
+    // Always preserve the in-progress edit
     if (editingMemoId != null) {
       const local = memos.find(m => m.id === editingMemoId);
       if (local) {
@@ -1189,7 +1368,7 @@ async function applyGistData(data) {
 
 async function gistPullAll(skipConfirm = false) {
   if (!gistToken || !gistId) { toast('먼저 Gist를 연결하세요'); return; }
-  if (!skipConfirm && !confirm('Gist의 내용으로 현재 데이터를 덮어씁니다. 계속하시겠습니까?')) return;
+  if (!skipConfirm && !confirm('Gist 데이터를 가져와 병합합니다. (각 항목은 최신 수정 시각 기준) 계속하시겠습니까?')) return;
 
   try {
     gistStatus = 'saving';

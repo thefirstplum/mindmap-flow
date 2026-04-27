@@ -53,6 +53,7 @@ if (!activeMindmapId && mindmaps.length > 0) activeMindmapId = mindmaps[0].id;
 
 let nodes = [], edges = [], pan = { x: 0, y: 0 }, zoom = 1, nodeIdCounter = 1;
 let selectedNode = null;
+let selectedEdge = null; // index into edges array
 let draggingNode = null;
 let connectingFrom = null;
 let isConnecting = false;
@@ -159,6 +160,7 @@ function createMindmap() {
   mindmaps.unshift(map);
   activeMindmapId = map.id;
   selectedNode = null;
+  selectedEdge = null;
   bindActiveMap();
   saveMindMap();
   renderMindmapList();
@@ -174,6 +176,7 @@ function switchMindmap(id) {
   activeMindmapId = id;
   save('mm_active', activeMindmapId);
   selectedNode = null;
+  selectedEdge = null;
   bindActiveMap();
   renderMindmapList();
   updateToolbarState();
@@ -181,33 +184,71 @@ function switchMindmap(id) {
   closeMindmapList();
 }
 
+let mmMenuTargetId = null;
+
 function showMindmapMenu(id) {
   const m = mindmaps.find(x => x.id === id);
   if (!m) return;
-  const choice = prompt(`"${m.name}"\n\n[r] 이름 변경  /  [d] 삭제  /  [x] 취소\n\n선택:`, 'r');
-  if (!choice) return;
-  if (choice.toLowerCase() === 'r') {
-    const name = prompt('새 이름:', m.name);
-    if (name && name.trim()) {
-      m.name = name.trim();
-      m.updatedAt = new Date().toISOString();
-      save('mindmaps', mindmaps);
-      renderMindmapList();
-    }
-  } else if (choice.toLowerCase() === 'd') {
-    if (mindmaps.length <= 1) { toast('최소 1개의 마인드맵이 필요합니다'); return; }
-    if (!confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
-    mindmaps = mindmaps.filter(x => x.id !== id);
-    if (activeMindmapId === id) {
-      activeMindmapId = mindmaps[0].id;
-      bindActiveMap();
-    }
+  mmMenuTargetId = id;
+  document.getElementById('mm-action-title').textContent = m.name;
+  document.getElementById('mm-action-overlay').classList.add('show');
+  document.getElementById('mm-action-sheet').classList.add('show');
+}
+
+function closeMmMenu() {
+  document.getElementById('mm-action-overlay').classList.remove('show');
+  document.getElementById('mm-action-sheet').classList.remove('show');
+  mmMenuTargetId = null;
+}
+
+function renameMindmapActive() {
+  const id = mmMenuTargetId;
+  closeMmMenu();
+  const m = mindmaps.find(x => x.id === id);
+  if (!m) return;
+  const name = prompt('새 이름:', m.name);
+  if (name && name.trim()) {
+    m.name = name.trim();
+    m.updatedAt = new Date().toISOString();
     save('mindmaps', mindmaps);
-    save('mm_active', activeMindmapId);
     renderMindmapList();
-    drawMindMap();
-    toast('삭제됨');
   }
+}
+
+function duplicateMindmapActive() {
+  const id = mmMenuTargetId;
+  closeMmMenu();
+  const m = mindmaps.find(x => x.id === id);
+  if (!m) return;
+  const copy = JSON.parse(JSON.stringify(m));
+  copy.id = Date.now();
+  copy.name = m.name + ' (복사)';
+  copy.createdAt = new Date().toISOString();
+  copy.updatedAt = new Date().toISOString();
+  const insertIdx = mindmaps.findIndex(x => x.id === id);
+  mindmaps.splice(insertIdx + 1, 0, copy);
+  save('mindmaps', mindmaps);
+  renderMindmapList();
+  toast(`"${copy.name}" 복제됨`, 'success');
+}
+
+function deleteMindmapActive() {
+  const id = mmMenuTargetId;
+  const m = mindmaps.find(x => x.id === id);
+  if (!m) { closeMmMenu(); return; }
+  if (mindmaps.length <= 1) { closeMmMenu(); toast('최소 1개의 마인드맵이 필요합니다'); return; }
+  if (!confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
+  closeMmMenu();
+  mindmaps = mindmaps.filter(x => x.id !== id);
+  if (activeMindmapId === id) {
+    activeMindmapId = mindmaps[0].id;
+    bindActiveMap();
+  }
+  save('mindmaps', mindmaps);
+  save('mm_active', activeMindmapId);
+  renderMindmapList();
+  drawMindMap();
+  toast('삭제됨');
 }
 
 function toggleMindmapList() {
@@ -225,7 +266,7 @@ function closeMindmapList() {
 }
 
 function updateToolbarState() {
-  document.getElementById('delete-btn').disabled = !selectedNode;
+  document.getElementById('delete-btn').disabled = !selectedNode && selectedEdge === null;
   document.getElementById('connect-btn').disabled = !selectedNode;
 }
 
@@ -278,21 +319,51 @@ function drawMindMap() {
   ctx.scale(zoom, zoom);
 
   // Edges
-  edges.forEach(e => {
+  edges.forEach((e, idx) => {
     const from = nodes.find(n => n.id === e.from);
     const to = nodes.find(n => n.id === e.to);
     if (!from || !to) return;
-    ctx.beginPath();
-    ctx.moveTo(from.x, from.y);
+    const isEdgeSelected = selectedEdge === idx;
     const mx = (from.x + to.x) / 2;
     const my = (from.y + to.y) / 2 - 30;
+    ctx.beginPath();
+    ctx.moveTo(from.x, from.y);
     ctx.quadraticCurveTo(mx, my, to.x, to.y);
-    const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
-    grad.addColorStop(0, hexA(from.color || '#b58900', 0.6));
-    grad.addColorStop(1, hexA(to.color || '#b58900', 0.6));
-    ctx.strokeStyle = grad;
-    ctx.lineWidth = 2.5;
+    if (isEdgeSelected) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 4;
+    } else {
+      const grad = ctx.createLinearGradient(from.x, from.y, to.x, to.y);
+      grad.addColorStop(0, hexA(from.color || '#b58900', 0.6));
+      grad.addColorStop(1, hexA(to.color || '#b58900', 0.6));
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2.5;
+    }
     ctx.stroke();
+
+    if (isEdgeSelected) {
+      const midX = (from.x + to.x) / 2;
+      const midY = (from.y + to.y) / 2 - 15;
+      const r = 12 / zoom;
+      ctx.beginPath();
+      ctx.arc(midX, midY, r, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.shadowColor = 'rgba(239,68,68,0.6)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5 / zoom;
+      ctx.stroke();
+      const s = 4.5 / zoom;
+      ctx.beginPath();
+      ctx.moveTo(midX - s, midY - s); ctx.lineTo(midX + s, midY + s);
+      ctx.moveTo(midX + s, midY - s); ctx.lineTo(midX - s, midY + s);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2 / zoom;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
   });
 
   if (isConnecting && connectingFrom) {
@@ -418,6 +489,38 @@ function getNodeAt(sx, sy) {
   return null;
 }
 
+function getEdgeAt(sx, sy) {
+  const wp = screenToWorld(sx, sy);
+  const threshold = 8 / zoom;
+  for (let i = edges.length - 1; i >= 0; i--) {
+    const e = edges[i];
+    const from = nodes.find(n => n.id === e.from);
+    const to = nodes.find(n => n.id === e.to);
+    if (!from || !to) continue;
+    const cpx = (from.x + to.x) / 2;
+    const cpy = (from.y + to.y) / 2 - 30;
+    for (let t = 0; t <= 1; t += 0.05) {
+      const bx = (1-t)*(1-t)*from.x + 2*(1-t)*t*cpx + t*t*to.x;
+      const by = (1-t)*(1-t)*from.y + 2*(1-t)*t*cpy + t*t*to.y;
+      if (Math.hypot(wp.x - bx, wp.y - by) <= threshold) return i;
+    }
+  }
+  return null;
+}
+
+function getEdgeDeleteAt(sx, sy) {
+  if (selectedEdge === null) return false;
+  const e = edges[selectedEdge];
+  if (!e) return false;
+  const from = nodes.find(n => n.id === e.from);
+  const to = nodes.find(n => n.id === e.to);
+  if (!from || !to) return false;
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2 - 15;
+  const sp = worldToScreen(midX, midY);
+  return Math.hypot(sx - sp.x, sy - sp.y) <= 16;
+}
+
 function getCanvasPoint(e) {
   const rect = canvas.getBoundingClientRect();
   const t = e.touches ? e.touches[0] : e;
@@ -436,6 +539,17 @@ function pointerDown(e) {
     return;
   }
   const p = getCanvasPoint(e);
+
+  // 0) Delete selected edge via its × button
+  if (selectedEdge !== null && getEdgeDeleteAt(p.x, p.y)) {
+    edges.splice(selectedEdge, 1);
+    selectedEdge = null;
+    saveMindMap();
+    updateToolbarState();
+    drawMindMap();
+    e.preventDefault && e.preventDefault();
+    return;
+  }
 
   // 1) Connection-handle drag start (only on selected node's "+" handle)
   const handleNode = getHandleAt(p.x, p.y);
@@ -466,16 +580,26 @@ function pointerDown(e) {
 
   if (node) {
     selectedNode = node.id;
+    selectedEdge = null;
     draggingNode = node;
     lastMouse = { x: p.cx, y: p.cy };
     updateToolbarState();
     drawMindMap();
   } else {
-    selectedNode = null;
-    isPanning = true;
-    lastMouse = { x: p.cx, y: p.cy };
-    updateToolbarState();
-    drawMindMap();
+    const edgeIdx = getEdgeAt(p.x, p.y);
+    if (edgeIdx !== null) {
+      selectedEdge = edgeIdx;
+      selectedNode = null;
+      updateToolbarState();
+      drawMindMap();
+    } else {
+      selectedNode = null;
+      selectedEdge = null;
+      isPanning = true;
+      lastMouse = { x: p.cx, y: p.cy };
+      updateToolbarState();
+      drawMindMap();
+    }
   }
 }
 
@@ -653,13 +777,23 @@ function addMindNode() {
 
 function startConnecting() {
   if (!selectedNode) { toast('먼저 노드를 선택하세요'); return; }
+  selectedEdge = null;
   isConnecting = true;
   connectingFrom = selectedNode;
   canvas.classList.add('connecting');
+  updateToolbarState();
   toast('연결할 노드를 탭하세요');
 }
 
 function deleteSelected() {
+  if (selectedEdge !== null) {
+    edges.splice(selectedEdge, 1);
+    selectedEdge = null;
+    saveMindMap();
+    updateToolbarState();
+    drawMindMap();
+    return;
+  }
   if (!selectedNode) return;
   if (!confirm('이 노드를 삭제하시겠습니까?')) return;
   nodes = nodes.filter(n => n.id !== selectedNode);
@@ -740,7 +874,7 @@ document.addEventListener('keydown', e => {
   if (activePage === 'page-mindmap') {
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); addMindNode(); }
-    if (e.key === 'Escape') { selectedNode = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); drawMindMap(); }
+    if (e.key === 'Escape') { selectedNode = null; selectedEdge = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); drawMindMap(); }
   }
 });
 
