@@ -172,6 +172,7 @@ const DEFAULT_DRIVE_CLIENT_ID = '47507563684-o5p5kjliou3bpddn6ae3ksabekjc6nlp.ap
 let driveClientId = load('drive_client_id', null) || DEFAULT_DRIVE_CLIENT_ID;
 let driveAccessToken = null;
 let driveTokenExpires = 0;
+let driveUserEmail = load('drive_user_email', null);
 let driveFolderId = load('drive_folder_id', null);
 let driveAssetsFolderId = load('drive_assets_folder_id', null);
 let driveTokenClient = null;
@@ -185,7 +186,6 @@ let isPushingToDrive = false;
 // debounce push fires, we remember on next load that there are unflushed local
 // changes — push them first before pulling (otherwise pull would clobber them).
 let driveDirty = !!localStorage.getItem('mindflow_drive_dirty');
-let driveUserEmail = null;
 let driveStatus = 'idle';
 let driveAutoSaveTimer = null;
 const DRIVE_POLL_INTERVAL = 15_000;
@@ -215,8 +215,7 @@ async function driveAuth(promptUser = false) {
           if (resp.error) return reject(new Error(resp.error_description || resp.error));
           driveAccessToken = resp.access_token;
           driveTokenExpires = Date.now() + (resp.expires_in - 60) * 1000;
-          // Cache in sessionStorage so page reloads within the same tab don't re-prompt
-          try { sessionStorage.setItem('drive_tok', JSON.stringify({ t: driveAccessToken, e: driveTokenExpires })); } catch {}
+          try { localStorage.setItem('mindflow_drive_tok', JSON.stringify({ t: driveAccessToken, e: driveTokenExpires })); } catch {}
           resolve();
         },
         error_callback: (err) => reject(new Error(err.message || '인증 거부됨'))
@@ -228,9 +227,9 @@ async function driveAuth(promptUser = false) {
 
 async function ensureDriveToken() {
   if (driveAccessToken && Date.now() < driveTokenExpires) return;
-  // Restore from sessionStorage before showing login popup
+  // Restore cached token — localStorage survives refresh, new tabs, browser restart
   try {
-    const cached = JSON.parse(sessionStorage.getItem('drive_tok') || 'null');
+    const cached = JSON.parse(localStorage.getItem('mindflow_drive_tok') || 'null');
     if (cached?.t && Date.now() < cached.e) {
       driveAccessToken = cached.t;
       driveTokenExpires = cached.e;
@@ -370,6 +369,7 @@ async function driveConnect() {
     try {
       const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
       driveUserEmail = about.user?.emailAddress || null;
+      if (driveUserEmail) save('drive_user_email', driveUserEmail);
     } catch {}
     driveFolderId = await driveFindOrCreateFolder(DRIVE_FOLDER_NAME, null);
     save('drive_folder_id', driveFolderId);
@@ -409,7 +409,8 @@ async function driveDisconnect() {
   driveStopPolling();
   driveAccessToken = null;
   driveTokenExpires = 0;
-  try { sessionStorage.removeItem('drive_tok'); } catch {}
+  try { localStorage.removeItem('mindflow_drive_tok'); } catch {}
+  save('drive_user_email', null);
   driveFolderId = null;
   driveAssetsFolderId = null;
   driveLastModifiedTime = null;
@@ -958,6 +959,7 @@ async function initDrive() {
       try {
         const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
         driveUserEmail = about.user?.emailAddress || null;
+        if (driveUserEmail) save('drive_user_email', driveUserEmail);
       } catch {}
       // CRITICAL: if previous session had unflushed changes (e.g. browser closed
       // mid-debounce), push them BEFORE pulling — otherwise pull would clobber
