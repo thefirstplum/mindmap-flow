@@ -1597,7 +1597,7 @@
   /* ============== MOBILE ============== */
   @media (max-width: 768px) {
     .app { flex-direction: column; padding: 0; }
-    .main { order: 1; padding-top: var(--safe-top); }
+    .main { order: 1; padding-top: var(--safe-top); padding-bottom: calc(50px + var(--safe-bot)); }
 
     /* ======= Sticky frosted header ======= */
     .header {
@@ -1615,9 +1615,13 @@
     .header-btn { padding: 0; width: 36px; height: 36px; justify-content: center; }
     .header-btn .btn-label { display: none; }
 
-    /* ======= iOS-style bottom tab bar ======= */
+    /* ======= Bottom tab bar (fixed) ======= */
     .sidebar {
-      order: 2;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 200;
       width: 100%;
       height: auto;
       flex-direction: row;
