@@ -1615,14 +1615,20 @@
     .header-btn { padding: 0; width: 36px; height: 36px; justify-content: center; }
     .header-btn .btn-label { display: none; }
 
-    /* ======= 공통 탭바 기본값 ======= */
+    /* ======= iOS-style bottom tab bar ======= */
     .sidebar {
       order: 2;
       width: 100%;
       height: auto;
       flex-direction: row;
       justify-content: space-around;
+      align-items: center;
+      padding: 6px 0 var(--safe-bot);
       border-right: none;
+      border-top: 1px solid var(--border);
+      background: rgba(11,13,20,0.95);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
       gap: 0;
     }
     .sidebar .logo, .sidebar .spacer { display: none; }
@@ -1642,48 +1648,8 @@
     .sidebar .nav-btn .icon { width: 24px; height: 24px; }
     .sidebar .nav-btn .label { display: none; }
     .sidebar .nav-btn.active { color: var(--accent); }
-    .sidebar .nav-btn.active::before {
-      content: '';
-      position: absolute;
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 4px; height: 4px;
-      background: var(--accent);
-      border-radius: 50%;
-    }
+    .sidebar .nav-btn.active::before { display: none; }
     .sidebar .nav-btn.active .icon { filter: none; }
-
-    /* PWA (standalone) — 네이티브 iOS 탭바 */
-    @media (display-mode: standalone) {
-      .sidebar {
-        padding: 4px 0 var(--safe-bot);
-        border-top: 1px solid var(--border);
-        background: rgba(11,13,20,0.95);
-        backdrop-filter: saturate(180%) blur(24px);
-        -webkit-backdrop-filter: saturate(180%) blur(24px);
-      }
-    }
-
-    /* 브라우저 — 플로팅 pill */
-    @media not all and (display-mode: standalone) {
-      .sidebar {
-        align-self: center;
-        width: auto;
-        justify-content: center;
-        padding: 6px 12px;
-        margin: 6px 20px calc(var(--safe-bot) + 10px);
-        border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(18,18,22,0.9);
-        backdrop-filter: saturate(180%) blur(24px);
-        -webkit-backdrop-filter: saturate(180%) blur(24px);
-        border-radius: 32px;
-        box-shadow: 0 6px 28px rgba(0,0,0,0.35);
-        gap: 8px;
-      }
-      .sidebar .nav-btn { flex: none; width: 52px; }
-      .sidebar .nav-btn.active { background: rgba(255,255,255,0.08) !important; border-radius: 18px; }
-    }
 
     /* ======= Modal as bottom sheet ======= */
     .modal-overlay { padding: 0; align-items: flex-end; }
