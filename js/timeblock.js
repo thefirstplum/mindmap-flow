@@ -318,9 +318,15 @@ function renderTbTodos() {
   list.innerHTML = tbTodos.map((t, i) => `
     <div class="tb-todo-item${t.done ? ' done' : ''}">
       <button class="tb-todo-check" onclick="toggleTbTodoItem(${i},${!t.done})">${t.done ? '✓' : ''}</button>
-      <span class="tb-todo-text">${escapeHtml(t.text)}</span>
+      <input class="tb-todo-text" type="text" value="${escapeHtml(t.text)}"
+        oninput="tbTodos[${i}].text=this.value"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tb-todo-input').focus();}">
       <button class="tb-todo-del" onclick="removeTbTodo(${i})">✕</button>
     </div>`).join('');
+}
+
+function editTbTodoText(idx, val) {
+  if (tbTodos[idx]) tbTodos[idx].text = val;
 }
 
 function addTbTodo() {
