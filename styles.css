@@ -5479,3 +5479,44 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   border-radius: 0 0 12px 12px;
   padding-top: 14px;
 }
+
+/* =================== CODEMIRROR 6 CONTAINER =================== */
+/* The #memo-live-editor div is the CM6 mount point.
+   CM6 handles its own scroll and sizing; we just give it a full-size slot. */
+#memo-live-editor {
+  padding: 0;
+  max-width: 100%;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  flex: 1;
+}
+#memo-live-editor .cm-editor {
+  height: 100%;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16.5px;
+}
+#memo-live-editor .cm-scroller {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  font-family: inherit;
+}
+#memo-live-editor .cm-focused {
+  outline: none;
+}
+/* Selection color (light mode) */
+#memo-live-editor .cm-selectionBackground { background: rgba(180,140,60,0.18) !important; }
+[data-theme="dark"] #memo-live-editor .cm-selectionBackground { background: rgba(99,102,241,0.25) !important; }
+/* Active line subtle tint */
+#memo-live-editor .cm-activeLine { background: rgba(0,0,0,0.025); }
+[data-theme="dark"] #memo-live-editor .cm-activeLine { background: rgba(255,255,255,0.03); }
+/* Cursor */
+#memo-live-editor .cm-cursor { border-left-color: var(--accent) !important; border-left-width: 2px; }
+/* No gutter */
+#memo-live-editor .cm-gutters { display: none; }
+/* Mobile padding */
+@media (max-width: 600px) {
+  #memo-live-editor .cm-content { padding: 8px 18px 140px !important; }
+}
