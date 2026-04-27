@@ -955,7 +955,7 @@ async function initDrive() {
   if (driveClientId && driveFolderId) {
     updateDriveStatus();
     try {
-      await driveAuth(false);
+      await ensureDriveToken();  // uses localStorage cache, no popup if token still valid
       try {
         const about = await driveApi('GET', '/about', null, { fields: 'user(emailAddress,displayName)' });
         driveUserEmail = about.user?.emailAddress || null;
