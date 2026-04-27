@@ -135,8 +135,7 @@ function renderMemoEditor() {
   if (memoMode === 'view') {
     bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('live')">${renderedHtml}</div></div>`;
   } else if (memoMode === 'live') {
-    // contenteditable Bear editor — setup happens after innerHTML is set
-    bodyHtml = `<div class="memo-body-wrap edit-only"><div class="bear-editor" id="memo-live-editor" contenteditable="true" spellcheck="false"></div></div>`;
+    bodyHtml = `<div class="memo-body-wrap edit-only"><div class="bear-editor" id="memo-live-editor"></div></div>`;
   } else {
     bodyHtml = `<div class="memo-body-wrap edit-only">
       <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
@@ -186,9 +185,10 @@ function renderMemoEditor() {
 
   if (memoMode === 'live') {
     const bearEl = document.getElementById('memo-live-editor');
-    if (bearEl) {
-      setupBearEditor(bearEl, memo.content, (text) => updateMemoContent(text));
-      setTimeout(() => { try { bearEl.focus(); } catch {} }, 30);
+    if (bearEl && window.CM6) {
+      if (window._cm6View) { try { window._cm6View.destroy(); } catch {} window._cm6View = null; }
+      window._cm6View = window.CM6.createEditor(bearEl, memo.content, (text) => updateMemoContent(text));
+      setTimeout(() => { try { window._cm6View.focus(); } catch {} }, 30);
     }
   }
 
@@ -772,14 +772,15 @@ function insertIntoActiveMemo(insertText) {
     return true;
   }
 
-  // Bear live editor — append at end and re-init
-  const bearEl = document.getElementById('memo-live-editor');
-  if (bearEl && memoMode === 'live') {
-    memo.content = (memo.content || '') + insertText;
-    memo.date = new Date().toISOString();
-    saveMemos();
-    setupBearEditor(bearEl, memo.content, (text) => updateMemoContent(text));
-    setTimeout(() => { try { bearEl.focus(); } catch {} }, 30);
+  // CM6 live editor — insert at cursor (or end if no selection)
+  if (window._cm6View && memoMode === 'live') {
+    const view = window._cm6View;
+    const { from, to } = view.state.selection.main;
+    view.dispatch({
+      changes: { from, to, insert: insertText },
+      selection: { anchor: from + insertText.length },
+    });
+    view.focus();
     return true;
   }
 
