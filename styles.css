@@ -1634,7 +1634,7 @@
     .sidebar #sync-btn { display: none; } /* header pill replaces it on mobile */
     .sidebar .nav-btn {
       width: 64px;
-      height: 36px;
+      height: 30px;
       flex-direction: column;
       gap: 0;
       border-radius: 0;
@@ -1644,7 +1644,7 @@
       position: relative;
       transition: color 0.15s;
     }
-    .sidebar .nav-btn .icon { width: 24px; height: 24px; }
+    .sidebar .nav-btn .icon { width: 22px; height: 22px; }
     .sidebar .nav-btn .label { display: none; }
     .sidebar .nav-btn:hover .label { display: none; }
     .sidebar .nav-btn.active { color: var(--accent2); }
