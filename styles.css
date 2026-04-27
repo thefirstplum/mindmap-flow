@@ -1634,9 +1634,9 @@
     .sidebar #sync-btn { display: none; } /* header pill replaces it on mobile */
     .sidebar .nav-btn {
       width: 64px;
-      height: 42px;
+      height: 36px;
       flex-direction: column;
-      gap: 1px;
+      gap: 0;
       border-radius: 0;
       background: transparent !important;
       box-shadow: none !important;
@@ -1644,17 +1644,9 @@
       position: relative;
       transition: color 0.15s;
     }
-    .sidebar .nav-btn .icon { width: 20px; height: 20px; }
-    .sidebar .nav-btn .label {
-      position: static;
-      opacity: 1;
-      background: none;
-      padding: 0;
-      font-size: 9px;
-      font-weight: 600;
-      letter-spacing: 0.1px;
-    }
-    .sidebar .nav-btn:hover .label { left: 0; }
+    .sidebar .nav-btn .icon { width: 24px; height: 24px; }
+    .sidebar .nav-btn .label { display: none; }
+    .sidebar .nav-btn:hover .label { display: none; }
     .sidebar .nav-btn.active { color: var(--accent2); }
     .sidebar .nav-btn.active::before {
       content: '';
