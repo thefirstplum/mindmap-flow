@@ -5520,3 +5520,13 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
 @media (max-width: 600px) {
   #memo-live-editor .cm-content { padding: 8px 18px 140px !important; }
 }
+/* Inline image widget */
+.cm-img-wrap { display: block; line-height: 0; margin: 4px 0; }
+.cm-md-img {
+  max-width: 100%;
+  border-radius: 6px;
+  display: block;
+  cursor: text;
+  transition: opacity 0.15s;
+}
+.cm-md-img:hover { opacity: 0.88; }
