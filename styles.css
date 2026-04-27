@@ -1622,7 +1622,7 @@
       height: auto;
       flex-direction: row;
       justify-content: space-around;
-      padding: 6px 6px calc(4px + var(--safe-bot));
+      padding: 3px 4px var(--safe-bot);
       border-right: none;
       border-top: 1px solid var(--border);
       background: rgba(11,13,20,0.92);
@@ -1634,9 +1634,9 @@
     .sidebar #sync-btn { display: none; } /* header pill replaces it on mobile */
     .sidebar .nav-btn {
       width: 64px;
-      height: 50px;
+      height: 44px;
       flex-direction: column;
-      gap: 3px;
+      gap: 2px;
       border-radius: 0;
       background: transparent !important;
       box-shadow: none !important;
@@ -1644,13 +1644,13 @@
       position: relative;
       transition: color 0.15s;
     }
-    .sidebar .nav-btn .icon { width: 22px; height: 22px; }
+    .sidebar .nav-btn .icon { width: 20px; height: 20px; }
     .sidebar .nav-btn .label {
       position: static;
       opacity: 1;
       background: none;
       padding: 0;
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       letter-spacing: 0.1px;
     }
