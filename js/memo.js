@@ -205,10 +205,10 @@ function bearRenderLine(text) {
   let m;
   if (m = text.match(/^(#{1,3}) (.*)$/)) {
     const level = m[1].length;
-    return `<span class="md-marker">${m[1]} </span><span class="md-h${level}">${esc(m[2])}</span>`;
+    return `<span class="md-marker">${m[1]} </span><span class="md-h${level}">${bearInline(esc(m[2]))}</span>`;
   }
   if (m = text.match(/^([-*+]) (.*)$/)) {
-    return `<span class="md-bullet">•</span><span class="md-marker">${esc(m[1])} </span>${bearInline(esc(m[2]))}`;
+    return `<span class="md-bullet">•</span><span class="md-marker md-list-marker">${esc(m[1])} </span>${bearInline(esc(m[2]))}`;
   }
   if (m = text.match(/^(\d+)\. (.*)$/)) {
     return `<span class="md-marker">${m[1]}. </span>${bearInline(esc(m[2]))}`;
@@ -263,9 +263,14 @@ function bearInline(html) {
 }
 
 function bearRenderContent(text) {
-  return text.split('\n').map(line =>
-    `<div data-line>${bearRenderLine(line)}</div>`
-  ).join('');
+  return text.split('\n').map(line => {
+    let kind = '';
+    if (/^#{1,3} /.test(line)) kind = ' data-kind="heading"';
+    else if (/^[-*+] /.test(line) || /^\d+\. /.test(line)) kind = ' data-kind="list"';
+    else if (/^(&gt;|>) /.test(line)) kind = ' data-kind="quote"';
+    else if (/^---$|^\*\*\*$|^___$/.test(line.trim())) kind = ' data-kind="hr"';
+    return `<div data-line${kind}>${bearRenderLine(line)}</div>`;
+  }).join('');
 }
 
 // Text/offset model: each direct child of the editor is a "line".

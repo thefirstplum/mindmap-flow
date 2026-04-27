@@ -249,7 +249,6 @@
 <div class="modal-overlay" id="tb-modal" onclick="if(event.target===this)closeTbModal()">
   <div class="modal">
     <h3 id="tb-modal-title">타임블록 추가</h3>
-    <div class="modal-desc">하루를 블록 단위로 세밀하게 계획하세요</div>
     <label>제목</label>
     <input type="text" id="tb-title" placeholder="할 일을 입력하세요">
     <div class="time-row-input" style="margin-top:14px;">
@@ -262,8 +261,13 @@
         <input type="time" id="tb-end">
       </div>
     </div>
+    <label>투두</label>
+    <div class="tb-todo-list" id="tb-todo-list"></div>
+    <div class="tb-todo-add-row">
+      <input type="text" id="tb-todo-input" placeholder="+ 할 일 입력 후 Enter">
+    </div>
     <label>메모 (선택)</label>
-    <textarea id="tb-desc" placeholder="추가 설명..."></textarea>
+    <textarea id="tb-desc" placeholder="추가 설명..." style="min-height:52px;"></textarea>
     <label>색상</label>
     <div class="modal-colors">
       <div class="mc active" style="background:linear-gradient(135deg,#b58900,#8a6800)" data-color="yellow" onclick="setTbColor(this)" title="옐로우"></div>
@@ -511,6 +515,16 @@
       <button class="primary" onclick="insertDrawing()">메모에 삽입</button>
     </div>
   </div>
+</div>
+
+<!-- Mindmap action sheet -->
+<div class="action-sheet-overlay" id="mm-action-overlay" onclick="closeMmMenu()"></div>
+<div class="action-sheet" id="mm-action-sheet">
+  <div class="action-sheet-title" id="mm-action-title"></div>
+  <button onclick="renameMindmapActive()">✏️ 이름 변경</button>
+  <button onclick="duplicateMindmapActive()">⧉ 복제</button>
+  <button class="danger" onclick="deleteMindmapActive()">🗑 삭제</button>
+  <button class="cancel" onclick="closeMmMenu()">취소</button>
 </div>
 
 <div class="toast" id="toast"></div>
