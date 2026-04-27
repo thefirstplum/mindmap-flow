@@ -1615,51 +1615,47 @@
     .header-btn { padding: 0; width: 36px; height: 36px; justify-content: center; }
     .header-btn .btn-label { display: none; }
 
-    /* ======= iOS-style bottom tab bar ======= */
+    /* ======= Floating pill tab bar ======= */
     .sidebar {
       order: 2;
-      width: 100%;
+      align-self: center;
+      width: auto;
       height: auto;
       flex-direction: row;
-      justify-content: space-around;
-      padding: 0 4px var(--safe-bot);
+      justify-content: center;
+      padding: 6px 8px;
+      margin: 6px 0 calc(var(--safe-bot) + 10px);
       border-right: none;
-      border-top: 1px solid var(--border);
-      background: rgba(11,13,20,0.92);
+      border-top: none;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(18,18,22,0.9);
       backdrop-filter: saturate(180%) blur(24px);
       -webkit-backdrop-filter: saturate(180%) blur(24px);
-      gap: 0;
+      border-radius: 28px;
+      box-shadow: 0 6px 28px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2);
+      gap: 4px;
     }
     .sidebar .logo, .sidebar .spacer { display: none; }
-    .sidebar #sync-btn { display: none; } /* header pill replaces it on mobile */
+    .sidebar #sync-btn { display: none; }
     .sidebar .nav-btn {
-      width: 64px;
-      height: 30px;
+      width: 56px;
+      height: 40px;
       flex-direction: column;
       gap: 0;
-      border-radius: 0;
+      border-radius: 20px;
       background: transparent !important;
       box-shadow: none !important;
       color: var(--text-mute);
       position: relative;
-      transition: color 0.15s;
+      transition: color 0.2s, background 0.2s;
     }
     .sidebar .nav-btn .icon { width: 22px; height: 22px; }
     .sidebar .nav-btn .label { display: none; }
-    .sidebar .nav-btn:hover .label { display: none; }
-    .sidebar .nav-btn.active { color: var(--accent2); }
-    .sidebar .nav-btn.active::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 26px;
-      height: 3px;
-      background: var(--accent);
-      border-radius: 0 0 4px 4px;
-      box-shadow: 0 0 12px var(--accent-glow);
+    .sidebar .nav-btn.active {
+      color: var(--accent);
+      background: rgba(255,255,255,0.08) !important;
     }
+    .sidebar .nav-btn.active::before { display: none; }
     .sidebar .nav-btn.active .icon { filter: none; }
 
     /* ======= Modal as bottom sheet ======= */
