@@ -1622,7 +1622,7 @@
       height: auto;
       flex-direction: row;
       justify-content: space-around;
-      padding: 3px 4px var(--safe-bot);
+      padding: 0 4px var(--safe-bot);
       border-right: none;
       border-top: 1px solid var(--border);
       background: rgba(11,13,20,0.92);
@@ -1634,9 +1634,9 @@
     .sidebar #sync-btn { display: none; } /* header pill replaces it on mobile */
     .sidebar .nav-btn {
       width: 64px;
-      height: 44px;
+      height: 42px;
       flex-direction: column;
-      gap: 2px;
+      gap: 1px;
       border-radius: 0;
       background: transparent !important;
       box-shadow: none !important;
