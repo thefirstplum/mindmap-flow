@@ -1623,23 +1623,23 @@
       height: auto;
       flex-direction: row;
       justify-content: center;
-      padding: 6px 8px;
-      margin: 6px 0 calc(var(--safe-bot) + 10px);
+      padding: 8px 16px;
+      margin: 8px 24px calc(var(--safe-bot) + 12px);
       border-right: none;
       border-top: none;
       border: 1px solid rgba(255,255,255,0.1);
       background: rgba(18,18,22,0.9);
       backdrop-filter: saturate(180%) blur(24px);
       -webkit-backdrop-filter: saturate(180%) blur(24px);
-      border-radius: 28px;
+      border-radius: 32px;
       box-shadow: 0 6px 28px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2);
-      gap: 4px;
+      gap: 12px;
     }
     .sidebar .logo, .sidebar .spacer { display: none; }
     .sidebar #sync-btn { display: none; }
     .sidebar .nav-btn {
-      width: 56px;
-      height: 40px;
+      width: 52px;
+      height: 44px;
       flex-direction: column;
       gap: 0;
       border-radius: 20px;
