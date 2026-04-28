@@ -7126,16 +7126,13 @@ body[data-theme="dieci"] .mindmap-item.active {
 }
 .mm-color-popup {
   display: none !important;
-  position: absolute !important;
-  top: calc(100% + 8px) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
+  position: fixed !important;
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
   border-radius: 12px !important;
   padding: 10px !important;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.14) !important;
-  z-index: 500 !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18) !important;
+  z-index: 9999 !important;
 }
 .mm-color-popup.open { display: block !important; }
 .mm-color-grid {
@@ -7148,7 +7145,7 @@ body[data-theme="dieci"] .mindmap-item.active {
   height: 22px !important;
 }
 @media (max-width: 768px) {
-  .mm-color-popup { left: 0 !important; transform: none !important; }
+  .mm-color-popup { /* no override needed — JS positions it */ }
 }
 
 /* ─────────────────────────────────────────────────────────────────
