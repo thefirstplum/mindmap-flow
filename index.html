@@ -158,7 +158,25 @@
               <div class="mindmap-hint" id="mm-hint">빈 곳 더블탭 → 새 노드 · 노드 선택 후 우측 + 핸들로 연결</div>
             </div>
             <div class="node-edit-popup" id="node-edit-popup">
-              <input type="text" id="node-edit-input" placeholder="노드 이름 입력..." onkeydown="if(event.key==='Enter')closeNodeEdit();if(event.key==='Escape')closeNodeEdit(true);">
+              <input type="text" id="node-edit-input" placeholder="노드 이름 입력..." onkeydown="if(event.key==='Enter'){event.preventDefault();closeNodeEdit();}if(event.key==='Escape')closeNodeEdit(true);">
+              <button class="node-edit-confirm" onclick="closeNodeEdit()">완료</button>
+            </div>
+            <!-- Node action bar: shown when a node is selected -->
+            <div class="node-action-bar" id="node-action-bar">
+              <div class="nab-colors" id="nab-colors"></div>
+              <div class="nab-sep"></div>
+              <button class="nab-btn" onclick="openNodeEditSelected()" title="텍스트 수정">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                <span>수정</span>
+              </button>
+              <button class="nab-btn" onclick="startConnecting()" title="연결">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+                <span>연결</span>
+              </button>
+              <button class="nab-btn danger" onclick="deleteSelected()" title="삭제">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+                <span>삭제</span>
+              </button>
             </div>
           </div>
         </div>
