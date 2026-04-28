@@ -6172,3 +6172,826 @@ body[data-theme="ayu"] .tb-list-item.active {
   .theme-swatch-circle { width: 30px; height: 30px; }
   .theme-swatch-label { font-size: 8.5px; }
 }
+
+/* ================================================================= */
+/* === PROFESSIONAL UI/UX POLISH — Expert Panel Fix (Final Pass) === */
+/* ================================================================= */
+
+/* ─────────────────────────────────────────────────────────────────
+   A. MOBILE BOTTOM TAB BAR — Add labels (Critical UX Fix)
+   "아이콘만으로는 기능을 알 수 없다. 레이블은 필수다." — UX Expert
+   ───────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar {
+    padding-top: 4px !important;
+    padding-bottom: calc(4px + var(--safe-bot)) !important;
+    background: var(--surface) !important;
+    border-top: 1px solid var(--border) !important;
+    box-shadow: 0 -1px 0 var(--border) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  }
+  .sidebar .nav-btn {
+    height: 52px !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    padding: 0 6px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: var(--text-mute) !important;
+    transition: color 0.15s !important;
+  }
+  .sidebar .nav-btn .icon {
+    width: 22px !important;
+    height: 22px !important;
+    flex-shrink: 0 !important;
+  }
+  /* 레이블을 아이콘 아래 작게 표시 */
+  .sidebar .nav-btn .label {
+    display: block !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    opacity: 0.72 !important;
+    visibility: visible !important;
+    pointer-events: none !important;
+    font-size: 9.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+    color: inherit !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    white-space: nowrap !important;
+    z-index: auto !important;
+    transition: none !important;
+    line-height: 1 !important;
+  }
+  .sidebar .nav-btn.active { color: var(--accent) !important; }
+  .sidebar .nav-btn.active .label { opacity: 1 !important; }
+
+  /* 콘텐츠 영역 패딩: 탭바 높이(52px+8px padding) + safe area */
+  .main { padding-bottom: calc(60px + var(--safe-bot)) !important; }
+
+  /* 토스트를 탭바 위로 */
+  .toast { bottom: calc(72px + var(--safe-bot)) !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   B. DESKTOP SIDEBAR — Bear-style active state (accent-glow)
+   "Right-border 인디케이터는 Bear 스타일이 아니다." — Visual Designer
+   ───────────────────────────────────────────────────────────────── */
+@media (min-width: 769px) {
+  .sidebar {
+    width: 68px !important;
+    padding: 14px 8px calc(14px + var(--safe-bot)) !important;
+    background: var(--surface2) !important;
+    border-right: 1px solid var(--border) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    gap: 3px !important;
+  }
+  .sidebar .logo {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 9px !important;
+    font-size: 15px !important;
+    margin-bottom: 12px !important;
+    box-shadow: none !important;
+  }
+  .sidebar .nav-btn {
+    width: 52px !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-mute) !important;
+    transition: background 0.12s, color 0.12s !important;
+  }
+  .sidebar .nav-btn:hover {
+    background: var(--surface3) !important;
+    color: var(--text) !important;
+  }
+  .sidebar .nav-btn.active {
+    background: var(--accent-glow) !important;
+    color: var(--accent) !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+  .sidebar .nav-btn .icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+  /* 툴팁 레이블 (hover시 우측에 나타남) */
+  .sidebar .nav-btn .label {
+    position: absolute !important;
+    left: 60px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    padding: 5px 10px !important;
+    border-radius: 7px !important;
+    border: 1px solid var(--border) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.10) !important;
+    white-space: nowrap !important;
+    pointer-events: none !important;
+    z-index: 300 !important;
+    transition: opacity 0.15s, left 0.12s !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+  }
+  .sidebar .nav-btn:hover .label {
+    opacity: 1 !important;
+    visibility: visible !important;
+    left: 66px !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   C. HEADER — 가볍고 Bear스럽게
+   "헤더가 너무 무겁다. 그라디언트 아이콘을 제거하라." — Visual Designer
+   ───────────────────────────────────────────────────────────────── */
+.header {
+  height: 52px !important;
+  padding: 0 16px !important;
+  gap: 8px !important;
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.header-icon {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 7px !important;
+  background: var(--accent-glow) !important;
+  box-shadow: none !important;
+  flex-shrink: 0 !important;
+}
+.header-icon svg,
+.header-icon .icon-sm {
+  color: var(--accent) !important;
+  width: 15px !important;
+  height: 15px !important;
+}
+.header h1 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.3px !important;
+  color: var(--text) !important;
+}
+.header .subtitle {
+  font-size: 11px !important;
+  color: var(--text-mute) !important;
+  letter-spacing: 0 !important;
+  margin-top: 1px !important;
+}
+/* 헤더 버튼들 — 투명 배경으로 가볍게 */
+.header-btn {
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: 8px !important;
+  color: var(--text-dim) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+.header-btn:hover {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.header-btn .icon-sm { width: 18px !important; height: 18px !important; }
+/* 동기화 pill만 특별 처리 */
+.header-btn.sync-pill {
+  width: auto !important;
+  padding: 0 10px !important;
+  gap: 5px !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 20px !important;
+  height: 30px !important;
+  font-size: 11px !important;
+  color: var(--text-dim) !important;
+}
+.header-btn.sync-pill:hover {
+  background: var(--surface3) !important;
+  color: var(--text) !important;
+  border-color: var(--border-light) !important;
+}
+@media (max-width: 768px) {
+  .header { height: 50px !important; padding: 0 12px !important; gap: 6px !important; }
+  .header-icon { display: none !important; }
+  .header > div { gap: 1px !important; }
+  .header h1 { font-size: 15px !important; }
+  .header .subtitle { display: none !important; }
+  .header-btn { width: 36px !important; height: 36px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   D. LIST ITEMS — 일관된 Bear 스타일
+   "Active 상태가 iOS 파란색이다. 테마 색상을 써야 한다." — Color Expert
+   ───────────────────────────────────────────────────────────────── */
+.memo-item,
+.mindmap-item,
+.tb-list-item {
+  padding: 10px 14px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: 3px solid transparent !important;
+  border-right: none !important;
+  border-top: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background 0.1s !important;
+}
+.memo-item:hover,
+.mindmap-item:hover,
+.tb-list-item:hover {
+  background: var(--surface3) !important;
+  box-shadow: none !important;
+}
+.memo-item.active,
+.mindmap-item.active,
+.tb-list-item.active {
+  background: var(--accent-glow) !important;
+  border-left-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+.memo-item.active .memo-item-title,
+.mindmap-item.active .mm-name,
+.tb-list-item.active .tb-list-date {
+  color: var(--accent) !important;
+}
+.memo-item-title,
+.mm-name,
+.tb-list-date {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.15px !important;
+}
+.memo-item-preview {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  color: var(--text-mute) !important;
+  margin-top: 2px !important;
+}
+.memo-item-meta,
+.mm-meta,
+.tb-list-meta {
+  font-size: 11px !important;
+  color: var(--text-mute) !important;
+  margin-top: 4px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   E. LIST HEADERS — 깔끔한 타이포그래피
+   ───────────────────────────────────────────────────────────────── */
+.memo-list-header,
+.mm-list-header,
+.tb-list-header {
+  padding: 14px 14px 10px !important;
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  gap: 8px !important;
+}
+.memo-list-title-row .title,
+.mm-list-title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+}
+.memo-list-title-row .count,
+.mm-count-badge {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+}
+@media (max-width: 768px) {
+  .memo-list-header,
+  .mm-list-header,
+  .tb-list-header {
+    padding: 12px 14px 8px !important;
+  }
+  .memo-list-title-row .title,
+  .mm-list-title { font-size: 16px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   F. DAY SUMMARY — 테마 색상 기반으로 수정
+   "iOS 파란색이 하드코딩되어 다크 테마에서 어색하다." — Color Expert
+   ───────────────────────────────────────────────────────────────── */
+.day-summary {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.day-summary .stat .value {
+  color: var(--accent) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   G. MODALS — 그림자 줄이고 깔끔하게
+   "그림자 0.6 opacity는 너무 강하다. Bear는 섬세하다." — Visual Designer
+   ───────────────────────────────────────────────────────────────── */
+.modal {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+.modal h3 {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.3px !important;
+  color: var(--text) !important;
+}
+.modal label {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: var(--text-mute) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  margin-top: 16px !important;
+  margin-bottom: 5px !important;
+}
+.modal input,
+.modal select,
+.modal textarea {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px !important;
+  color: var(--text) !important;
+  font-size: 15px !important;
+  padding: 10px 12px !important;
+  width: 100% !important;
+  font-family: inherit !important;
+  outline: none !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-glow) !important;
+}
+.modal-actions {
+  margin-top: 20px !important;
+  gap: 8px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+}
+.modal-actions button {
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  cursor: pointer !important;
+  transition: background 0.12s !important;
+}
+.modal-actions button:hover {
+  background: var(--surface3) !important;
+}
+.modal-actions button.primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+.modal-actions button.primary:hover {
+  filter: brightness(1.07) !important;
+  background: var(--accent) !important;
+}
+.modal-actions button.danger {
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+  color: #fff !important;
+}
+@media (max-width: 768px) {
+  .modal {
+    border-radius: 22px 22px 0 0 !important;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.10) !important;
+    padding: 12px 16px calc(18px + var(--safe-bot)) !important;
+  }
+  .modal-actions button { flex: 1 !important; padding: 12px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   H. 감정일기 — 그리드 mood picker & 전반적 개선
+   "flex wrap는 불규칙하다. 5열 그리드로 통일해야 한다." — Layout Expert
+   ───────────────────────────────────────────────────────────────── */
+.mood-picker {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 6px !important;
+  margin-bottom: 20px !important;
+  flex-shrink: 0 !important;
+}
+.mood-btn {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 !important;
+  font-size: 20px !important;
+  border-radius: 11px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--surface2) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  transition: background 0.12s, transform 0.12s, border-color 0.12s !important;
+}
+.mood-btn:hover {
+  background: var(--surface3) !important;
+  transform: scale(1.08) !important;
+  border-color: var(--border-light) !important;
+}
+.mood-btn.active {
+  border-color: var(--accent) !important;
+  background: var(--accent-glow) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+  transform: scale(1.08) !important;
+}
+.journal-textarea {
+  font-size: 17px !important;
+  line-height: 1.9 !important;
+  letter-spacing: 0 !important;
+}
+.journal-list-item {
+  padding: 10px 14px !important;
+  border-left: 3px solid transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-top: none !important;
+  border-right: none !important;
+  background: transparent !important;
+  transition: background 0.1s !important;
+}
+.journal-list-item:hover {
+  background: var(--surface3) !important;
+}
+.journal-list-item.active {
+  background: var(--accent-glow) !important;
+  border-left-color: var(--accent) !important;
+}
+.journal-list-item.is-today .journal-list-date { color: var(--accent) !important; }
+.journal-list-header {
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 14px 14px 10px !important;
+}
+@media (max-width: 480px) {
+  .mood-picker { grid-template-columns: repeat(5, 1fr) !important; gap: 4px !important; }
+  .mood-btn { font-size: 18px !important; border-radius: 9px !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   I. 타임블록 — 블록 & 타임라인 개선
+   ───────────────────────────────────────────────────────────────── */
+.tb-hour-label {
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--text-mute) !important;
+  letter-spacing: 0 !important;
+}
+.tb-hour-row {
+  border-bottom: 1px solid var(--paper-line, rgba(0,0,0,0.04)) !important;
+}
+.time-block-item {
+  border-radius: 7px !important;
+  border-left-width: 3px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   J. 마인드맵 툴바 정리
+   ───────────────────────────────────────────────────────────────── */
+.mindmap-toolbar {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   K. 스크롤바 — 더 얇고 세련되게
+   "8px 스크롤바는 너무 두껍다. 4px로." — Visual Designer
+   ───────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px !important; height: 4px !important; }
+::-webkit-scrollbar-track { background: transparent !important; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-light) !important;
+  border-radius: 100px !important;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-mute) !important; }
+
+/* ─────────────────────────────────────────────────────────────────
+   L. 메인 액션 버튼 — flat accent, no gradient
+   ───────────────────────────────────────────────────────────────── */
+.today-jump-btn,
+.memo-search-wrap .new-btn {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+.today-jump-btn:hover,
+.memo-search-wrap .new-btn:hover {
+  filter: brightness(1.07) !important;
+  background: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   M. NODE ACTION BAR & 테마 피커 — 정제
+   ───────────────────────────────────────────────────────────────── */
+.node-action-bar {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06) !important;
+}
+.theme-picker-popup {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   N. TOAST — 중앙 정렬 pill (모바일), 좌하단 (데스크탑)
+   ───────────────────────────────────────────────────────────────── */
+.toast {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 9px 18px !important;
+  border-radius: 100px !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important;
+}
+@media (min-width: 769px) {
+  .toast {
+    left: 20px !important;
+    transform: translateY(16px) !important;
+    bottom: 20px !important;
+  }
+  .toast.show {
+    transform: translateY(0) !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   O. 메모 검색바 — 일관된 스타일
+   ───────────────────────────────────────────────────────────────── */
+.memo-search-input {
+  border-radius: 8px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface2) !important;
+  font-size: 13px !important;
+  padding: 7px 10px !important;
+  color: var(--text) !important;
+}
+.memo-search-input:focus {
+  border-color: var(--accent) !important;
+  outline: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   P. 설정 모달 — 간결한 레이아웃
+   ───────────────────────────────────────────────────────────────── */
+.settings-toggle-title {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+}
+.settings-toggle-desc {
+  font-size: 12px !important;
+  color: var(--text-mute) !important;
+  line-height: 1.5 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Q. DARK THEME OVERRIDES — 라이트 테마 픽스가 다크에서 깨지지 않도록
+   ───────────────────────────────────────────────────────────────── */
+body[data-theme="leather"] .memo-item.active,
+body[data-theme="leather"] .mindmap-item.active,
+body[data-theme="leather"] .tb-list-item.active,
+body[data-theme="toothpaste"] .memo-item.active,
+body[data-theme="toothpaste"] .mindmap-item.active,
+body[data-theme="cobalt"] .memo-item.active,
+body[data-theme="cobalt"] .mindmap-item.active,
+body[data-theme="solarized-dark"] .memo-item.active,
+body[data-theme="solarized-dark"] .mindmap-item.active,
+body[data-theme="panic"] .memo-item.active,
+body[data-theme="panic"] .mindmap-item.active,
+body[data-theme="gotham"] .memo-item.active,
+body[data-theme="gotham"] .mindmap-item.active,
+body[data-theme="dracula"] .memo-item.active,
+body[data-theme="dracula"] .mindmap-item.active,
+body[data-theme="dieci"] .memo-item.active,
+body[data-theme="dieci"] .mindmap-item.active {
+  background: var(--accent-glow) !important;
+  border-left-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   R. EMPTY STATES — 각 페이지 빈 화면 개선
+   ───────────────────────────────────────────────────────────────── */
+/* Journal empty state */
+.journal-list-empty {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 48px 20px !important;
+  text-align: center !important;
+  color: var(--text-mute) !important;
+  font-size: 13px !important;
+  gap: 0 !important;
+}
+.jle-icon {
+  font-size: 44px;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+.jle-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: -0.2px;
+}
+.jle-desc {
+  font-size: 13px;
+  color: var(--text-mute);
+  line-height: 1.6;
+  max-width: 180px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   S. DATE DISPLAY — 날짜 헤더 개선
+   ───────────────────────────────────────────────────────────────── */
+.date-display {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.2px !important;
+  flex: 1 !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+.day-of-week {
+  font-weight: 500 !important;
+  color: var(--text-mute) !important;
+  font-size: 12px !important;
+}
+.today-badge {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  background: var(--accent) !important;
+  color: #fff !important;
+  padding: 2px 6px !important;
+  border-radius: 100px !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   T. NAV ARROWS — 더 명확한 터치 타겟
+   ───────────────────────────────────────────────────────────────── */
+.nav-arrow {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  border: 1px solid var(--border) !important;
+  background: var(--surface2) !important;
+  color: var(--text-dim) !important;
+  font-size: 18px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: background 0.12s, color 0.12s !important;
+  flex-shrink: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  line-height: 1 !important;
+}
+.nav-arrow:hover {
+  background: var(--surface3) !important;
+  color: var(--text) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   U. TIMEBLOCK MODAL 색상 팔레트 개선
+   ───────────────────────────────────────────────────────────────── */
+.modal-colors {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 6px !important;
+  margin-top: 8px !important;
+}
+.modal-colors .mc {
+  width: 100% !important;
+  aspect-ratio: 1 !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  cursor: pointer !important;
+  transition: transform 0.12s, box-shadow 0.12s !important;
+}
+.modal-colors .mc:hover { transform: scale(1.12) !important; }
+.modal-colors .mc.active {
+  border-color: var(--text) !important;
+  transform: scale(1.12) !important;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--text) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   V. TODAY BADGE on list items — accent-glow style
+   ───────────────────────────────────────────────────────────────── */
+.today-tag {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  background: var(--accent-glow) !important;
+  color: var(--accent) !important;
+  padding: 2px 5px !important;
+  border-radius: 4px !important;
+  letter-spacing: 0.04em !important;
+  border: 1px solid var(--accent) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   W. MEMO EDITOR TOOLBAR — 더 깔끔하게
+   ───────────────────────────────────────────────────────────────── */
+.memo-editor-toolbar {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.memo-icon-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  border-radius: 7px !important;
+  color: var(--text-dim) !important;
+  transition: background 0.12s, color 0.12s !important;
+}
+.memo-icon-btn:hover {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   X. 마인드맵 빈 상태 hint 개선
+   ───────────────────────────────────────────────────────────────── */
+.mm-hint {
+  font-size: 13px !important;
+  color: var(--text-mute) !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 10px 16px !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}

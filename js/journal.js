@@ -84,7 +84,11 @@ function renderJournalList() {
   const todayKey = journalDK(new Date());
 
   if (keys.length === 0) {
-    container.innerHTML = '<div class="journal-list-empty">아직 기록이 없어요 😊</div>';
+    container.innerHTML = `<div class="journal-list-empty">
+      <div class="jle-icon">📔</div>
+      <div class="jle-title">첫 기록을 시작해보세요</div>
+      <div class="jle-desc">오늘의 감정을 솔직하게 담아보세요</div>
+    </div>`;
     return;
   }
 
