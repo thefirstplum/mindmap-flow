@@ -824,12 +824,11 @@ function syncToolbarColor(color) {
   if (preview) preview.style.background = color;
 }
 
-function toggleMmColorPicker() {
+function toggleMmColorPicker(e) {
+  if (e) e.stopPropagation();
   const popup = document.getElementById('mm-color-popup');
   if (!popup) return;
-  const isOpen = popup.classList.contains('open');
-  if (isOpen) { popup.classList.remove('open'); return; }
-  popup.classList.add('open');
+  popup.classList.toggle('open');
 }
 
 function closeMmColorPicker() {
