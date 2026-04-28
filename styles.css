@@ -468,27 +468,7 @@
   }
   .mindmap-hint.show { opacity: 1; }
 
-  .node-edit-popup {
-    display: none;
-    position: absolute;
-    background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    padding: 10px;
-    z-index: 100;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-  }
-  .node-edit-popup input {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 9px 13px;
-    color: var(--text);
-    font-size: 14px;
-    outline: none;
-    width: 220px;
-  }
-  .node-edit-popup input:focus { border-color: var(--accent); }
+  /* node-edit-popup: see global styles at bottom of file */
 
   /* ============== TIME BLOCK ============== */
   .timeblock-page { flex-direction: row; overflow: hidden; }
@@ -1794,9 +1774,7 @@
     /* ======= Toast positioned above tab bar ======= */
     .toast { bottom: calc(70px + var(--safe-bot)); }
 
-    /* ======= Node edit popup compact ======= */
-    .node-edit-popup { padding: 8px; }
-    .node-edit-popup input { width: 200px; padding: 8px 12px; font-size: 14px; }
+    /* node-edit-popup: see global styles */
   }
 
   /* Smaller phones */
@@ -5712,4 +5690,123 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
 }
 @media (min-width: 769px) {
   .tb-back-btn { display: none !important; }
+}
+
+/* =================== NODE ACTION BAR =================== */
+.node-action-bar {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 8px 12px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.18);
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s, transform 0.18s;
+  white-space: nowrap;
+}
+.node-action-bar.show {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.mm-canvas-wrap { position: relative; }
+.nab-colors {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.nab-color {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.13s;
+  flex-shrink: 0;
+}
+.nab-color:hover { transform: scale(1.25); }
+.nab-color.active {
+  border-color: var(--text);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.nab-sep {
+  width: 1px;
+  height: 22px;
+  background: var(--border);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+.nab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--text-dim);
+  transition: background 0.12s, color 0.12s;
+  font-size: 10px;
+}
+.nab-btn svg { width: 16px; height: 16px; }
+.nab-btn span { font-size: 10px; line-height: 1; }
+.nab-btn:hover { background: var(--surface2); color: var(--text); }
+.nab-btn.danger:hover { background: rgba(220,50,50,0.12); color: #dc322f; }
+
+/* Improved node edit popup */
+.node-edit-popup {
+  display: none;
+  position: fixed;
+  z-index: 600;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 8px 8px 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+  width: 290px;
+}
+.node-edit-popup input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 15px;
+  color: var(--text);
+  min-width: 0;
+}
+.node-edit-confirm {
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.node-edit-confirm:active { opacity: 0.8; }
+
+@media (max-width: 768px) {
+  .node-action-bar {
+    bottom: calc(16px + 50px + env(safe-area-inset-bottom));
+    border-radius: 14px;
+    padding: 8px 10px;
+    gap: 4px;
+  }
+  .nab-color { width: 22px; height: 22px; }
+  .nab-btn { padding: 4px 6px; }
 }

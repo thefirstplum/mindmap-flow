@@ -583,7 +583,9 @@ function pointerDown(e) {
     selectedEdge = null;
     draggingNode = node;
     lastMouse = { x: p.cx, y: p.cy };
+    syncToolbarColor(node.color || currentNodeColor);
     updateToolbarState();
+    updateNodeActionBar();
     drawMindMap();
   } else {
     const edgeIdx = getEdgeAt(p.x, p.y);
@@ -591,6 +593,7 @@ function pointerDown(e) {
       selectedEdge = edgeIdx;
       selectedNode = null;
       updateToolbarState();
+      updateNodeActionBar();
       drawMindMap();
     } else {
       selectedNode = null;
@@ -598,6 +601,7 @@ function pointerDown(e) {
       isPanning = true;
       lastMouse = { x: p.cx, y: p.cy };
       updateToolbarState();
+      updateNodeActionBar();
       drawMindMap();
     }
   }
@@ -805,13 +809,60 @@ function deleteSelected() {
 }
 
 function setNodeColor(el) {
-  document.querySelectorAll('.mindmap-toolbar .color-dot').forEach(d => d.classList.remove('active'));
-  el.classList.add('active');
   currentNodeColor = el.dataset.color;
+  syncToolbarColor(currentNodeColor);
   if (selectedNode) {
     const node = nodes.find(n => n.id === selectedNode);
     if (node) { node.color = currentNodeColor; saveMindMap(); drawMindMap(); }
   }
+}
+
+function syncToolbarColor(color) {
+  document.querySelectorAll('.mindmap-toolbar .color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === color));
+  document.querySelectorAll('#nab-colors .nab-color').forEach(d => d.classList.toggle('active', d.dataset.color === color));
+}
+
+// Palette shown in the node action bar
+const NAB_COLORS = [
+  { c: '#b58900', l: '옐로우' }, { c: '#cb4b16', l: '오렌지' }, { c: '#dc322f', l: '레드' },
+  { c: '#e11d48', l: '로즈' },   { c: '#d33682', l: '마젠타' }, { c: '#7c3aed', l: '퍼플' },
+  { c: '#6c71c4', l: '바이올렛' },{ c: '#268bd2', l: '블루' },  { c: '#2aa198', l: '시안' },
+  { c: '#859900', l: '그린' },   { c: '#475569', l: '슬레이트' }
+];
+
+function initNodeActionBar() {
+  const el = document.getElementById('nab-colors');
+  if (!el) return;
+  el.innerHTML = NAB_COLORS.map(({ c, l }) =>
+    `<span class="nab-color" data-color="${c}" style="background:${c}" onclick="nabSetColor('${c}')" title="${l}"></span>`
+  ).join('');
+}
+
+function nabSetColor(color) {
+  currentNodeColor = color;
+  syncToolbarColor(color);
+  if (selectedNode) {
+    const node = nodes.find(n => n.id === selectedNode);
+    if (node) { node.color = color; saveMindMap(); drawMindMap(); }
+  }
+}
+
+function updateNodeActionBar() {
+  const bar = document.getElementById('node-action-bar');
+  if (!bar) return;
+  if (!selectedNode) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  const node = nodes.find(n => n.id === selectedNode);
+  if (node) syncToolbarColor(node.color || currentNodeColor);
+}
+
+function openNodeEditSelected() {
+  if (!selectedNode) return;
+  const node = nodes.find(n => n.id === selectedNode);
+  if (!node) return;
+  const sp = worldToScreen(node.x, node.y);
+  const rect = canvas.getBoundingClientRect();
+  openNodeEdit(node, sp.x + rect.left, sp.y + rect.top);
 }
 
 function zoomIn() { zoom = Math.min(3, zoom * 1.2); saveMindMap(); drawMindMap(); }
@@ -827,13 +878,22 @@ function openNodeEdit(node, cx, cy) {
   editingNodeId = node.id;
   editOriginalText = node.text;
   popupInput.value = node.text;
-  popup.style.display = 'block';
-  // Position adjust to stay in viewport
-  const popupW = 240;
-  const left = Math.min(window.innerWidth - popupW - 12, Math.max(12, cx - popupW/2));
-  const top = Math.min(window.innerHeight - 70, cy + 20);
-  popup.style.left = left + 'px';
-  popup.style.top = top + 'px';
+  popup.style.display = 'flex';
+
+  const positionPopup = () => {
+    const vv = window.visualViewport || { offsetTop: 0, height: window.innerHeight };
+    const vpBottom = vv.offsetTop + vv.height;
+    const popupW = 290;
+    const left = Math.min(window.innerWidth - popupW - 8, Math.max(8, cx - popupW / 2));
+    let top = cy + 32;
+    if (top + 56 > vpBottom - 16) top = cy - 32 - 56;
+    top = Math.max(vv.offsetTop + 8, Math.min(vpBottom - 64, top));
+    popup.style.left = left + 'px';
+    popup.style.top = top + 'px';
+  };
+  positionPopup();
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', positionPopup, { once: true });
+
   popupInput.focus();
   popupInput.select();
 }
@@ -866,6 +926,8 @@ setTimeout(() => {
 }, 800);
 
 updateToolbarState();
+initNodeActionBar();
+updateNodeActionBar();
 
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
@@ -874,7 +936,7 @@ document.addEventListener('keydown', e => {
   if (activePage === 'page-mindmap') {
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); addMindNode(); }
-    if (e.key === 'Escape') { selectedNode = null; selectedEdge = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); drawMindMap(); }
+    if (e.key === 'Escape') { selectedNode = null; selectedEdge = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); updateNodeActionBar(); drawMindMap(); }
   }
 });
 
