@@ -828,7 +828,14 @@ function toggleMmColorPicker(e) {
   if (e) e.stopPropagation();
   const popup = document.getElementById('mm-color-popup');
   if (!popup) return;
-  popup.classList.toggle('open');
+  if (popup.classList.contains('open')) { popup.classList.remove('open'); return; }
+  const btn = document.getElementById('mm-color-btn');
+  if (btn) {
+    const r = btn.getBoundingClientRect();
+    popup.style.top = (r.bottom + 8) + 'px';
+    popup.style.left = Math.max(8, r.left + r.width/2 - 100) + 'px';
+  }
+  popup.classList.add('open');
 }
 
 function closeMmColorPicker() {
