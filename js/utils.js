@@ -99,21 +99,57 @@ function md2html(md) {
   return s;
 }
 
-// =================== THEME (4 Bear themes) ===================
-// 'leather' kept as the internal name for the warm-graphite Charcoal
-// theme so existing body[data-theme="leather"] CSS keeps working.
-const THEMES = ['solarized', 'leather', 'solarized-dark', 'dracula'];
+// =================== THEME (12 Bear themes) ===================
+// Internal names map to CSS body[data-theme="xxx"] selectors.
+// 'leather' = Bear Charcoal (keeps existing CSS selector).
+// 'solarized' = Bear Solarized Light (default, no data-theme attr).
+const THEMES = [
+  'solarized', 'leather', 'toothpaste', 'cobalt',
+  'solarized-dark', 'panic', 'duotone-light', 'duotone-snow',
+  'gotham', 'dracula', 'dieci', 'ayu'
+];
 const THEME_LABELS = {
-  'solarized': 'Solarized Light',
-  'leather': 'Charcoal',
+  'solarized':      'Solarized Light',
+  'leather':        'Charcoal',
+  'toothpaste':     'Toothpaste',
+  'cobalt':         'Cobalt',
   'solarized-dark': 'Solarized Dark',
-  'dracula': 'Dracula'
+  'panic':          'Panic Mode',
+  'duotone-light':  'Duotone Light',
+  'duotone-snow':   'Duotone Snow',
+  'gotham':         'Gotham',
+  'dracula':        'Dracula',
+  'dieci':          'Dieci',
+  'ayu':            'Ayu'
+};
+// bg color + accent color for each theme swatch
+const THEME_COLORS = {
+  'solarized':      { bg: '#fdf6e3', accent: '#2aa198' },
+  'leather':        { bg: '#282828', accent: '#4ab4b4' },
+  'toothpaste':     { bg: '#1e2a38', accent: '#00c8c8' },
+  'cobalt':         { bg: '#193549', accent: '#ffc600' },
+  'solarized-dark': { bg: '#002b36', accent: '#2aa198' },
+  'panic':          { bg: '#1c1c1e', accent: '#f58220' },
+  'duotone-light':  { bg: '#f8f8fc', accent: '#6366f1' },
+  'duotone-snow':   { bg: '#ffffff', accent: '#0070f3' },
+  'gotham':         { bg: '#0d1117', accent: '#26a69a' },
+  'dracula':        { bg: '#282a36', accent: '#ff79c6' },
+  'dieci':          { bg: '#131313', accent: '#d4a520' },
+  'ayu':            { bg: '#fafafa', accent: '#399ee6' }
 };
 const THEME_META_COLOR = {
-  'solarized': '#fdf6e3',
-  'leather': '#1f2226',
+  'solarized':      '#fdf6e3',
+  'leather':        '#282828',
+  'toothpaste':     '#1e2a38',
+  'cobalt':         '#193549',
   'solarized-dark': '#002b36',
-  'dracula': '#282a36'
+  'panic':          '#1c1c1e',
+  'duotone-light':  '#f8f8fc',
+  'duotone-snow':   '#ffffff',
+  'gotham':         '#0d1117',
+  'dracula':        '#282a36',
+  'dieci':          '#131313',
+  'ayu':            '#fafafa'
 };
 
 function migrateThemeName(t) {
@@ -135,19 +171,54 @@ function applyTheme(theme) {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = THEME_META_COLOR[theme] || '#fdf6e3';
 
-  const themeBtn = document.getElementById('theme-toggle');
-  if (themeBtn) themeBtn.title = `테마: ${THEME_LABELS[theme]} (눌러서 다음)`;
-
   currentTheme = theme;
   try { localStorage.setItem('mindflow_theme', JSON.stringify(theme)); } catch {}
+
+  // Update picker active state if open
+  document.querySelectorAll('.theme-swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.theme === theme);
+  });
 }
 
 function toggleTheme() {
-  const idx = THEMES.indexOf(currentTheme);
-  const next = THEMES[(idx + 1) % THEMES.length];
-  applyTheme(next);
-  if (typeof drawMindMap === 'function') drawMindMap();
-  if (typeof toast === 'function') toast(THEME_LABELS[next]);
+  openThemePicker();
+}
+
+function openThemePicker() {
+  const overlay = document.getElementById('theme-picker-overlay');
+  const popup = document.getElementById('theme-picker-popup');
+  if (!overlay || !popup) return;
+
+  // Build grid if empty
+  const grid = document.getElementById('theme-picker-grid');
+  if (grid && !grid.children.length) {
+    THEMES.forEach(t => {
+      const c = THEME_COLORS[t];
+      const swatch = document.createElement('div');
+      swatch.className = 'theme-swatch' + (t === currentTheme ? ' active' : '');
+      swatch.dataset.theme = t;
+      swatch.innerHTML = `
+        <div class="theme-swatch-circle" style="background:${c.bg};">
+          <div style="position:absolute;bottom:0;right:0;width:14px;height:14px;border-radius:50%;background:${c.accent};border:2px solid rgba(255,255,255,0.25);"></div>
+        </div>
+        <span class="theme-swatch-label">${THEME_LABELS[t]}</span>`;
+      swatch.addEventListener('click', () => {
+        applyTheme(t);
+        if (typeof drawMindMap === 'function') drawMindMap();
+        if (typeof toast === 'function') toast(THEME_LABELS[t]);
+        closeThemePicker();
+      });
+      grid.appendChild(swatch);
+    });
+  }
+
+  overlay.classList.add('show');
+  popup.classList.add('show');
+}
+
+function closeThemePicker() {
+  document.getElementById('theme-picker-overlay')?.classList.remove('show');
+  document.getElementById('theme-picker-popup')?.classList.remove('show');
 }
 
 applyTheme(currentTheme);
