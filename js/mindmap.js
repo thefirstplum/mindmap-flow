@@ -845,7 +845,7 @@ function closeMmColorPicker() {
 
 // 팝업 외부 클릭 시 닫기
 document.addEventListener('click', e => {
-  if (!e.target.closest('.mm-color-picker-wrap')) closeMmColorPicker();
+  if (!e.target.closest('#mm-color-popup') && !e.target.closest('#mm-color-btn')) closeMmColorPicker();
 });
 
 // Palette shown in the node action bar
