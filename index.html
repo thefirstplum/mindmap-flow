@@ -145,24 +145,6 @@
                   <span class="mm-color-preview" id="mm-color-preview" style="background:#b58900"></span>
                   <svg class="icon-sm" style="width:10px;height:10px;opacity:.6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
                 </button>
-                <div class="mm-color-popup" id="mm-color-popup">
-                  <div class="mm-color-grid">
-                    <div class="color-dot active" style="background:#b58900" data-color="#b58900" onclick="setNodeColor(this);closeMmColorPicker()" title="옐로우"></div>
-                    <div class="color-dot" style="background:#cb4b16" data-color="#cb4b16" onclick="setNodeColor(this);closeMmColorPicker()" title="오렌지"></div>
-                    <div class="color-dot" style="background:#dc322f" data-color="#dc322f" onclick="setNodeColor(this);closeMmColorPicker()" title="레드"></div>
-                    <div class="color-dot" style="background:#e11d48" data-color="#e11d48" onclick="setNodeColor(this);closeMmColorPicker()" title="로즈"></div>
-                    <div class="color-dot" style="background:#d33682" data-color="#d33682" onclick="setNodeColor(this);closeMmColorPicker()" title="마젠타"></div>
-                    <div class="color-dot" style="background:#7c3aed" data-color="#7c3aed" onclick="setNodeColor(this);closeMmColorPicker()" title="퍼플"></div>
-                    <div class="color-dot" style="background:#6c71c4" data-color="#6c71c4" onclick="setNodeColor(this);closeMmColorPicker()" title="바이올렛"></div>
-                    <div class="color-dot" style="background:#0284c7" data-color="#0284c7" onclick="setNodeColor(this);closeMmColorPicker()" title="스카이"></div>
-                    <div class="color-dot" style="background:#268bd2" data-color="#268bd2" onclick="setNodeColor(this);closeMmColorPicker()" title="블루"></div>
-                    <div class="color-dot" style="background:#2aa198" data-color="#2aa198" onclick="setNodeColor(this);closeMmColorPicker()" title="시안"></div>
-                    <div class="color-dot" style="background:#0d9488" data-color="#0d9488" onclick="setNodeColor(this);closeMmColorPicker()" title="틸"></div>
-                    <div class="color-dot" style="background:#859900" data-color="#859900" onclick="setNodeColor(this);closeMmColorPicker()" title="그린"></div>
-                    <div class="color-dot" style="background:#92400e" data-color="#92400e" onclick="setNodeColor(this);closeMmColorPicker()" title="브라운"></div>
-                    <div class="color-dot" style="background:#475569" data-color="#475569" onclick="setNodeColor(this);closeMmColorPicker()" title="슬레이트"></div>
-                  </div>
-                </div>
               </div>
               <div class="sep"></div>
               <button class="tb-btn" onclick="zoomIn()" title="확대">+</button>
@@ -623,5 +605,25 @@
 <script src="js/drawing.js" defer></script>
 <script src="js/sync.js" defer></script>
 <script src="js/main.js" defer></script>
+
+<!-- Mindmap color picker popup — must be direct child of body to escape backdrop-filter stacking context -->
+<div class="mm-color-popup" id="mm-color-popup">
+  <div class="mm-color-grid">
+    <div class="color-dot active" style="background:#b58900" data-color="#b58900" onclick="setNodeColor(this);closeMmColorPicker()" title="옐로우"></div>
+    <div class="color-dot" style="background:#cb4b16" data-color="#cb4b16" onclick="setNodeColor(this);closeMmColorPicker()" title="오렌지"></div>
+    <div class="color-dot" style="background:#dc322f" data-color="#dc322f" onclick="setNodeColor(this);closeMmColorPicker()" title="레드"></div>
+    <div class="color-dot" style="background:#e11d48" data-color="#e11d48" onclick="setNodeColor(this);closeMmColorPicker()" title="로즈"></div>
+    <div class="color-dot" style="background:#d33682" data-color="#d33682" onclick="setNodeColor(this);closeMmColorPicker()" title="마젠타"></div>
+    <div class="color-dot" style="background:#7c3aed" data-color="#7c3aed" onclick="setNodeColor(this);closeMmColorPicker()" title="퍼플"></div>
+    <div class="color-dot" style="background:#6c71c4" data-color="#6c71c4" onclick="setNodeColor(this);closeMmColorPicker()" title="바이올렛"></div>
+    <div class="color-dot" style="background:#0284c7" data-color="#0284c7" onclick="setNodeColor(this);closeMmColorPicker()" title="스카이"></div>
+    <div class="color-dot" style="background:#268bd2" data-color="#268bd2" onclick="setNodeColor(this);closeMmColorPicker()" title="블루"></div>
+    <div class="color-dot" style="background:#2aa198" data-color="#2aa198" onclick="setNodeColor(this);closeMmColorPicker()" title="시안"></div>
+    <div class="color-dot" style="background:#0d9488" data-color="#0d9488" onclick="setNodeColor(this);closeMmColorPicker()" title="틸"></div>
+    <div class="color-dot" style="background:#859900" data-color="#859900" onclick="setNodeColor(this);closeMmColorPicker()" title="그린"></div>
+    <div class="color-dot" style="background:#92400e" data-color="#92400e" onclick="setNodeColor(this);closeMmColorPicker()" title="브라운"></div>
+    <div class="color-dot" style="background:#475569" data-color="#475569" onclick="setNodeColor(this);closeMmColorPicker()" title="슬레이트"></div>
+  </div>
+</div>
 </body>
 </html>
