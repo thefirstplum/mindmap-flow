@@ -167,10 +167,21 @@ function renderTimeBlocks() {
       ${height > 36 ? `<div class="block-time">${b.start} – ${b.end}</div>` : ''}
       ${todoTotal > 0 && height > 50 ? `<div class="block-todo-chip">${todoDone}/${todoTotal} ✓</div>` : ''}
       ${b.desc && height > 78 ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
-      <button class="block-delete" data-del="${idx}">✕</button>
+      <div class="block-actions">
+        <button class="block-dup" data-dup="${idx}" title="복제">⎘</button>
+        <button class="block-delete" data-del="${idx}" title="삭제">✕</button>
+      </div>
       <div class="tb-resize-handle"></div>
     </div>`;
   });
+  // 블록이 없으면 안내 힌트 표시
+  if (blocks.length === 0) {
+    html += `<div class="tb-empty-state">
+      <div class="tb-empty-icon">📅</div>
+      <div class="tb-empty-title">오늘의 계획을 세워보세요</div>
+      <div class="tb-empty-desc">시간대를 탭하면 블록을 추가할 수 있어요</div>
+    </div>`;
+  }
   html += '</div>';
   html += '</div>';
 
@@ -194,11 +205,29 @@ function renderTimeBlocks() {
         if (confirm('이 블록을 삭제하시겠습니까?')) deleteTbBlock(key, idx);
         return;
       }
+      if (e.target.closest('[data-dup]')) {
+        e.stopPropagation();
+        const idx = parseInt(e.target.dataset.dup);
+        duplicateTbBlock(key, idx);
+        return;
+      }
       const idx = parseInt(item.dataset.idx);
       editTbBlock(key, idx);
     });
   });
   attachTbDrag(body, key);
+
+  // 오늘 보는 경우 현재 시각 라인으로 자동 스크롤
+  if (isToday) {
+    requestAnimationFrame(() => {
+      const nowRow = body.querySelector('.now-row');
+      const container = document.querySelector('.tb-main');
+      if (nowRow && container) {
+        const top = nowRow.offsetTop - container.clientHeight / 3;
+        container.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      }
+    });
+  }
 }
 
 let _tbDragJustEnded = false;
@@ -340,7 +369,7 @@ function attachTbDrag(container, key) {
     const handle = e.target.closest('.tb-resize-handle');
     const item   = e.target.closest('.time-block-item');
     if (!item) return;
-    if (!handle && e.target.closest('.block-checkbox, .block-delete, [data-toggle], [data-del]')) return;
+    if (!handle && e.target.closest('.block-checkbox, .block-delete, .block-dup, [data-toggle], [data-del], [data-dup]')) return;
 
     const origStartMin = minutesFromTime(item.dataset.start);
     const origEndMin   = minutesFromTime(item.dataset.end);
@@ -568,6 +597,23 @@ function deleteTbBlock(key, idx) {
   save('tb_blocks', timeBlocks);
   renderTimeBlocks();
   renderTimeblockList();
+}
+
+function duplicateTbBlock(key, idx) {
+  const blocks = timeBlocks[key];
+  if (!blocks || !blocks[idx]) return;
+  const src = blocks[idx];
+  const dur = minutesFromTime(src.end) - minutesFromTime(src.start);
+  const newStart = Math.min(23 * 60 + 59, minutesFromTime(src.end));
+  const newEnd = Math.min(23 * 60 + 59, newStart + dur);
+  const copy = { ...src, start: minsToTime(newStart), end: minsToTime(newEnd), done: false, todos: (src.todos || []).map(t => ({ ...t, done: false })) };
+  blocks.splice(idx + 1, 0, copy);
+  blocks.sort((a, b) => a.start.localeCompare(b.start));
+  save('tb_blocks', timeBlocks);
+  updateTbMeta(key);
+  renderTimeBlocks();
+  renderTimeblockList();
+  toast('블록이 복제되었습니다', 'success');
 }
 
 function toggleTbDone(key, idx) {

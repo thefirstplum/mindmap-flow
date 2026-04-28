@@ -302,9 +302,9 @@ function drawMindMap() {
   const startY = Math.floor(-pan.y / zoom / grid) * grid;
   const endX = startX + (w / zoom) + grid * 2;
   const endY = startY + (h / zoom) + grid * 2;
-  ctx.strokeStyle = (document.body.getAttribute('data-theme') === 'leather')
-    ? 'rgba(255,255,255,0.04)'
-    : 'rgba(60,40,20,0.07)';
+  const _darkThemes = new Set(['leather','cobalt','solarized-dark','panic','gotham','dracula','dieci','toothpaste']);
+  const _isDarkMm = _darkThemes.has(document.body.getAttribute('data-theme') || '');
+  ctx.strokeStyle = _isDarkMm ? 'rgba(255,255,255,0.05)' : 'rgba(60,40,20,0.07)';
   ctx.lineWidth = 1 / zoom;
   for (let x = startX; x < endX; x += grid) {
     ctx.beginPath(); ctx.moveTo(x, startY); ctx.lineTo(x, endY); ctx.stroke();
@@ -818,9 +818,29 @@ function setNodeColor(el) {
 }
 
 function syncToolbarColor(color) {
-  document.querySelectorAll('.mindmap-toolbar .color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === color));
+  document.querySelectorAll('.mm-color-grid .color-dot').forEach(d => d.classList.toggle('active', d.dataset.color === color));
   document.querySelectorAll('#nab-colors .nab-color').forEach(d => d.classList.toggle('active', d.dataset.color === color));
+  const preview = document.getElementById('mm-color-preview');
+  if (preview) preview.style.background = color;
 }
+
+function toggleMmColorPicker() {
+  const popup = document.getElementById('mm-color-popup');
+  if (!popup) return;
+  const isOpen = popup.classList.contains('open');
+  if (isOpen) { popup.classList.remove('open'); return; }
+  popup.classList.add('open');
+}
+
+function closeMmColorPicker() {
+  const popup = document.getElementById('mm-color-popup');
+  if (popup) popup.classList.remove('open');
+}
+
+// 팝업 외부 클릭 시 닫기
+document.addEventListener('click', e => {
+  if (!e.target.closest('.mm-color-picker-wrap')) closeMmColorPicker();
+});
 
 // Palette shown in the node action bar
 const NAB_COLORS = [
@@ -869,6 +889,30 @@ function zoomIn() { zoom = Math.min(3, zoom * 1.2); saveMindMap(); drawMindMap()
 function zoomOut() { zoom = Math.max(0.2, zoom / 1.2); saveMindMap(); drawMindMap(); }
 function resetView() { zoom = 1; pan = { x: 0, y: 0 }; saveMindMap(); drawMindMap(); }
 
+function fitToScreen() {
+  if (!canvas || nodes.length === 0) return;
+  const PADDING = 60;
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  nodes.forEach(n => {
+    minX = Math.min(minX, n.x - 80);
+    minY = Math.min(minY, n.y - 30);
+    maxX = Math.max(maxX, n.x + 80);
+    maxY = Math.max(maxY, n.y + 30);
+  });
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+  const bw = maxX - minX;
+  const bh = maxY - minY;
+  const newZoom = Math.min(3, Math.max(0.2, Math.min((w - PADDING * 2) / bw, (h - PADDING * 2) / bh)));
+  pan = {
+    x: (w - bw * newZoom) / 2 - minX * newZoom,
+    y: (h - bh * newZoom) / 2 - minY * newZoom,
+  };
+  zoom = newZoom;
+  saveMindMap();
+  drawMindMap();
+}
+
 const popup = document.getElementById('node-edit-popup');
 const popupInput = document.getElementById('node-edit-input');
 let editingNodeId = null;
@@ -901,10 +945,22 @@ function openNodeEdit(node, cx, cy) {
 function closeNodeEdit(cancel) {
   if (editingNodeId && !cancel) {
     const node = nodes.find(n => n.id === editingNodeId);
-    if (node && popupInput.value.trim()) {
-      node.text = popupInput.value.trim();
-      saveMindMap();
-      drawMindMap();
+    if (node) {
+      const text = popupInput.value.trim();
+      if (text) {
+        node.text = text;
+        saveMindMap();
+        drawMindMap();
+      } else if (!editOriginalText) {
+        // 새 노드에 아무것도 입력 안 했으면 삭제
+        const nid = node.id;
+        nodes.splice(nodes.indexOf(node), 1);
+        for (let i = edges.length - 1; i >= 0; i--) {
+          if (edges[i].from === nid || edges[i].to === nid) edges.splice(i, 1);
+        }
+        saveMindMap();
+        drawMindMap();
+      }
     }
   }
   popup.style.display = 'none';

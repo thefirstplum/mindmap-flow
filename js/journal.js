@@ -23,6 +23,8 @@ function renderJournalDate() {
   if (!el) return;
   el.innerHTML = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일<span class="day-of-week">${dayNames[d.getDay()]}</span>`
     + (isToday ? '<span class="today-badge">오늘</span>' : '');
+  const todayBtn = document.getElementById('journal-today-btn');
+  if (todayBtn) todayBtn.style.display = isToday ? 'none' : '';
 }
 
 function renderJournalEditor() {
@@ -74,12 +76,53 @@ function _pruneJournalEntry(key) {
   if (e && !e.mood && !(e.content || '').trim()) delete journalEntries[key];
 }
 
+function calcJournalStreak() {
+  const keys = Object.keys(journalEntries).sort((a, b) => b.localeCompare(a));
+  if (keys.length === 0) return 0;
+  const today = journalDK(new Date());
+  let streak = 0;
+  let cursor = new Date();
+  // If today has no entry, start checking from yesterday
+  if (!journalEntries[today]) cursor.setDate(cursor.getDate() - 1);
+  while (true) {
+    const k = journalDK(cursor);
+    if (!journalEntries[k]) break;
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function calcTopMood() {
+  const freq = {};
+  Object.values(journalEntries).forEach(e => {
+    if (e.mood) freq[e.mood] = (freq[e.mood] || 0) + 1;
+  });
+  let top = null, topCount = 0;
+  Object.entries(freq).forEach(([emoji, count]) => {
+    if (count > topCount) { top = emoji; topCount = count; }
+  });
+  return top;
+}
+
+function renderJournalStats() {
+  const el = document.getElementById('journal-stats-row');
+  if (!el) return;
+  const streak = calcJournalStreak();
+  const topMood = calcTopMood();
+  const parts = [];
+  if (streak > 0) parts.push(`<span class="jstat-chip">🔥 ${streak}일 연속</span>`);
+  if (topMood) parts.push(`<span class="jstat-chip">${topMood} 자주</span>`);
+  el.innerHTML = parts.join('');
+}
+
 function renderJournalList() {
   const container = document.getElementById('journal-items');
   if (!container) return;
   const keys = Object.keys(journalEntries).sort((a, b) => b.localeCompare(a));
   const countEl = document.getElementById('journal-count');
   if (countEl) countEl.textContent = keys.length;
+  renderJournalStats();
   const curKey = journalDK(journalCurrentDate);
   const todayKey = journalDK(new Date());
 
