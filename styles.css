@@ -5682,15 +5682,23 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
     transform: translateX(-100%);
     pointer-events: none;
   }
-  .journal-main {
-    width: 100%;
-  }
+  .journal-main { width: 100%; }
   .panel-reopen-btn { display: none; }
-  .tb-back-btn { display: flex; }
+  /* tb-back-btn은 show-detail일 때만 표시 (중복 화살표 방지) */
+  .journal-page .tb-back-btn { display: none; }
+  .journal-page.show-detail .tb-back-btn { display: flex; }
   .journal-body { padding: 16px; }
 }
 @media (min-width: 769px) {
   .tb-back-btn { display: none !important; }
+  /* 에디터 본문 센터 정렬 — padding으로 계산 (max-width+margin 대신) */
+  .journal-body {
+    padding-left: max(24px, calc(50% - 336px)) !important;
+    padding-right: max(24px, calc(50% - 336px)) !important;
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+  }
 }
 
 /* =================== NODE ACTION BAR =================== */
@@ -6994,4 +7002,198 @@ body[data-theme="dieci"] .mindmap-item.active {
   padding: 10px 16px !important;
   box-shadow: none !important;
   backdrop-filter: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Y. TIMEBLOCK — 블록 액션 버튼 & 빈 상태
+   ───────────────────────────────────────────────────────────────── */
+.block-actions {
+  position: absolute !important;
+  top: 4px !important;
+  right: 4px !important;
+  display: none !important;
+  gap: 3px !important;
+  z-index: 2 !important;
+}
+.time-block-item:hover .block-actions,
+.time-block-item:focus-within .block-actions {
+  display: flex !important;
+}
+@media (max-width: 768px) {
+  .block-actions { display: flex !important; }
+}
+.block-dup,
+.block-delete {
+  appearance: none !important;
+  border: none !important;
+  background: rgba(0,0,0,0.28) !important;
+  color: #fff !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 5px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  transition: background 0.12s !important;
+}
+.block-dup:hover { background: rgba(0,0,0,0.5) !important; }
+.block-delete:hover { background: rgba(220,50,50,0.75) !important; }
+
+.tb-empty-state {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  padding: 40px 20px !important;
+  text-align: center !important;
+  z-index: 0 !important;
+}
+.tb-empty-icon {
+  font-size: 40px !important;
+  line-height: 1 !important;
+  margin-bottom: 12px !important;
+  opacity: 0.6 !important;
+}
+.tb-empty-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  margin-bottom: 6px !important;
+  opacity: 0.7 !important;
+}
+.tb-empty-desc {
+  font-size: 12px !important;
+  color: var(--text-mute) !important;
+  line-height: 1.6 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Z. JOURNAL — 스트릭 · 감정 통계 칩
+   ───────────────────────────────────────────────────────────────── */
+.journal-stats-row {
+  display: flex !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  padding: 6px 0 2px !important;
+}
+.jstat-chip {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  background: var(--surface2) !important;
+  color: var(--text-dim) !important;
+  border-radius: 100px !important;
+  padding: 3px 9px !important;
+  border: 1px solid var(--border) !important;
+  white-space: nowrap !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AA-0. 마인드맵 — 색상 팝업 피커
+   ───────────────────────────────────────────────────────────────── */
+.mm-color-picker-wrap {
+  position: relative !important;
+  flex-shrink: 0 !important;
+}
+.mm-color-btn {
+  height: 32px !important;
+  padding: 0 10px !important;
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: background 0.12s !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+.mm-color-btn:hover { background: var(--surface3) !important; }
+.mm-color-preview {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  border: 1.5px solid rgba(255,255,255,0.25) !important;
+}
+.mm-color-popup {
+  display: none !important;
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  padding: 10px !important;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14) !important;
+  z-index: 500 !important;
+}
+.mm-color-popup.open { display: block !important; }
+.mm-color-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 6px !important;
+}
+.mm-color-grid .color-dot {
+  width: 22px !important;
+  height: 22px !important;
+}
+@media (max-width: 768px) {
+  .mm-color-popup { left: 0 !important; transform: none !important; }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AA. 감정일기 — 목록 헤더 "오늘" 미니 버튼
+   ───────────────────────────────────────────────────────────────── */
+.j-today-mini-btn {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 9px !important;
+  border-radius: 100px !important;
+  background: var(--accent-glow) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  transition: background 0.12s !important;
+}
+.j-today-mini-btn:hover {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AB. journal-nav-header — 날짜 탐색 헤더 정렬
+   ───────────────────────────────────────────────────────────────── */
+.journal-nav-header .date-display {
+  flex: 1 !important;
+}
+/* "오늘로 이동" 버튼 — 다른 날짜일 때만 표시 (JS에서 display 제어) */
+#journal-today-btn {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 9px !important;
+  border-radius: 100px !important;
+  background: var(--accent-glow) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+  box-shadow: none !important;
+}
+#journal-today-btn:hover {
+  background: var(--accent) !important;
+  color: #fff !important;
 }

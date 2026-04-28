@@ -140,23 +140,34 @@
                 삭제
               </button>
               <div class="sep"></div>
-              <div class="color-dot active" style="background:#b58900" data-color="#b58900" onclick="setNodeColor(this)" title="옐로우"></div>
-              <div class="color-dot" style="background:#cb4b16" data-color="#cb4b16" onclick="setNodeColor(this)" title="오렌지"></div>
-              <div class="color-dot" style="background:#dc322f" data-color="#dc322f" onclick="setNodeColor(this)" title="레드"></div>
-              <div class="color-dot" style="background:#e11d48" data-color="#e11d48" onclick="setNodeColor(this)" title="로즈"></div>
-              <div class="color-dot" style="background:#d33682" data-color="#d33682" onclick="setNodeColor(this)" title="마젠타"></div>
-              <div class="color-dot" style="background:#7c3aed" data-color="#7c3aed" onclick="setNodeColor(this)" title="퍼플"></div>
-              <div class="color-dot" style="background:#6c71c4" data-color="#6c71c4" onclick="setNodeColor(this)" title="바이올렛"></div>
-              <div class="color-dot" style="background:#0284c7" data-color="#0284c7" onclick="setNodeColor(this)" title="스카이"></div>
-              <div class="color-dot" style="background:#268bd2" data-color="#268bd2" onclick="setNodeColor(this)" title="블루"></div>
-              <div class="color-dot" style="background:#2aa198" data-color="#2aa198" onclick="setNodeColor(this)" title="시안"></div>
-              <div class="color-dot" style="background:#0d9488" data-color="#0d9488" onclick="setNodeColor(this)" title="틸"></div>
-              <div class="color-dot" style="background:#859900" data-color="#859900" onclick="setNodeColor(this)" title="그린"></div>
-              <div class="color-dot" style="background:#92400e" data-color="#92400e" onclick="setNodeColor(this)" title="브라운"></div>
-              <div class="color-dot" style="background:#475569" data-color="#475569" onclick="setNodeColor(this)" title="슬레이트"></div>
+              <div class="mm-color-picker-wrap">
+                <button class="mm-color-btn" id="mm-color-btn" onclick="toggleMmColorPicker()" title="색상 선택">
+                  <span class="mm-color-preview" id="mm-color-preview" style="background:#b58900"></span>
+                  <svg class="icon-sm" style="width:10px;height:10px;opacity:.6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="mm-color-popup" id="mm-color-popup">
+                  <div class="mm-color-grid">
+                    <div class="color-dot active" style="background:#b58900" data-color="#b58900" onclick="setNodeColor(this);closeMmColorPicker()" title="옐로우"></div>
+                    <div class="color-dot" style="background:#cb4b16" data-color="#cb4b16" onclick="setNodeColor(this);closeMmColorPicker()" title="오렌지"></div>
+                    <div class="color-dot" style="background:#dc322f" data-color="#dc322f" onclick="setNodeColor(this);closeMmColorPicker()" title="레드"></div>
+                    <div class="color-dot" style="background:#e11d48" data-color="#e11d48" onclick="setNodeColor(this);closeMmColorPicker()" title="로즈"></div>
+                    <div class="color-dot" style="background:#d33682" data-color="#d33682" onclick="setNodeColor(this);closeMmColorPicker()" title="마젠타"></div>
+                    <div class="color-dot" style="background:#7c3aed" data-color="#7c3aed" onclick="setNodeColor(this);closeMmColorPicker()" title="퍼플"></div>
+                    <div class="color-dot" style="background:#6c71c4" data-color="#6c71c4" onclick="setNodeColor(this);closeMmColorPicker()" title="바이올렛"></div>
+                    <div class="color-dot" style="background:#0284c7" data-color="#0284c7" onclick="setNodeColor(this);closeMmColorPicker()" title="스카이"></div>
+                    <div class="color-dot" style="background:#268bd2" data-color="#268bd2" onclick="setNodeColor(this);closeMmColorPicker()" title="블루"></div>
+                    <div class="color-dot" style="background:#2aa198" data-color="#2aa198" onclick="setNodeColor(this);closeMmColorPicker()" title="시안"></div>
+                    <div class="color-dot" style="background:#0d9488" data-color="#0d9488" onclick="setNodeColor(this);closeMmColorPicker()" title="틸"></div>
+                    <div class="color-dot" style="background:#859900" data-color="#859900" onclick="setNodeColor(this);closeMmColorPicker()" title="그린"></div>
+                    <div class="color-dot" style="background:#92400e" data-color="#92400e" onclick="setNodeColor(this);closeMmColorPicker()" title="브라운"></div>
+                    <div class="color-dot" style="background:#475569" data-color="#475569" onclick="setNodeColor(this);closeMmColorPicker()" title="슬레이트"></div>
+                  </div>
+                </div>
+              </div>
               <div class="sep"></div>
               <button class="tb-btn" onclick="zoomIn()" title="확대">+</button>
               <button class="tb-btn" onclick="zoomOut()" title="축소">−</button>
+              <button class="tb-btn" onclick="fitToScreen()" title="화면 맞춤">⊡</button>
               <button class="tb-btn" onclick="resetView()" title="초기화">↺</button>
             </div>
             <div class="mm-canvas-area">
@@ -254,14 +265,12 @@
               <div class="memo-list-title-row">
                 <div class="title">감정일기</div>
                 <div class="count" id="journal-count">0</div>
-                <button class="panel-collapse-btn" onclick="togglePanel('journal-page-root')" title="목록 닫기" style="margin-left:6px;">
+                <button class="j-today-mini-btn" onclick="journalGoToday()" title="오늘로 이동">오늘</button>
+                <button class="panel-collapse-btn" onclick="togglePanel('journal-page-root')" title="목록 닫기" style="margin-left:4px;">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
               </div>
-              <button class="today-jump-btn" onclick="journalGoToday()">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                오늘
-              </button>
+              <div class="journal-stats-row" id="journal-stats-row"></div>
             </div>
             <div class="journal-items" id="journal-items"></div>
           </aside>
@@ -274,6 +283,7 @@
               <button class="nav-arrow" onclick="journalPrevDay()">‹</button>
               <div class="date-display" id="journal-date">—</div>
               <button class="nav-arrow" onclick="journalNextDay()">›</button>
+              <button class="today-jump-btn" id="journal-today-btn" onclick="journalGoToday()" title="오늘로 이동" style="display:none">오늘</button>
             </div>
             <div class="journal-body">
               <div class="mood-picker" id="journal-mood-picker"></div>
