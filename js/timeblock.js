@@ -29,6 +29,7 @@ let tbSelectedColor = 'yellow';
 let tbClickedHour = null;
 let tbEditingIdx = null;
 let tbTodos = [];
+let _tbModalDuration = 60; // minutes — preserved when start time changes
 
 const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -143,6 +144,7 @@ function renderTimeBlocks() {
 
   // Foreground blocks layer (absolute positioned, visually span their duration)
   html += '<div class="time-blocks-layer">';
+  const layout = computeBlockLayout(blocks);
   blocks.forEach((b, idx) => {
     const startMin = minutesFromTime(b.start);
     const endMin = minutesFromTime(b.end);
@@ -156,7 +158,8 @@ function renderTimeBlocks() {
     const height = visibleHeight;
     const todoTotal = (b.todos || []).length;
     const todoDone = (b.todos || []).filter(t => t.done).length;
-    html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}" style="top:${top}px;height:${height}px;">
+    const { col, totalCols } = layout[idx];
+    html += `<div class="time-block-item tb-color-${b.color} ${b.done ? 'done' : ''}" data-idx="${idx}" data-start="${b.start}" data-end="${b.end}" style="top:${top}px;height:${height}px;${colStyle(col, totalCols)}">
       <div class="block-title">
         <span class="block-checkbox" data-toggle="${idx}" title="완료 토글" aria-label="완료 토글"></span>
         <span class="block-title-text">${escapeHtml(b.title)}</span>
@@ -165,6 +168,7 @@ function renderTimeBlocks() {
       ${todoTotal > 0 && height > 50 ? `<div class="block-todo-chip">${todoDone}/${todoTotal} ✓</div>` : ''}
       ${b.desc && height > 78 ? `<div class="block-desc">${escapeHtml(b.desc)}</div>` : ''}
       <button class="block-delete" data-del="${idx}">✕</button>
+      <div class="tb-resize-handle"></div>
     </div>`;
   });
   html += '</div>';
@@ -178,6 +182,7 @@ function renderTimeBlocks() {
   });
   body.querySelectorAll('.time-block-item').forEach(item => {
     item.addEventListener('click', e => {
+      if (_tbDragJustEnded) return;
       if (e.target.closest('[data-toggle]')) {
         const idx = parseInt(e.target.dataset.toggle);
         toggleTbDone(key, idx);
@@ -192,6 +197,170 @@ function renderTimeBlocks() {
       const idx = parseInt(item.dataset.idx);
       editTbBlock(key, idx);
     });
+  });
+  attachTbDrag(body, key);
+}
+
+let _tbDragJustEnded = false;
+
+function computeBlockLayout(blocks) {
+  const n = blocks.length;
+  const mS = blocks.map(b => minutesFromTime(b.start));
+  const mE = blocks.map((b, i) => Math.max(minutesFromTime(b.end), mS[i] + 1));
+  const col = new Array(n).fill(0);
+  const slots = [];
+  for (let i = 0; i < n; i++) {
+    let c = -1;
+    for (let s = 0; s < slots.length && s < 3; s++) {
+      if (slots[s] <= mS[i]) { c = s; break; }
+    }
+    if (c === -1) c = Math.min(slots.length, 2);
+    col[i] = c;
+    if (c >= slots.length) slots.push(mE[i]);
+    else slots[c] = Math.max(slots[c], mE[i]);
+  }
+  // Union-find: group transitively overlapping blocks together
+  const par = Array.from({length: n}, (_, i) => i);
+  const find = x => par[x] === x ? x : (par[x] = find(par[x]));
+  for (let i = 0; i < n; i++)
+    for (let j = i + 1; j < n; j++)
+      if (mS[i] < mE[j] && mE[i] > mS[j]) par[find(i)] = find(j);
+  const gMax = {};
+  for (let i = 0; i < n; i++) { const g = find(i); gMax[g] = Math.max(gMax[g] ?? 0, col[i]); }
+  return blocks.map((_, i) => ({ col: col[i], totalCols: gMax[find(i)] + 1 }));
+}
+
+function colStyle(c, total) {
+  if (total <= 1) return '';
+  const lp = (c / total * 100).toFixed(2);
+  const rp = ((total - c - 1) / total * 100).toFixed(2);
+  const left  = c === 0         ? '6px' : `calc(${lp}% + 3px)`;
+  const right = c === total - 1 ? '6px' : `calc(${rp}% + 3px)`;
+  return `left:${left};right:${right};`;
+}
+
+function minsToTime(m) {
+  m = Math.max(0, Math.min(23 * 60 + 59, Math.round(m)));
+  return `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+}
+
+function attachTbDrag(container, key) {
+  const layer = container.querySelector('.time-blocks-layer');
+  if (!layer) return;
+  const START_HOUR = 6;
+  const END_HOUR = 23;
+  const LONG_PRESS_MS = 420;
+
+  let drag = null;
+  let pending = null;
+  let lpTimer = null;
+
+  function clearPending() {
+    clearTimeout(lpTimer);
+    lpTimer = null;
+    if (pending) { pending.item.classList.remove('tb-pressing'); pending = null; }
+  }
+
+  function activateDrag() {
+    if (!pending) return;
+    lpTimer = null;
+    drag = pending;
+    pending = null;
+    drag.item.classList.remove('tb-pressing');
+    drag.item.classList.add('tb-dragging');
+    if (navigator.vibrate) navigator.vibrate(40);
+  }
+
+  function onMove(e) {
+    if (pending) {
+      const dx = e.clientX - pending.startX;
+      const dy = e.clientY - pending.startY;
+      if (dx * dx + dy * dy > 64) clearPending(); // >8px, user is scrolling
+    }
+    if (!drag) return;
+    e.preventDefault();
+
+    const delta = e.clientY - drag.startY;
+    const deltaMin = Math.round(delta / 5) * 5;
+
+    if (drag.mode === 'move') {
+      const dur = drag.origEndMin - drag.origStartMin;
+      let s = Math.max(START_HOUR * 60, Math.min(END_HOUR * 60 - dur, drag.origStartMin + deltaMin));
+      drag.curStartMin = s;
+      drag.curEndMin   = s + dur;
+      drag.item.style.top = (s - START_HOUR * 60) + 'px';
+    } else {
+      let e2 = Math.max(drag.origStartMin + 15, Math.min((END_HOUR + 1) * 60, drag.origEndMin + deltaMin));
+      drag.curEndMin = e2;
+      drag.item.style.height = Math.max(15, e2 - drag.origStartMin) + 'px';
+    }
+
+    const timeEl = drag.item.querySelector('.block-time');
+    if (timeEl) timeEl.textContent = `${minsToTime(drag.curStartMin)} – ${minsToTime(drag.curEndMin)}`;
+  }
+
+  function onUp() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    clearPending();
+    if (!drag) return;
+
+    const { item, idx, curStartMin, curEndMin } = drag;
+    item.classList.remove('tb-dragging');
+    drag = null;
+
+    _tbDragJustEnded = true;
+    setTimeout(() => { _tbDragJustEnded = false; }, 250);
+
+    const blocks = timeBlocks[key];
+    if (!blocks || !blocks[idx]) { renderTimeBlocks(); return; }
+    blocks[idx].start = minsToTime(curStartMin);
+    blocks[idx].end   = minsToTime(curEndMin);
+    timeBlocks[key].sort((a, b) => a.start.localeCompare(b.start));
+    save('tb_blocks', timeBlocks);
+    updateTbMeta(key);
+    renderTimeBlocks();
+    renderTimeblockList();
+  }
+
+  function onCancel() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onCancel);
+    clearPending();
+    if (!drag) return;
+    drag.item.classList.remove('tb-dragging');
+    drag.item.style.top    = drag.origTop + 'px';
+    drag.item.style.height = drag.origHeight + 'px';
+    drag = null;
+  }
+
+  layer.addEventListener('pointerdown', e => {
+    const handle = e.target.closest('.tb-resize-handle');
+    const item   = e.target.closest('.time-block-item');
+    if (!item) return;
+    if (!handle && e.target.closest('.block-checkbox, .block-delete, [data-toggle], [data-del]')) return;
+
+    const origStartMin = minutesFromTime(item.dataset.start);
+    const origEndMin   = minutesFromTime(item.dataset.end);
+    pending = {
+      item,
+      idx: parseInt(item.dataset.idx),
+      mode: handle ? 'resize' : 'move',
+      startX: e.clientX, startY: e.clientY,
+      origTop: parseInt(item.style.top),
+      origHeight: parseInt(item.style.height),
+      origStartMin, origEndMin,
+      curStartMin: origStartMin,
+      curEndMin: origEndMin,
+    };
+    item.classList.add('tb-pressing');
+    lpTimer = setTimeout(activateDrag, LONG_PRESS_MS);
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel);
   });
 }
 
@@ -282,6 +451,7 @@ function openTbModal(hour) {
   document.getElementById('tb-desc').value = '';
   document.getElementById('tb-done').checked = false;
   tbTodos = [];
+  _tbModalDuration = 60;
   renderTbTodos();
   const firstDot = document.querySelector('.modal-colors .mc');
   tbSelectedColor = firstDot?.dataset.color || 'yellow';
@@ -302,6 +472,7 @@ function editTbBlock(key, idx) {
   document.getElementById('tb-desc').value = block.desc || '';
   document.getElementById('tb-done').checked = !!block.done;
   tbTodos = (block.todos || []).map(t => ({ ...t }));
+  _tbModalDuration = Math.max(15, minutesFromTime(block.end) - minutesFromTime(block.start));
   renderTbTodos();
   tbSelectedColor = block.color;
   document.querySelectorAll('.modal-colors .mc').forEach(m => {
@@ -412,10 +583,25 @@ renderDate();
 renderTimeBlocks();
 renderTimeblockList();
 
-// Wire todo input Enter key
+// Wire modal input events
 (function() {
   const inp = document.getElementById('tb-todo-input');
   if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTbTodo(); } });
+
+  const startInput = document.getElementById('tb-start');
+  const endInput   = document.getElementById('tb-end');
+  if (startInput && endInput) {
+    startInput.addEventListener('change', () => {
+      const s = minutesFromTime(startInput.value);
+      endInput.value = minsToTime(Math.min(23 * 60 + 59, s + _tbModalDuration));
+    });
+    // Also track manual end changes to keep duration in sync
+    endInput.addEventListener('change', () => {
+      const s = minutesFromTime(startInput.value);
+      const e = minutesFromTime(endInput.value);
+      if (e > s) _tbModalDuration = e - s;
+    });
+  }
 })();
 
 // Refresh "now" indicator every minute
