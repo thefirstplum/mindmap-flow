@@ -820,6 +820,7 @@
     border-radius: 2px;
     margin: 3px auto 0;
   }
+  .time-block-item { touch-action: none; }
   .time-block-item.tb-pressing {
     transform: scale(0.96);
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -5553,6 +5554,7 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   display: flex;
   height: 100%;
   overflow: hidden;
+  position: relative;
 }
 .journal-list-panel {
   width: 260px;
@@ -5632,7 +5634,7 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding: 20px 24px 24px;
   max-width: 720px;
   width: 100%;

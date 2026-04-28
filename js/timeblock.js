@@ -275,7 +275,7 @@ function attachTbDrag(container, key) {
     if (pending) {
       const dx = e.clientX - pending.startX;
       const dy = e.clientY - pending.startY;
-      if (dx * dx + dy * dy > 64) clearPending(); // >8px, user is scrolling
+      if (dx * dx + dy * dy > 400) clearPending(); // >20px, user is scrolling
     }
     if (!drag) return;
     e.preventDefault();
