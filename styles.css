@@ -276,7 +276,7 @@
   .content { flex: 1; overflow: hidden; position: relative; }
   .page { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
   .page.active { display: flex; }
-  .mindmap-page, .timeblock-page, .memo-page, .journal-page {
+  .mindmap-page, .timeblock-page, .memo-page {
     flex: 1;
     width: 100%;
     height: 100%;
@@ -1174,8 +1174,6 @@
     color: var(--accent);
     font-weight: 500;
   }
-  .memo-tag-label { cursor: pointer; }
-  .memo-tag-label:hover { text-decoration: underline; }
   .memo-tag-del {
     background: none;
     border: none;
@@ -5702,7 +5700,9 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   flex-direction: column;
   overflow-y: auto;
   padding: 20px 24px 24px;
+  max-width: 720px;
   width: 100%;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
@@ -5777,7 +5777,11 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
 @media (min-width: 769px) {
   .tb-back-btn { display: none !important; }
   .journal-body {
+    align-self: center !important;
+    max-width: 720px !important;
+    width: 100% !important;
     padding: 24px 32px 32px !important;
+    margin: 0 !important;
   }
 }
 
