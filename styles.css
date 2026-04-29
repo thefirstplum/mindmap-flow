@@ -1174,6 +1174,8 @@
     color: var(--accent);
     font-weight: 500;
   }
+  .memo-tag-label { cursor: pointer; }
+  .memo-tag-label:hover { text-decoration: underline; }
   .memo-tag-del {
     background: none;
     border: none;
