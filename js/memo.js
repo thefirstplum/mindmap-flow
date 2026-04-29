@@ -201,7 +201,7 @@ function renderMemoEditor() {
     </div>
     <div class="memo-tags-row">
       <div id="memo-tag-chips">
-        ${(memo.tags || []).map(t => `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`).join('')}
+        ${(memo.tags || []).map(t => `<span class="memo-tag-chip"><span class="memo-tag-label" onclick="setTagFilter(${JSON.stringify(t)})">${escapeHtml(t)}</span><button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`).join('')}
       </div>
       <button class="memo-tag-add-btn" onclick="focusMemoTagInput()">+ 태그</button>
       <input type="text" id="memo-tag-input" class="memo-tag-input" placeholder="태그명..."
@@ -767,7 +767,7 @@ function _refreshMemoTagChips() {
   const chipsEl = document.getElementById('memo-tag-chips');
   if (!chipsEl || !memo) return;
   chipsEl.innerHTML = (memo.tags || []).map(t =>
-    `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`
+    `<span class="memo-tag-chip"><span class="memo-tag-label" onclick="setTagFilter(${JSON.stringify(t)})">${escapeHtml(t)}</span><button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`
   ).join('');
 }
 
