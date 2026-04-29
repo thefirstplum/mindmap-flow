@@ -31,6 +31,36 @@ let tbEditingIdx = null;
 let tbTodos = [];
 let _tbModalDuration = 60; // minutes — preserved when start time changes
 
+// ── 프리픽스 자동 색상 ──
+// "무전기: ㅇㅇ" 처럼 "PREFIX: 내용" 패턴을 감지해서 같은 프리픽스는 같은 색상으로 자동 매핑
+let tbPrefixColors = load('tb_prefix_colors', {}); // { "무전기": "yellow", "POS": "orange", ... }
+const TB_COLOR_CYCLE = ['yellow','orange','blue','green','purple','cyan','red','violet','teal','rose','magenta','sky','brown','slate'];
+
+function extractTbPrefix(title) {
+  const m = (title || '').match(/^([^:：]{1,20})[：:]\s*.+/);
+  return m ? m[1].trim() : null;
+}
+
+function getColorForPrefix(prefix) {
+  if (tbPrefixColors[prefix]) return tbPrefixColors[prefix];
+  // 새 프리픽스: 아직 안 쓴 색상 중 첫 번째 배정
+  const used = new Set(Object.values(tbPrefixColors));
+  const next = TB_COLOR_CYCLE.find(c => !used.has(c)) || TB_COLOR_CYCLE[Object.keys(tbPrefixColors).length % TB_COLOR_CYCLE.length];
+  tbPrefixColors[prefix] = next;
+  save('tb_prefix_colors', tbPrefixColors);
+  return next;
+}
+
+function applyPrefixColor(title) {
+  const prefix = extractTbPrefix(title);
+  if (!prefix) return;
+  const color = getColorForPrefix(prefix);
+  tbSelectedColor = color;
+  document.querySelectorAll('.modal-colors .mc').forEach(m => {
+    m.classList.toggle('active', m.dataset.color === color);
+  });
+}
+
 const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
 function dateKey(d) {
@@ -487,7 +517,10 @@ function openTbModal(hour) {
   document.querySelectorAll('.modal-colors .mc').forEach(m => m.classList.remove('active'));
   if (firstDot) firstDot.classList.add('active');
   document.getElementById('tb-modal').classList.add('show');
-  setTimeout(() => document.getElementById('tb-title').focus(), 100);
+  // 제목 입력 시 프리픽스 자동 색상 감지
+  const titleEl = document.getElementById('tb-title');
+  titleEl.oninput = () => applyPrefixColor(titleEl.value);
+  setTimeout(() => titleEl.focus(), 100);
 }
 
 function editTbBlock(key, idx) {
@@ -507,6 +540,9 @@ function editTbBlock(key, idx) {
   document.querySelectorAll('.modal-colors .mc').forEach(m => {
     m.classList.toggle('active', m.dataset.color === block.color);
   });
+  // 편집 시에도 제목 변경하면 프리픽스 자동 색상
+  const titleEl2 = document.getElementById('tb-title');
+  titleEl2.oninput = () => applyPrefixColor(titleEl2.value);
   document.getElementById('tb-modal').classList.add('show');
 }
 
@@ -562,6 +598,13 @@ function saveTbBlock() {
   if (!start || !end) { toast('시간을 설정하세요'); return; }
   const key = dateKey(currentDate);
   if (!timeBlocks[key]) timeBlocks[key] = [];
+
+  // 프리픽스가 있으면 현재 선택 색상을 해당 프리픽스에 저장 (수동 변경도 반영)
+  const prefix = extractTbPrefix(title);
+  if (prefix && tbPrefixColors[prefix] !== tbSelectedColor) {
+    tbPrefixColors[prefix] = tbSelectedColor;
+    save('tb_prefix_colors', tbPrefixColors);
+  }
 
   const data = {
     title, start, end,
