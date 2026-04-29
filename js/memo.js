@@ -2,6 +2,7 @@
 let memos = load('memos', []);
 let activeMemoId = null;
 let memoIdCounter = load('memo_idcounter', 1);
+let activeTagFilter = null;
 
 function saveMemos() {
   save('memos', memos);
@@ -9,7 +10,7 @@ function saveMemos() {
 }
 
 function createMemo() {
-  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString() };
+  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString(), tags: [] };
   memos.unshift(memo);
   activeMemoId = memo.id;
   // New memos open in live mode so user gets Bear-style inline editing
@@ -49,7 +50,25 @@ function deleteMemo(id) {
 
 function renderMemoList() {
   const search = document.getElementById('memo-search').value.toLowerCase();
-  const filtered = memos.filter(m => m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search));
+
+  // Tag filter bar
+  const allTags = [...new Set(memos.flatMap(m => m.tags || []))].sort();
+  const tagBar = document.getElementById('memo-tag-bar');
+  if (tagBar) {
+    if (allTags.length > 0) {
+      tagBar.innerHTML = `<div class="memo-tag-bar-inner">
+        <span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체</span>
+        ${allTags.map(t => `<span class="memo-filter-chip${activeTagFilter === t ? ' active' : ''}" onclick="setTagFilter(${JSON.stringify(t)})">${escapeHtml(t)}</span>`).join('')}
+      </div>`;
+    } else {
+      tagBar.innerHTML = '';
+    }
+  }
+
+  const filtered = memos.filter(m =>
+    (m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search)) &&
+    (!activeTagFilter || (m.tags || []).includes(activeTagFilter))
+  );
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
   if (countEl) countEl.textContent = memos.length;
@@ -147,6 +166,9 @@ function renderMemoEditor() {
   const liveIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/><circle cx="18" cy="5" r="0" fill="currentColor"/></svg>`;
   const editIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
 
+  // Don't blow away the DOM if the user is actively typing in this editor
+  if (document.activeElement && editor.contains(document.activeElement)) return;
+
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
       <button class="panel-reopen-btn" onclick="togglePanel('memo-page')" title="목록 열기">
@@ -176,6 +198,15 @@ function renderMemoEditor() {
       <span>${dateStr}</span>
       <span class="dot"></span>
       <span>${charCount}자 · ${wordCount}단어</span>
+    </div>
+    <div class="memo-tags-row">
+      <div id="memo-tag-chips">
+        ${(memo.tags || []).map(t => `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`).join('')}
+      </div>
+      <button class="memo-tag-add-btn" onclick="focusMemoTagInput()">+ 태그</button>
+      <input type="text" id="memo-tag-input" class="memo-tag-input" placeholder="태그명..."
+        onkeydown="if(event.key==='Enter'&&!event.isComposing){addMemoTagFromInput();} if(event.key==='Escape'){hideMemoTagInput();}"
+        onblur="setTimeout(hideMemoTagInput,150)">
     </div>
     ${bodyHtml}
   `;
@@ -725,6 +756,63 @@ function updateMemoContent(val) {
 }
 
 function filterMemos() { renderMemoList(); }
+
+function setTagFilter(tag) {
+  activeTagFilter = tag;
+  renderMemoList();
+}
+
+function _refreshMemoTagChips() {
+  const memo = memos.find(m => m.id === activeMemoId);
+  const chipsEl = document.getElementById('memo-tag-chips');
+  if (!chipsEl || !memo) return;
+  chipsEl.innerHTML = (memo.tags || []).map(t =>
+    `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`
+  ).join('');
+}
+
+function addMemoTag(tag) {
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (!memo) return;
+  tag = tag.trim();
+  if (!tag || (memo.tags || []).includes(tag)) return;
+  if (!memo.tags) memo.tags = [];
+  memo.tags.push(tag);
+  saveMemos();
+  _refreshMemoTagChips();
+  renderMemoList();
+}
+
+function removeMemoTag(tag) {
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (!memo) return;
+  memo.tags = (memo.tags || []).filter(t => t !== tag);
+  saveMemos();
+  _refreshMemoTagChips();
+  renderMemoList();
+}
+
+function focusMemoTagInput() {
+  const input = document.getElementById('memo-tag-input');
+  if (!input) return;
+  input.classList.add('visible');
+  input.focus();
+}
+
+function addMemoTagFromInput() {
+  const input = document.getElementById('memo-tag-input');
+  if (!input) return;
+  addMemoTag(input.value);
+  input.value = '';
+  hideMemoTagInput();
+}
+
+function hideMemoTagInput() {
+  const input = document.getElementById('memo-tag-input');
+  if (!input || document.activeElement === input) return;
+  input.classList.remove('visible');
+  input.value = '';
+}
 
 renderMemoList();
 renderMemoEditor();

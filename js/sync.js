@@ -1,4 +1,15 @@
 // =================== SYNC / BACKUP ===================
+
+// Run async tasks with at most `size` concurrent at a time
+async function batchAll(items, fn, size = 8) {
+  const results = [];
+  for (let i = 0; i < items.length; i += size) {
+    const chunk = items.slice(i, i + size);
+    results.push(...await Promise.all(chunk.map(fn)));
+  }
+  return results;
+}
+
 function getAllData() {
   return {
     version: 3,
@@ -184,6 +195,9 @@ function importData(event) {
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME = 'MindFlow';
 const DRIVE_ASSETS_NAME = 'assets';
+const DRIVE_MINDMAPS_NAME = 'mindmaps';
+const DRIVE_TIMEBLOCKS_NAME = 'timeblocks';
+const DRIVE_MEMOS_NAME = 'memos';
 const DRIVE_APP_FILENAME = '_mindflow-app.json';
 
 // Hardcoded default Client ID — published OAuth client for this app.
@@ -197,6 +211,9 @@ let driveTokenExpires = 0;
 let driveUserEmail = load('drive_user_email', null);
 let driveFolderId = load('drive_folder_id', null);
 let driveAssetsFolderId = load('drive_assets_folder_id', null);
+let driveMindmapsFolderId = load('drive_mindmaps_folder_id', null);
+let driveTimeblocksFolderId = load('drive_timeblocks_folder_id', null);
+let driveMemosFolderId = load('drive_memos_folder_id', null);
 let driveTokenClient = null;
 let drivePollTimer = null;
 let driveLastPushAt = 0;
@@ -349,6 +366,30 @@ async function driveListInFolder(folderId) {
   });
 }
 
+async function ensureSubfolders() {
+  if (!driveFolderId) return;
+  if (driveMindmapsFolderId && driveTimeblocksFolderId && driveMemosFolderId) return;
+  const results = await Promise.all([
+    driveMindmapsFolderId || driveFindOrCreateFolder(DRIVE_MINDMAPS_NAME, driveFolderId),
+    driveTimeblocksFolderId || driveFindOrCreateFolder(DRIVE_TIMEBLOCKS_NAME, driveFolderId),
+    driveMemosFolderId || driveFindOrCreateFolder(DRIVE_MEMOS_NAME, driveFolderId),
+  ]);
+  [driveMindmapsFolderId, driveTimeblocksFolderId, driveMemosFolderId] = results;
+  save('drive_mindmaps_folder_id', driveMindmapsFolderId);
+  save('drive_timeblocks_folder_id', driveTimeblocksFolderId);
+  save('drive_memos_folder_id', driveMemosFolderId);
+}
+
+async function driveListAll() {
+  const [root, mm, tb, memo] = await Promise.all([
+    driveListInFolder(driveFolderId),
+    driveMindmapsFolderId ? driveListInFolder(driveMindmapsFolderId) : { files: [] },
+    driveTimeblocksFolderId ? driveListInFolder(driveTimeblocksFolderId) : { files: [] },
+    driveMemosFolderId ? driveListInFolder(driveMemosFolderId) : { files: [] },
+  ]);
+  return [...root.files, ...mm.files, ...tb.files, ...memo.files];
+}
+
 async function driveFindOrCreateFolder(name, parentId) {
   const escaped = name.replace(/'/g, "\\'");
   const q = parentId
@@ -395,12 +436,20 @@ async function driveConnect() {
     } catch {}
     driveFolderId = await driveFindOrCreateFolder(DRIVE_FOLDER_NAME, null);
     save('drive_folder_id', driveFolderId);
-    driveAssetsFolderId = await driveFindOrCreateFolder(DRIVE_ASSETS_NAME, driveFolderId);
+    [driveAssetsFolderId, driveMindmapsFolderId, driveTimeblocksFolderId, driveMemosFolderId] = await Promise.all([
+      driveFindOrCreateFolder(DRIVE_ASSETS_NAME, driveFolderId),
+      driveFindOrCreateFolder(DRIVE_MINDMAPS_NAME, driveFolderId),
+      driveFindOrCreateFolder(DRIVE_TIMEBLOCKS_NAME, driveFolderId),
+      driveFindOrCreateFolder(DRIVE_MEMOS_NAME, driveFolderId),
+    ]);
     save('drive_assets_folder_id', driveAssetsFolderId);
+    save('drive_mindmaps_folder_id', driveMindmapsFolderId);
+    save('drive_timeblocks_folder_id', driveTimeblocksFolderId);
+    save('drive_memos_folder_id', driveMemosFolderId);
     updateDriveStatus();
 
-    const list = await driveListInFolder(driveFolderId);
-    const remoteHasData = list.files.some(f =>
+    const allFiles = await driveListAll();
+    const remoteHasData = allFiles.some(f =>
       f.name.toLowerCase().endsWith('.md') ||
       f.name === DRIVE_APP_FILENAME ||
       (f.name.startsWith('mindmap-') && f.name.endsWith('.json')) ||
@@ -408,7 +457,7 @@ async function driveConnect() {
     );
 
     if (remoteHasData) {
-      await drivePullAll(true); // 타임스탬프 기준 항목별 병합
+      await drivePullAll(true, allFiles);
     }
     await drivePushAll(); // 로컬에만 있는 항목 업로드
     if (cidInput) cidInput.value = '';
@@ -435,9 +484,15 @@ async function driveDisconnect() {
   save('drive_user_email', null);
   driveFolderId = null;
   driveAssetsFolderId = null;
+  driveMindmapsFolderId = null;
+  driveTimeblocksFolderId = null;
+  driveMemosFolderId = null;
   driveLastModifiedTime = null;
   save('drive_folder_id', null);
   save('drive_assets_folder_id', null);
+  save('drive_mindmaps_folder_id', null);
+  save('drive_timeblocks_folder_id', null);
+  save('drive_memos_folder_id', null);
   // Keep client_id for easy re-connect
   updateDriveStatus();
   toast('연결 해제됨');
@@ -458,81 +513,117 @@ async function drivePushAll() {
   try {
     driveStatus = 'saving';
     updateDriveStatus();
+    await ensureSubfolders();
 
-    // Get current files in folder
-    const current = await driveListInFolder(driveFolderId);
-    const byName = new Map();
-    const byMemoId = new Map();
-    for (const f of current.files) {
+    // List root + all subfolders in parallel
+    const [rootList, mmList, tbList, memoList] = await Promise.all([
+      driveListInFolder(driveFolderId),
+      driveMindmapsFolderId ? driveListInFolder(driveMindmapsFolderId) : { files: [] },
+      driveTimeblocksFolderId ? driveListInFolder(driveTimeblocksFolderId) : { files: [] },
+      driveMemosFolderId ? driveListInFolder(driveMemosFolderId) : { files: [] },
+    ]);
+
+    // Root: config files only. Detect legacy flat files that need migration.
+    const byRootName = new Map();
+    const flatToMigrate = [];
+    for (const f of rootList.files) {
       if (f.mimeType === 'application/vnd.google-apps.folder') continue;
-      byName.set(f.name, f);
-      // Match by appProperties.memoId (preferred) or legacy {id}-prefix filename
+      byRootName.set(f.name, f);
+      if (
+        (f.name.startsWith('mindmap-') && f.name.endsWith('.json')) ||
+        (f.name.startsWith('timeblock-') && f.name.endsWith('.json')) ||
+        f.name.toLowerCase().endsWith('.md')
+      ) flatToMigrate.push(f);
+    }
+
+    // Move legacy flat files to their new subfolders (best-effort, silent)
+    if (flatToMigrate.length > 0) {
+      await batchAll(flatToMigrate, async f => {
+        let targetId;
+        if (f.name.startsWith('mindmap-')) targetId = driveMindmapsFolderId;
+        else if (f.name.startsWith('timeblock-')) targetId = driveTimeblocksFolderId;
+        else if (f.name.toLowerCase().endsWith('.md')) targetId = driveMemosFolderId;
+        if (!targetId) return;
+        try { await driveApi('PATCH', `/files/${f.id}?addParents=${targetId}&removeParents=${driveFolderId}`, {}); } catch {}
+      });
+      // Refresh subfolder listings after migration
+      const [mm2, tb2, memo2] = await Promise.all([
+        driveListInFolder(driveMindmapsFolderId),
+        driveListInFolder(driveTimeblocksFolderId),
+        driveListInFolder(driveMemosFolderId),
+      ]);
+      mmList.files = mm2.files;
+      tbList.files = tb2.files;
+      memoList.files = memo2.files;
+    }
+
+    // Per-subfolder lookup maps
+    const byMmName = new Map();
+    for (const f of mmList.files) byMmName.set(f.name, f);
+
+    const byTbName = new Map();
+    for (const f of tbList.files) byTbName.set(f.name, f);
+
+    const byMemoId = new Map();
+    const byMemoName = new Map();
+    for (const f of memoList.files) {
+      byMemoName.set(f.name, f);
       const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
       const fnId = parseMemoIdFromFilename(f.name);
       const id = propId || fnId;
       if (id) byMemoId.set(id, f);
     }
 
-    // Journal — single file, full blob (entries keyed by YYYY-MM-DD, small enough)
+    // Journal (root)
     const journalData = JSON.stringify({ entries: load('journal_entries', {}), exportedAt: new Date().toISOString() }, null, 2);
-    const journalFile = byName.get('journal.json');
+    const journalFile = byRootName.get('journal.json');
     if (journalFile) await driveUpdateFile(journalFile.id, journalData, 'application/json');
     else await driveUploadFile('journal.json', journalData, 'application/json', driveFolderId);
 
-    // Prefix color mapping
+    // Prefix colors (root)
     const prefixData = JSON.stringify(load('tb_prefix_colors', {}), null, 2);
-    const prefixFile = byName.get('tb-prefix-colors.json');
+    const prefixFile = byRootName.get('tb-prefix-colors.json');
     if (prefixFile) await driveUpdateFile(prefixFile.id, prefixData, 'application/json');
     else await driveUploadFile('tb-prefix-colors.json', prefixData, 'application/json', driveFolderId);
 
-    // Slim meta file — settings only; mindmaps/timeblocks stored as individual files
+    // App meta (root)
     const appData = {
-      version: 3,
-      app: 'mindflow',
-      exportedAt: new Date().toISOString(),
-      activeMindmapId: load('mm_active', null),
-      settings: load('settings', {})
+      version: 3, app: 'mindflow', exportedAt: new Date().toISOString(),
+      activeMindmapId: load('mm_active', null), settings: load('settings', {}),
     };
     const appJson = JSON.stringify(appData, null, 2);
-    const appFile = byName.get(DRIVE_APP_FILENAME);
-    if (appFile) {
-      await driveUpdateFile(appFile.id, appJson, 'application/json');
-    } else {
-      await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
-    }
+    const appFile = byRootName.get(DRIVE_APP_FILENAME);
+    if (appFile) await driveUpdateFile(appFile.id, appJson, 'application/json');
+    else await driveUploadFile(DRIVE_APP_FILENAME, appJson, 'application/json', driveFolderId);
 
-    // Individual mindmap files — one per map, enables per-map timestamp merge
-    const localMmFnames = new Set();
-    for (const mm of load('mindmaps', [])) {
+    // Mindmaps → mindmaps/ subfolder
+    const localMindmaps = load('mindmaps', []);
+    const localMmFnames = new Set(localMindmaps.map(mm => `mindmap-${mm.id}.json`));
+    await batchAll(localMindmaps, async mm => {
       const fname = `mindmap-${mm.id}.json`;
-      localMmFnames.add(fname);
-      const existing = byName.get(fname);
+      const existing = byMmName.get(fname);
       if (existing) await driveUpdateFile(existing.id, JSON.stringify(mm, null, 2), 'application/json');
-      else await driveUploadFile(fname, JSON.stringify(mm, null, 2), 'application/json', driveFolderId);
-    }
-    for (const [name, f] of byName) {
-      if (name.startsWith('mindmap-') && name.endsWith('.json') && !localMmFnames.has(name))
-        try { await driveDeleteFile(f.id); } catch {}
-    }
+      else await driveUploadFile(fname, JSON.stringify(mm, null, 2), 'application/json', driveMindmapsFolderId);
+    });
+    await batchAll([...byMmName].filter(([name]) => name.startsWith('mindmap-') && name.endsWith('.json') && !localMmFnames.has(name)),
+      ([, f]) => driveDeleteFile(f.id).catch(() => {}));
 
-    // Individual timeblock day files — one per day, enables per-day timestamp merge
+    // Timeblocks → timeblocks/ subfolder
     const tbMetaPush = load('tb_meta', {});
-    const localTbFnames = new Set();
-    for (const [dayKey, blocks] of Object.entries(load('tb_blocks', {}))) {
+    const tbEntries = Object.entries(load('tb_blocks', {}));
+    const localTbFnames = new Set(tbEntries.map(([dayKey]) => `timeblock-${dayKey}.json`));
+    await batchAll(tbEntries, async ([dayKey, blocks]) => {
       const fname = `timeblock-${dayKey}.json`;
-      localTbFnames.add(fname);
       const payload = JSON.stringify({ blocks, updatedAt: tbMetaPush[dayKey] || new Date().toISOString() }, null, 2);
-      const existing = byName.get(fname);
+      const existing = byTbName.get(fname);
       if (existing) await driveUpdateFile(existing.id, payload, 'application/json');
-      else await driveUploadFile(fname, payload, 'application/json', driveFolderId);
-    }
-    for (const [name, f] of byName) {
-      if (name.startsWith('timeblock-') && name.endsWith('.json') && !localTbFnames.has(name))
-        try { await driveDeleteFile(f.id); } catch {}
-    }
+      else await driveUploadFile(fname, payload, 'application/json', driveTimeblocksFolderId);
+    });
+    await batchAll([...byTbName].filter(([name]) => name.startsWith('timeblock-') && name.endsWith('.json') && !localTbFnames.has(name)),
+      ([, f]) => driveDeleteFile(f.id).catch(() => {}));
 
-    // Build clean filenames with deduplication for same-title memos
-    const usedNames = new Set([DRIVE_APP_FILENAME]);
+    // Memos → memos/ subfolder
+    const usedNames = new Set();
     const memoFilenames = new Map();
     for (const memo of memos) {
       const base = sanitizeDriveName(memo.title);
@@ -543,15 +634,14 @@ async function drivePushAll() {
       memoFilenames.set(memo.id, fname);
     }
 
-    // Push each memo: clean title.md filename + appProperties.memoId for matching
-    const keptFiles = new Set([DRIVE_APP_FILENAME]);
-    for (const memo of memos) {
+    const keptFiles = new Set();
+    await batchAll(memos, async memo => {
       const fname = memoFilenames.get(memo.id);
-      const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
+      const tagsFm = (memo.tags && memo.tags.length) ? `\ntags: [${memo.tags.map(t => JSON.stringify(t)).join(', ')}]` : '';
+      const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}${tagsFm}\n---\n\n${memo.content || ''}`;
       const existing = byMemoId.get(memo.id);
       if (existing) {
         await driveUpdateFile(existing.id, content, 'text/markdown');
-        // Migrate from old "{id}-title.md" name and/or attach appProperties for stable matching
         const needsRename = existing.name !== fname;
         const needsProp = !existing.appProperties?.memoId;
         if (needsRename || needsProp) {
@@ -560,32 +650,27 @@ async function drivePushAll() {
           if (needsProp) patch.appProperties = { memoId: String(memo.id) };
           try { await driveApi('PATCH', `/files/${existing.id}`, patch); } catch (e) { console.warn('Metadata patch failed:', e); }
         }
-        keptFiles.add(fname);
         keptFiles.add(existing.name);
       } else {
-        await driveUploadFile(fname, content, 'text/markdown', driveFolderId, { memoId: String(memo.id) });
+        await driveUploadFile(fname, content, 'text/markdown', driveMemosFolderId, { memoId: String(memo.id) });
         keptFiles.add(fname);
       }
-    }
+    });
 
-    // Delete orphan .md files (managed by us — has appProperties.memoId or legacy {id}- prefix — but no longer in memos)
-    for (const [name, f] of byName) {
-      if (keptFiles.has(name)) continue;
-      if (!name.toLowerCase().endsWith('.md')) continue;
+    // Delete orphan .md files from memos/ subfolder
+    await batchAll([...byMemoName].filter(([name, f]) => {
+      if (keptFiles.has(name) || !name.toLowerCase().endsWith('.md')) return false;
       const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
       const fnId = parseMemoIdFromFilename(f.name);
       const id = propId || fnId;
-      if (id && !memos.find(m => m.id === id)) {
-        try { await driveDeleteFile(f.id); } catch {}
-      }
-    }
+      return id && !memos.find(m => m.id === id);
+    }), ([, f]) => driveDeleteFile(f.id).catch(() => {}));
 
     driveLastPushAt = Date.now();
     driveLastSyncAt = driveLastPushAt;
-    // Update mtime sentinel to MAX CHILD mtime so the next poll won't re-pull our own write
     try {
-      const after = await driveListInFolder(driveFolderId);
-      driveLastModifiedTime = after.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+      const allAfter = await driveListAll();
+      driveLastModifiedTime = allAfter.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
     } catch {}
 
     driveStatus = 'saved';
@@ -605,39 +690,55 @@ async function drivePushAll() {
 async function applyDriveData(files) {
   isLoadingFromDrive = true;
   try {
-    const ae = document.activeElement;
+    // Capture focus so we can restore it after renders disrupt the DOM
+    const focusedEl = document.activeElement;
+    const focusSel = (focusedEl && focusedEl.setSelectionRange)
+      ? { start: focusedEl.selectionStart, end: focusedEl.selectionEnd } : null;
+
+    const ae = focusedEl;
     const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
       ? activeMemoId : null;
 
-    // Mindmaps: per-file merge — newest updatedAt wins per map
+    // Classify files by type
     const remoteMmFiles = files.filter(f => f.name.startsWith('mindmap-') && f.name.endsWith('.json'));
-    // Timeblocks: per-file merge — newest updatedAt wins per day
     const remoteTbFiles = files.filter(f => f.name.startsWith('timeblock-') && f.name.endsWith('.json'));
-    // Legacy _mindflow-app.json fallback for data written before v3
     const appFile = files.find(f => f.name === DRIVE_APP_FILENAME);
-    let legacyApp = null;
-    if (appFile && (remoteMmFiles.length === 0 || remoteTbFiles.length === 0)) {
-      try { legacyApp = JSON.parse(await driveDownloadFile(appFile.id)); } catch {}
-    }
+    const journalF = files.find(f => f.name === 'journal.json');
+    const prefixF = files.find(f => f.name === 'tb-prefix-colors.json');
+    const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
 
+    // Download everything in batches of 8 concurrent — fast but rate-limit safe
+    const [mmRaws, tbRaws, mdRaws, appParsed, journalParsed, prefixParsed] = await Promise.all([
+      batchAll(remoteMmFiles, f =>
+        driveDownloadFile(f.id).then(t => JSON.parse(t)).catch(() => null)),
+      batchAll(remoteTbFiles, async f => {
+        const dayKey = f.name.slice('timeblock-'.length, -'.json'.length);
+        try { return { dayKey, ...JSON.parse(await driveDownloadFile(f.id)) }; } catch { return null; }
+      }),
+      batchAll(mdFiles, async f => {
+        try { return { text: await driveDownloadFile(f.id), name: f.name }; } catch { return null; }
+      }),
+      appFile ? driveDownloadFile(appFile.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      journalF ? driveDownloadFile(journalF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      prefixF ? driveDownloadFile(prefixF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+    ]);
+
+    // --- Mindmaps ---
+    const legacyApp = (appParsed?.app === 'mindflow') ? appParsed : null;
     if (remoteMmFiles.length > 0) {
       const mmMap = new Map(mindmaps.map(m => [m.id, m]));
-      for (const f of remoteMmFiles) {
-        try {
-          let text = await driveDownloadFile(f.id);
-          const remote = JSON.parse(text);
-          if (!remote.id) continue;
-          const local = mmMap.get(remote.id);
-          if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0))
-            mmMap.set(remote.id, remote);
-        } catch {}
+      for (const remote of mmRaws) {
+        if (!remote?.id) continue;
+        const local = mmMap.get(remote.id);
+        if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0))
+          mmMap.set(remote.id, remote);
       }
       mindmaps = [...mmMap.values()];
       activeMindmapId = mindmaps.find(m => m.id === activeMindmapId)?.id ?? mindmaps[0]?.id ?? null;
       localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
       localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
       bindActiveMap();
-    } else if (legacyApp?.app === 'mindflow' && legacyApp.mindmaps) {
+    } else if (legacyApp?.mindmaps) {
       mindmaps = legacyApp.mindmaps;
       activeMindmapId = legacyApp.activeMindmapId ?? mindmaps[0]?.id ?? null;
       localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
@@ -645,65 +746,57 @@ async function applyDriveData(files) {
       bindActiveMap();
     }
 
+    // --- Timeblocks ---
     if (remoteTbFiles.length > 0) {
       const localTbMeta = load('tb_meta', {});
-      for (const f of remoteTbFiles) {
-        const dayKey = f.name.slice('timeblock-'.length, -'.json'.length);
-        try {
-          const { blocks, updatedAt: rAt } = JSON.parse(await driveDownloadFile(f.id));
-          const lAt = localTbMeta[dayKey];
-          if (!lAt || new Date(rAt || 0) >= new Date(lAt)) {
-            timeBlocks[dayKey] = blocks;
-            if (rAt) localTbMeta[dayKey] = rAt;
-          }
-        } catch {}
+      for (const r of tbRaws) {
+        if (!r) continue;
+        const lAt = localTbMeta[r.dayKey];
+        if (!lAt || new Date(r.updatedAt || 0) >= new Date(lAt)) {
+          timeBlocks[r.dayKey] = r.blocks;
+          if (r.updatedAt) localTbMeta[r.dayKey] = r.updatedAt;
+        }
       }
       localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
       save('tb_meta', localTbMeta);
-    } else if (legacyApp?.app === 'mindflow' && legacyApp.timeBlocks) {
+    } else if (legacyApp?.timeBlocks) {
       timeBlocks = legacyApp.timeBlocks;
       localStorage.setItem('mindflow_tb_blocks', JSON.stringify(timeBlocks));
     }
 
-    // Settings from meta file (reuse legacyApp if already fetched, else fetch fresh)
-    if (appFile) {
+    // --- Settings ---
+    if (appParsed?.app === 'mindflow' && appParsed.settings) {
       try {
-        const meta = legacyApp ?? JSON.parse(await driveDownloadFile(appFile.id));
-        if (meta?.app === 'mindflow' && meta.settings) {
-          save('settings', meta.settings);
-          if (typeof appSettings !== 'undefined') {
-            appSettings = meta.settings;
-            if (typeof applySettings === 'function') applySettings();
-          }
+        save('settings', appParsed.settings);
+        if (typeof appSettings !== 'undefined') {
+          appSettings = appParsed.settings;
+          if (typeof applySettings === 'function') applySettings();
         }
       } catch {}
     }
 
-    // Memos — fetch all .md files
+    // --- Memos ---
     const remoteMemos = [];
     let maxId = 0;
-    const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
-    for (const f of mdFiles) {
+    for (const r of mdRaws) {
+      if (!r) continue;
       try {
-        const text = await driveDownloadFile(f.id);
-        const memo = parseFrontmatter(text, f.name, Date.now());
+        const memo = parseFrontmatter(r.text, r.name, Date.now());
         if (!memo.id) memo.id = ++maxId + 100000;
         else if (memo.id > maxId) maxId = memo.id;
         remoteMemos.push(memo);
-      } catch (e) { console.warn('Memo parse failed:', f.name, e); }
+      } catch (e) { console.warn('Memo parse failed:', r.name, e); }
     }
 
     // Per-memo timestamp merge: keep whichever side has the later date.
-    // This protects local edits that haven't pushed yet (browser closed,
-    // network hiccup, etc.) from being silently overwritten by stale remote.
-    const merged = new Map();
-    for (const m of remoteMemos) merged.set(m.id, m);
+    const mergedMemos = new Map();
+    for (const m of remoteMemos) mergedMemos.set(m.id, m);
     for (const m of memos) {
-      const r = merged.get(m.id);
-      if (!r || new Date(m.date) > new Date(r.date)) merged.set(m.id, m);
+      const r = mergedMemos.get(m.id);
+      if (!r || new Date(m.date) > new Date(r.date)) mergedMemos.set(m.id, m);
       if (m.id > maxId) maxId = m.id;
     }
-    const newMemos = [...merged.values()];
+    const newMemos = [...mergedMemos.values()];
     newMemos.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     // Always preserve the in-progress edit, regardless of timestamp comparison
@@ -724,37 +817,34 @@ async function applyDriveData(files) {
       activeMemoId = memos[0]?.id || null;
     }
 
-    // Journal — merge per-entry by updatedAt
-    const journalF = files.find(f => f.name === 'journal.json');
-    if (journalF) {
+    // --- Journal ---
+    if (journalParsed?.entries) {
       try {
-        const { entries: remoteJ } = JSON.parse(await driveDownloadFile(journalF.id));
         const localJ = load('journal_entries', {});
-        const merged = { ...remoteJ };
+        const mergedJ = { ...journalParsed.entries };
         Object.entries(localJ).forEach(([k, e]) => {
-          const r = merged[k];
-          if (!r || new Date(e.updatedAt || 0) >= new Date(r.updatedAt || 0)) merged[k] = e;
+          const r = mergedJ[k];
+          if (!r || new Date(e.updatedAt || 0) >= new Date(r.updatedAt || 0)) mergedJ[k] = e;
         });
-        save('journal_entries', merged);
+        save('journal_entries', mergedJ);
         if (typeof journalEntries !== 'undefined') {
           Object.keys(journalEntries).forEach(k => delete journalEntries[k]);
-          Object.assign(journalEntries, merged);
+          Object.assign(journalEntries, mergedJ);
         }
       } catch {}
     }
 
-    // Prefix color mapping
-    const prefixF = files.find(f => f.name === 'tb-prefix-colors.json');
-    if (prefixF) {
+    // --- Prefix colors ---
+    if (prefixParsed) {
       try {
-        const remote = JSON.parse(await driveDownloadFile(prefixF.id));
         const local = load('tb_prefix_colors', {});
-        const merged = { ...remote, ...local }; // local overrides remote (more recent device wins)
-        save('tb_prefix_colors', merged);
-        if (typeof tbPrefixColors !== 'undefined') Object.assign(tbPrefixColors, merged);
+        const mergedP = { ...prefixParsed, ...local };
+        save('tb_prefix_colors', mergedP);
+        if (typeof tbPrefixColors !== 'undefined') Object.assign(tbPrefixColors, mergedP);
       } catch {}
     }
 
+    // --- Render ---
     renderMindmapList();
     drawMindMap();
     renderMemoList();
@@ -762,23 +852,30 @@ async function applyDriveData(files) {
     renderTimeBlocks();
     renderTimeblockList();
     if (typeof renderJournalList === 'function') renderJournalList();
+
+    // Restore focus after renders — prevents cursor/typing position from jumping
+    if (focusedEl && focusedEl.isConnected) {
+      try {
+        focusedEl.focus();
+        if (focusSel) focusedEl.setSelectionRange(focusSel.start, focusSel.end);
+      } catch {}
+    }
   } finally {
     isLoadingFromDrive = false;
   }
 }
 
-async function drivePullAll(skipConfirm = false) {
+async function drivePullAll(skipConfirm = false, prefetchedFiles = null) {
   if (!driveFolderId) { toast('먼저 Drive를 연결하세요'); return; }
   if (!skipConfirm && !confirm('Drive 데이터를 가져와 병합합니다. (각 항목은 최신 수정 시각 기준) 계속하시겠습니까?')) return;
 
   try {
     driveStatus = 'saving';
     updateDriveStatus();
-    const list = await driveListInFolder(driveFolderId);
-    await applyDriveData(list.files);
+    const allFiles = prefetchedFiles ?? await driveListAll();
+    await applyDriveData(allFiles);
     driveLastSyncAt = Date.now();
-    // Track max child mtime so next poll won't re-pull what we just got
-    driveLastModifiedTime = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+    driveLastModifiedTime = allFiles.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
     driveStatus = 'saved';
     updateDriveStatus();
     toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
@@ -797,16 +894,26 @@ async function drivePoll(force = false) {
   if (!force && Date.now() - driveLastPushAt < 4000) return;
   if (!force) {
     const ae = document.activeElement;
-    const inEditor = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header')));
+    const inEditor = ae && (
+      ae.tagName === 'TEXTAREA' ||
+      ae.contentEditable === 'true' ||
+      (ae.tagName === 'INPUT' && (
+        ae.closest('.memo-editor-header') ||
+        ae.closest('.tb-modal') ||
+        ae.closest('.journal-editor') ||
+        ae.closest('.node-edit-popup')
+      ))
+    );
     if (inEditor) return;
   }
   try {
-    // Always list children — folder modifiedTime does NOT change when child file
-    // contents change in Drive, so we must check max child mtime to detect updates
-    const list = await driveListInFolder(driveFolderId);
-    const latestChild = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+    await ensureSubfolders();
+    // List all folders — folder modifiedTime does NOT change when child file contents
+    // change in Drive, so we must check max child mtime across all subfolders.
+    const allFiles = await driveListAll();
+    const latestChild = allFiles.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
     if (driveLastModifiedTime && latestChild === driveLastModifiedTime) return;
-    await applyDriveData(list.files);
+    await applyDriveData(allFiles);
     driveLastModifiedTime = latestChild;
     driveLastSyncAt = Date.now();
     driveStatus = 'saved';
@@ -1652,6 +1759,7 @@ function parseFrontmatter(text, filename, mtime) {
   let title = filename.replace(/\.md$/i, '').replace(/^\d+[-_]/, '');
   let date = new Date(mtime).toISOString();
   let id = null;
+  let tags = [];
   let content = text;
   if (fmMatch) {
     const fm = fmMatch[1];
@@ -1659,17 +1767,19 @@ function parseFrontmatter(text, filename, mtime) {
     const titleM = fm.match(/^title:\s*(.+)$/m);
     const dateM = fm.match(/^date:\s*(.+)$/m);
     const idM = fm.match(/^id:\s*(\d+)$/m);
+    const tagsM = fm.match(/^tags:\s*\[([^\]]*)\]$/m);
     if (titleM) title = titleM[1].trim().replace(/^["']|["']$/g, '');
     if (dateM) {
       const d = new Date(dateM[1].trim());
       if (!isNaN(d)) date = d.toISOString();
     }
     if (idM) id = parseInt(idM[1]);
+    if (tagsM) tags = tagsM[1].split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
   } else {
     const h1 = text.match(/^# (.+)$/m);
     if (h1) title = h1[1].trim();
   }
-  return { id, title, content, date };
+  return { id, title, content, date, tags };
 }
 
 async function loadFromFolder({ silent = true, force = false } = {}) {

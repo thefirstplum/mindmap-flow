@@ -556,7 +556,7 @@ function renderTbTodos() {
       <button class="tb-todo-check" onclick="toggleTbTodoItem(${i},${!t.done})">${t.done ? '✓' : ''}</button>
       <input class="tb-todo-text" type="text" value="${escapeHtml(t.text)}"
         oninput="tbTodos[${i}].text=this.value"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tb-todo-input').focus();}">
+        onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();document.getElementById('tb-todo-input').focus();}">
       <button class="tb-todo-del" onclick="removeTbTodo(${i})">✕</button>
     </div>`).join('');
 }
@@ -675,7 +675,7 @@ renderTimeblockList();
 // Wire modal input events
 (function() {
   const inp = document.getElementById('tb-todo-input');
-  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addTbTodo(); } });
+  if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addTbTodo(); } });
 
   const startInput = document.getElementById('tb-start');
   const endInput   = document.getElementById('tb-end');
