@@ -631,7 +631,7 @@
     padding: 16px 24px 32px;
   }
   .day-summary {
-    background: linear-gradient(135deg, rgba(124,108,245,0.12), rgba(236,72,153,0.08));
+    background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 14px 18px;
@@ -1156,11 +1156,11 @@
     background: transparent;
     border: none;
     color: var(--text);
-    font-size: 15px;
-    line-height: 1.75;
+    font-size: 17px;
+    line-height: 1.85;
     outline: none;
     resize: none;
-    font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+    font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif;
   }
   .memo-editor textarea::placeholder { color: var(--text-mute); }
 
@@ -1394,7 +1394,7 @@
   .memo-body-wrap.split textarea {
     width: 50%;
     border-right: 1px solid var(--border);
-    background: rgba(11,13,20,0.45);
+    background: var(--surface2);
     color: var(--text);
   }
   .memo-body-wrap.split .markdown-body {
@@ -3077,18 +3077,14 @@ body[data-theme="leather"] .sidebar {
 /* ============================================================ */
 .ledger-method-badge {
   display: inline-block;
-  background: rgba(0,102,255,0.1);
-  color: var(--blue);
+  background: var(--accent-glow);
+  color: var(--accent);
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
   margin-right: 8px;
-  border: 1px solid rgba(0,102,255,0.25);
-}
-body[data-theme="leather"] .ledger-method-badge {
-  background: rgba(10,132,255,0.15);
-  border-color: rgba(10,132,255,0.35);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .ledger-sms-btn {
@@ -5088,12 +5084,15 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   }
 }
 
-/* Desktop list panel: slightly wider for better item readability */
+/* Desktop list panel: unified width across all pages */
 @media (min-width: 769px) {
   .memo-list,
   .mindmap-list,
-  .timeblock-list {
-    width: 300px !important;
+  .timeblock-list,
+  .journal-list-panel {
+    width: 280px !important;
+    min-width: 280px !important;
+    max-width: 280px !important;
   }
 }
 
@@ -5784,7 +5783,7 @@ body[data-theme="leather"] .tb-list-item.active .tb-list-date {
   border-radius: 12px;
   padding: 8px 8px 8px 12px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.22);
-  width: 290px;
+  width: clamp(240px, 290px, calc(100vw - 32px));
 }
 .node-edit-popup input {
   flex: 1;
@@ -7192,4 +7191,204 @@ body[data-theme="dieci"] .mindmap-item.active {
 #journal-today-btn:hover {
   background: var(--accent) !important;
   color: #fff !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   EXPERT PANEL OVERHAUL — 전문가 4인 통합 개선
+   레이아웃 통일성 · UI 편의성 · 디자인 일관성
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 1. 전체 디테일 헤더 높이 통일 (타임블록·저널 52px) ── */
+.timeblock-header,
+.journal-nav-header {
+  height: 52px !important;
+  padding: 0 16px !important;
+  gap: 8px !important;
+  align-items: center !important;
+}
+.journal-nav-header {
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--surface2) !important;
+  backdrop-filter: none !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── 2. 저널 리스트 헤더 — 다른 페이지와 통일 ── */
+.journal-list-header {
+  padding: 14px 14px 10px !important;
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  gap: 8px !important;
+}
+
+/* ── 3. 저널 리스트 아이템 — memo/mindmap/timeblock과 동일 스타일 ── */
+.journal-list-item {
+  padding: 10px 14px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: 3px solid transparent !important;
+  border-right: none !important;
+  border-top: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  transition: background 0.1s !important;
+}
+.journal-list-item:hover {
+  background: var(--surface3) !important;
+}
+.journal-list-item.active {
+  background: var(--accent-glow) !important;
+  border-left-color: var(--accent) !important;
+}
+.journal-list-item.active .journal-list-date {
+  color: var(--accent) !important;
+}
+
+/* ── 4. 마인드맵 리스트 헤더 — 다른 페이지와 통일 ── */
+.mm-list-header {
+  padding: 14px 14px 10px !important;
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 8px !important;
+}
+.mm-list-header .memo-list-title-row {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* ── 5. 빈 상태(Empty State) 디자인 통일 ── */
+/* 공통 빈 상태 컨테이너 */
+.journal-list-empty,
+.mm-empty,
+.ledger-empty {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 48px 20px !important;
+  text-align: center !important;
+  color: var(--text-mute) !important;
+}
+
+/* 마인드맵 빈 상태 — 아이콘+제목+설명 구조로 업그레이드 */
+.mm-empty {
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+  gap: 8px !important;
+}
+
+/* 빈 상태 아이콘 크기 통일 (56px) */
+.jle-icon,
+.tb-empty-icon {
+  font-size: 52px !important;
+  line-height: 1 !important;
+  margin-bottom: 12px !important;
+  opacity: 0.75 !important;
+}
+.jle-title,
+.tb-empty-title {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: var(--text) !important;
+  letter-spacing: -0.2px !important;
+  margin-bottom: 5px !important;
+}
+.jle-desc,
+.tb-empty-desc {
+  font-size: 13px !important;
+  color: var(--text-mute) !important;
+  line-height: 1.6 !important;
+}
+.ledger-empty .big-icon {
+  font-size: 52px !important;
+  opacity: 0.6 !important;
+  margin-bottom: 12px !important;
+}
+
+/* ── 6. 타임블록 빈 상태 — CSS 없었던 것 추가 ── */
+.tb-empty-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 48px 24px !important;
+  text-align: center !important;
+  color: var(--text-mute) !important;
+}
+
+/* ── 7. 무드 피커 모바일 최적화 ── */
+@media (max-width: 768px) {
+  .mood-picker {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
+  }
+  .mood-btn {
+    width: 100% !important;
+    height: 44px !important;
+    font-size: 20px !important;
+    border-radius: 9px !important;
+  }
+}
+
+/* ── 8. 네비게이션 화살표 터치 영역 확보 ── */
+.nav-arrow {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+@media (min-width: 769px) {
+  .nav-arrow {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+}
+
+/* ── 9. 사이드바 활성 상태 — 대비 개선 ── */
+@media (min-width: 769px) {
+  .sidebar .nav-btn.active {
+    background: var(--accent) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px var(--accent-glow) !important;
+  }
+  .sidebar .nav-btn.active svg {
+    color: #fff !important;
+  }
+}
+
+/* ── 10. 저널 textarea 폰트 변수 명시 ── */
+.journal-textarea {
+  font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif !important;
+  font-size: 18px !important;
+}
+
+/* ── 11. Day Summary — 테마 호환 배경 ── */
+.day-summary {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* ── 12. 스플릿 모드 포커스 배경 수정 ── */
+.memo-body-wrap.split textarea:focus {
+  background: var(--surface3) !important;
+}
+
+/* ── 13. 저널 리스트 모바일 헤더 타이틀 통일 ── */
+.journal-list-header .memo-list-title-row .title {
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px !important;
+}
+
+/* ── 14. 모바일: 저널 & 타임블록 헤더 높이 ── */
+@media (max-width: 768px) {
+  .timeblock-header,
+  .journal-nav-header {
+    height: 50px !important;
+    padding: 0 12px !important;
+  }
 }
