@@ -1127,6 +1127,90 @@
     gap: 10px;
   }
   .memo-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--text-mute); }
+
+  /* ---- Tag filter bar (list sidebar) ---- */
+  .memo-tag-bar-inner {
+    display: flex;
+    gap: 6px;
+    padding: 6px 12px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .memo-tag-bar-inner::-webkit-scrollbar { display: none; }
+  .memo-filter-chip {
+    flex-shrink: 0;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .memo-filter-chip:hover { background: var(--surface3); color: var(--text); }
+  .memo-filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ---- Tags row (editor) ---- */
+  .memo-tags-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0 18px 10px;
+    min-height: 28px;
+  }
+  .memo-tag-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px 2px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .memo-tag-del {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-mute);
+    line-height: 1;
+    display: flex;
+    align-items: center;
+  }
+  .memo-tag-del:hover { color: var(--red); }
+  .memo-tag-add-btn {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-mute);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .memo-tag-add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--surface2); }
+  .memo-tag-input {
+    display: none;
+    padding: 2px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 20px;
+    font-size: 12px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    width: 100px;
+  }
+  .memo-tag-input.visible { display: inline-block; }
+
   .memo-meta .badge {
     background: var(--surface2);
     color: var(--accent2);
@@ -1734,6 +1818,7 @@
     .memo-editor-header { padding: 12px 16px 4px; gap: 8px; }
     .memo-editor-header input { font-size: 22px; }
     .memo-meta { padding: 0 16px 14px; font-size: 11px; gap: 6px; }
+    .memo-tags-row { padding: 0 16px 10px; }
     .memo-editor textarea, .markdown-body { padding: 16px; font-size: 16px; padding-bottom: 32px; }
     .memo-mode-toggle button { padding: 7px 10px; font-size: 11px; }
     .memo-mode-toggle button .label-text { display: none; }
@@ -4525,6 +4610,7 @@ body[data-theme="leather"] .tb-list-item.active {
   align-items: center;
   gap: 8px;
 }
+.memo-tags-row { padding: 0 32px 10px; }
 .memo-meta .dot {
   width: 3px; height: 3px;
   background: var(--text-mute);
