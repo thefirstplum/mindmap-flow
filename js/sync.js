@@ -1,15 +1,17 @@
 // =================== SYNC / BACKUP ===================
 function getAllData() {
   return {
-    version: 2,
+    version: 3,
     app: 'mindflow',
     exportedAt: new Date().toISOString(),
     mindmaps: load('mindmaps', []),
     activeMindmapId: load('mm_active', null),
     timeBlocks: load('tb_blocks', {}),
     tbMeta: load('tb_meta', {}),
+    tbPrefixColors: load('tb_prefix_colors', {}),
     memos: load('memos', []),
     memoIdCounter: load('memo_idcounter', 1),
+    journalEntries: load('journal_entries', {}),
     ledger: load('ledger', []),
     ledgerIdCounter: load('ledger_idcounter', 1),
     settings: load('settings', { ledgerEnabled: false })
@@ -49,6 +51,24 @@ function applyData(data) {
   }
   save('memos', data.memos || []);
   save('memo_idcounter', data.memoIdCounter || 1);
+  // Journal — per-entry merge: keep whichever side has the later updatedAt
+  if (data.journalEntries) {
+    const localJ = load('journal_entries', {});
+    const merged = { ...data.journalEntries };
+    Object.entries(localJ).forEach(([k, e]) => {
+      const r = merged[k];
+      if (!r || new Date(e.updatedAt || 0) >= new Date(r.updatedAt || 0)) merged[k] = e;
+    });
+    save('journal_entries', merged);
+    if (typeof journalEntries !== 'undefined') {
+      Object.assign(journalEntries, merged);
+      if (typeof renderJournalList === 'function') renderJournalList();
+    }
+  }
+  if (data.tbPrefixColors) {
+    save('tb_prefix_colors', data.tbPrefixColors);
+    if (typeof tbPrefixColors !== 'undefined') Object.assign(tbPrefixColors, data.tbPrefixColors);
+  }
   if (data.ledger) save('ledger', data.ledger);
   if (data.ledgerIdCounter) save('ledger_idcounter', data.ledgerIdCounter);
   if (data.settings) {
@@ -68,10 +88,12 @@ function openSyncModal() {
   const totalNodes = data.mindmaps.reduce((s, m) => s + (m.nodes?.length || 0), 0);
   const totalEdges = data.mindmaps.reduce((s, m) => s + (m.edges?.length || 0), 0);
   const totalBlocks = Object.values(data.timeBlocks).reduce((s, a) => s + a.length, 0);
+  const journalCount = Object.keys(data.journalEntries || {}).length;
   const stats = `
     🧠 마인드맵: <strong>${data.mindmaps.length}개</strong> · 노드 <strong>${totalNodes}개</strong> · 연결 <strong>${totalEdges}개</strong><br>
     📅 타임블록: <strong>${totalBlocks}개</strong> (${Object.keys(data.timeBlocks).length}일)<br>
-    📝 메모: <strong>${data.memos.length}개</strong>
+    📝 메모: <strong>${data.memos.length}개</strong><br>
+    📔 감정일기: <strong>${journalCount}일</strong>
   `;
   document.getElementById('sync-stats').innerHTML = stats;
 
@@ -451,6 +473,18 @@ async function drivePushAll() {
       if (id) byMemoId.set(id, f);
     }
 
+    // Journal — single file, full blob (entries keyed by YYYY-MM-DD, small enough)
+    const journalData = JSON.stringify({ entries: load('journal_entries', {}), exportedAt: new Date().toISOString() }, null, 2);
+    const journalFile = byName.get('journal.json');
+    if (journalFile) await driveUpdateFile(journalFile.id, journalData, 'application/json');
+    else await driveUploadFile('journal.json', journalData, 'application/json', driveFolderId);
+
+    // Prefix color mapping
+    const prefixData = JSON.stringify(load('tb_prefix_colors', {}), null, 2);
+    const prefixFile = byName.get('tb-prefix-colors.json');
+    if (prefixFile) await driveUpdateFile(prefixFile.id, prefixData, 'application/json');
+    else await driveUploadFile('tb-prefix-colors.json', prefixData, 'application/json', driveFolderId);
+
     // Slim meta file — settings only; mindmaps/timeblocks stored as individual files
     const appData = {
       version: 3,
@@ -690,12 +724,44 @@ async function applyDriveData(files) {
       activeMemoId = memos[0]?.id || null;
     }
 
+    // Journal — merge per-entry by updatedAt
+    const journalF = files.find(f => f.name === 'journal.json');
+    if (journalF) {
+      try {
+        const { entries: remoteJ } = JSON.parse(await driveDownloadFile(journalF.id));
+        const localJ = load('journal_entries', {});
+        const merged = { ...remoteJ };
+        Object.entries(localJ).forEach(([k, e]) => {
+          const r = merged[k];
+          if (!r || new Date(e.updatedAt || 0) >= new Date(r.updatedAt || 0)) merged[k] = e;
+        });
+        save('journal_entries', merged);
+        if (typeof journalEntries !== 'undefined') {
+          Object.keys(journalEntries).forEach(k => delete journalEntries[k]);
+          Object.assign(journalEntries, merged);
+        }
+      } catch {}
+    }
+
+    // Prefix color mapping
+    const prefixF = files.find(f => f.name === 'tb-prefix-colors.json');
+    if (prefixF) {
+      try {
+        const remote = JSON.parse(await driveDownloadFile(prefixF.id));
+        const local = load('tb_prefix_colors', {});
+        const merged = { ...remote, ...local }; // local overrides remote (more recent device wins)
+        save('tb_prefix_colors', merged);
+        if (typeof tbPrefixColors !== 'undefined') Object.assign(tbPrefixColors, merged);
+      } catch {}
+    }
+
     renderMindmapList();
     drawMindMap();
     renderMemoList();
     if (editingMemoId == null) renderMemoEditor();
     renderTimeBlocks();
     renderTimeblockList();
+    if (typeof renderJournalList === 'function') renderJournalList();
   } finally {
     isLoadingFromDrive = false;
   }
