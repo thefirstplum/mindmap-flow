@@ -58,7 +58,7 @@ function renderMemoList() {
     if (allTags.length > 0) {
       tagBar.innerHTML = `<div class="memo-tag-bar-inner">
         <span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체</span>
-        ${allTags.map(t => `<span class="memo-filter-chip${activeTagFilter === t ? ' active' : ''}" onclick="setTagFilter(${JSON.stringify(t)})">${escapeHtml(t)}</span>`).join('')}
+        ${allTags.map(t => `<span class="memo-filter-chip${activeTagFilter === t ? ' active' : ''}" onclick="setTagFilter(${JSON.stringify(t).replace(/"/g, '&quot;')})">${escapeHtml(t)}</span>`).join('')}
       </div>`;
     } else {
       tagBar.innerHTML = '';

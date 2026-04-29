@@ -557,10 +557,10 @@ async function drivePushAll() {
     await batchAll(memos, async memo => {
       const fname = memoFilenames.get(memo.id);
       const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\n---\n\n${memo.content || ''}`;
-      const existing = byMemoId.get(memo.id);
+      const existing = byMemoId.get(memo.id) || byName.get(fname);
       if (existing) {
         await driveUpdateFile(existing.id, content, 'text/markdown');
-        // Migrate from old "{id}-title.md" name and/or attach appProperties for stable matching
+        // Migrate from old "{id}-title.md" name or external files without memoId property
         const needsRename = existing.name !== fname;
         const needsProp = !existing.appProperties?.memoId;
         if (needsRename || needsProp) {
