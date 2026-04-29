@@ -760,6 +760,7 @@ function filterMemos() { renderMemoList(); }
 function setTagFilter(tag) {
   activeTagFilter = tag;
   renderMemoList();
+  backToList();
 }
 
 function _refreshMemoTagChips() {
