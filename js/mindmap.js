@@ -100,7 +100,7 @@ function renderMindmapList() {
   const countEl = document.getElementById('mm-count');
   if (countEl) countEl.textContent = mindmaps.length;
   if (mindmaps.length === 0) {
-    container.innerHTML = `<div class="mm-empty">마인드맵이 없습니다<br>+ 버튼을 눌러 시작하세요</div>`;
+    container.innerHTML = `<div class="mm-empty"><div style="font-size:44px;opacity:.6;margin-bottom:12px">🗺️</div><div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-0.2px">첫 마인드맵을 만들어보세요</div><div style="font-size:12px;line-height:1.6">위 + 버튼을 눌러<br>새로운 생각을 펼쳐보세요</div></div>`;
     return;
   }
   container.innerHTML = mindmaps.map(m => {
