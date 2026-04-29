@@ -538,6 +538,10 @@ async function drivePushAll() {
 
     // Move legacy flat files to their new subfolders (best-effort, silent)
     if (flatToMigrate.length > 0) {
+      // Import any manually-added .md files BEFORE moving them, so they become memos
+      const allBeforeMigration = [...rootList.files, ...mmList.files, ...tbList.files, ...memoList.files];
+      await applyDriveData(allBeforeMigration);
+
       await batchAll(flatToMigrate, async f => {
         let targetId;
         if (f.name.startsWith('mindmap-')) targetId = driveMindmapsFolderId;
@@ -912,7 +916,7 @@ async function drivePoll(force = false) {
     // change in Drive, so we must check max child mtime across all subfolders.
     const allFiles = await driveListAll();
     const latestChild = allFiles.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
-    if (driveLastModifiedTime && latestChild === driveLastModifiedTime) return;
+    if (!force && driveLastModifiedTime && latestChild === driveLastModifiedTime) return;
     await applyDriveData(allFiles);
     driveLastModifiedTime = latestChild;
     driveLastSyncAt = Date.now();
