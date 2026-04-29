@@ -6758,6 +6758,13 @@ body[data-theme="ayu"] .tb-list-item.active {
   border-bottom: 1px solid var(--border) !important;
   padding: 14px 14px 10px !important;
 }
+@media (min-width: 769px) {
+  .mood-btn {
+    width: 44px !important;
+    height: 44px !important;
+    aspect-ratio: auto !important;
+  }
+}
 @media (max-width: 480px) {
   .mood-picker { grid-template-columns: repeat(5, 1fr) !important; gap: 4px !important; }
   .mood-btn { font-size: 18px !important; border-radius: 9px !important; }
