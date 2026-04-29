@@ -675,6 +675,8 @@ async function drivePushAll() {
     try {
       const allAfter = await driveListAll();
       driveLastModifiedTime = allAfter.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+      // Pull remote-only files (e.g. manually added .md) that weren't in local state
+      await applyDriveData(allAfter);
     } catch {}
 
     driveStatus = 'saved';
