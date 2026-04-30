@@ -1,6 +1,6 @@
 /* ════════════════════════════════════════════════════════════════
    MindFlow — Bear Design System
-   Rewritten from scratch · ?v=20260430c
+   Rewritten from scratch · ?v=20260429f
    13 sections · target ≤ 3 000 lines · ≤ 50 !important
    ════════════════════════════════════════════════════════════════ */
 
@@ -629,19 +629,17 @@ body[data-theme="leather"] {
 .mm-list-header {
   padding: 14px 14px 10px;
   border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 8px;
+  display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
 }
-.mm-list-header .mm-list-title {
-  flex: 1; font-size: 13px; font-weight: 700; color: var(--text);
-}
-.mm-list-header button {
-  width: 30px; height: 30px;
+.mm-list-header .today-jump-btn {
+  height: 34px;
   background: var(--accent); border: none;
   border-radius: var(--radius-sm);
-  color: #fff; font-size: 16px;
-  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  transition: background 0.12s;
 }
-.mm-list-header button:hover { background: var(--accent2); }
+.mm-list-header .today-jump-btn:hover { background: var(--accent2); }
 .mindmap-items { flex: 1; overflow-y: auto; padding: 6px; }
 .mm-empty { padding: 32px 16px; text-align: center; color: var(--text-mute); font-size: 12px; line-height: 1.6; }
 
@@ -1524,32 +1522,32 @@ body[data-theme="leather"] {
 /* ────────────────────────────────────────────────────────────────
    §11  JOURNAL
    ──────────────────────────────────────────────────────────────── */
-.journal-page {
-  display: flex;
-  height: 100%;
-  overflow: hidden;
-  position: relative;
-}
+.journal-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; position: relative; }
 
-/* List panel */
+/* List panel — same structure as other pages */
 .journal-list-panel {
   width: 260px;
-  min-width: 0; max-width: 300px;
   display: flex; flex-direction: column;
   border-right: 1px solid var(--border);
   background: var(--surface);
   overflow: hidden; flex-shrink: 0;
-  transition: width 0.28s ease;
 }
-.journal-page.list-collapsed .journal-list-panel { width: 0; border-right: none; }
 
 .journal-list-header {
-  padding: 13px 13px 9px;
-  background: var(--surface2);
+  padding: 14px 14px 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 10px;
 }
+.j-today-mini-btn {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 8px; border-radius: 100px;
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-dim); flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.j-today-mini-btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+
 .journal-stats-row {
   display: flex; gap: 5px; flex-wrap: wrap; padding: 2px 0 0;
 }
@@ -1601,17 +1599,13 @@ body[data-theme="leather"] {
   overflow: hidden; background: var(--bg);
 }
 
-/* Nav header */
+/* Nav header — matches timeblock-header */
 .journal-nav-header {
-  height: 52px;
-  display: flex; align-items: center; gap: 8px;
-  padding: 0 16px;
+  height: 58px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface2); flex-shrink: 0;
-}
-.journal-nav-header .date-display {
-  flex: 1; font-size: 15px; font-weight: 600; text-align: center; color: var(--text);
-  min-width: 0;
 }
 #journal-today-btn {
   font-size: 11px; font-weight: 600;
@@ -1967,6 +1961,10 @@ body[data-theme="ayu"] {
   }
   .mindmap-list.show { transform: translateX(0); }
   .mm-list-toggle { display: flex; }
+
+  /* Timeblock block action buttons: always visible on touch */
+  .time-block-item .block-dup,
+  .time-block-item .block-delete { display: flex; opacity: 0.75; }
 
   /* Timeblock: list → detail slide */
   .timeblock-page { position: relative; }

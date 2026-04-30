@@ -192,10 +192,19 @@ function importData(event) {
 }
 
 // =================== GOOGLE DRIVE SYNC (data + images, all platforms) ===================
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+const DRIVE_SCOPE_VER = 'v2'; // bump when scope changes so old tokens are invalidated
 const DRIVE_FOLDER_NAME = 'MindFlow';
 const DRIVE_ASSETS_NAME = 'assets';
 const DRIVE_APP_FILENAME = '_mindflow-app.json';
+
+// One-time migration: clear cached token when scope changes
+try {
+  if (localStorage.getItem('mindflow_drive_scope') !== DRIVE_SCOPE_VER) {
+    localStorage.removeItem('mindflow_drive_tok');
+    localStorage.setItem('mindflow_drive_scope', DRIVE_SCOPE_VER);
+  }
+} catch {}
 
 // Hardcoded default Client ID — published OAuth client for this app.
 // Public-by-design: identifies the app, not the user. User data lives in
@@ -360,6 +369,27 @@ async function driveListInFolder(folderId) {
   });
 }
 
+// List root MindFlow folder + scan a 'memos' subfolder if present.
+// Returns { files: [...all non-folder files + subfolder .md files], latestMtime, memosSubfolderId }
+async function driveListAllFiles() {
+  const root = await driveListInFolder(driveFolderId);
+  const memosDir = root.files.find(f =>
+    f.mimeType === 'application/vnd.google-apps.folder' && f.name.toLowerCase() === 'memos'
+  );
+  // Root files (no folders)
+  const files = root.files.filter(f => f.mimeType !== 'application/vnd.google-apps.folder');
+  if (memosDir) {
+    try {
+      const sub = await driveListInFolder(memosDir.id);
+      sub.files
+        .filter(f => f.mimeType !== 'application/vnd.google-apps.folder' && f.name.toLowerCase().endsWith('.md'))
+        .forEach(f => files.push(f));
+    } catch (e) { console.warn('memos subfolder scan failed:', e); }
+  }
+  const latestMtime = files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+  return { files, latestMtime, memosSubfolderId: memosDir?.id ?? null };
+}
+
 async function driveFindOrCreateFolder(name, parentId) {
   const escaped = name.replace(/'/g, "\\'");
   const q = parentId
@@ -410,8 +440,8 @@ async function driveConnect() {
     save('drive_assets_folder_id', driveAssetsFolderId);
     updateDriveStatus();
 
-    const list = await driveListInFolder(driveFolderId);
-    const remoteHasData = list.files.some(f =>
+    const { files: connectFiles } = await driveListAllFiles();
+    const remoteHasData = connectFiles.some(f =>
       f.name.toLowerCase().endsWith('.md') ||
       f.name === DRIVE_APP_FILENAME ||
       (f.name.startsWith('mindmap-') && f.name.endsWith('.json')) ||
@@ -470,18 +500,23 @@ async function drivePushAll() {
     driveStatus = 'saving';
     updateDriveStatus();
 
-    // Get current files in folder
-    const current = await driveListInFolder(driveFolderId);
+    // Get current files in folder (root + memos subfolder)
+    const { files: allCurrent, memosSubfolderId } = await driveListAllFiles();
     const byName = new Map();
     const byMemoId = new Map();
-    for (const f of current.files) {
-      if (f.mimeType === 'application/vnd.google-apps.folder') continue;
+    // Add subfolder files first so root files can override on name collision
+    for (const f of allCurrent) {
       byName.set(f.name, f);
-      // Match by appProperties.memoId (preferred) or legacy {id}-prefix filename
       const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
       const fnId = parseMemoIdFromFilename(f.name);
       const id = propId || fnId;
       if (id) byMemoId.set(id, f);
+    }
+    // Re-read root-only for non-memo files (journal, mindmap, timeblock, app json)
+    const current = await driveListInFolder(driveFolderId);
+    for (const f of current.files) {
+      if (f.mimeType === 'application/vnd.google-apps.folder') continue;
+      byName.set(f.name, f); // root wins over subfolder on same name
     }
 
     // Journal — single file, full blob (entries keyed by YYYY-MM-DD, small enough)
@@ -586,12 +621,15 @@ async function drivePushAll() {
       return id && !memos.find(m => m.id === id);
     }), ([, f]) => driveDeleteFile(f.id).catch(() => {}));
 
+    // Tombstones are fulfilled after a successful push — Drive files are gone
+    try { save('memo_tombstones', {}); } catch {}
+
     driveLastPushAt = Date.now();
     driveLastSyncAt = driveLastPushAt;
     // Update mtime sentinel to MAX CHILD mtime so the next poll won't re-pull our own write
     try {
-      const after = await driveListInFolder(driveFolderId);
-      driveLastModifiedTime = after.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+      const { latestMtime } = await driveListAllFiles();
+      driveLastModifiedTime = latestMtime;
     } catch {}
 
     driveStatus = 'saved';
@@ -710,8 +748,14 @@ async function applyDriveData(files) {
     }
 
     // Per-memo timestamp merge: keep whichever side has the later date.
+    // Tombstones prevent locally-deleted memos from being resurrected by Drive pull.
+    const tombstones = load('memo_tombstones', {});
     const mergedMemos = new Map();
-    for (const m of remoteMemos) mergedMemos.set(m.id, m);
+    for (const m of remoteMemos) {
+      const deletedAt = tombstones[m.id];
+      if (deletedAt && deletedAt >= (m.date || '')) continue; // deleted locally after last remote write
+      mergedMemos.set(m.id, m);
+    }
     for (const m of memos) {
       const r = mergedMemos.get(m.id);
       if (!r || new Date(m.date) > new Date(r.date)) mergedMemos.set(m.id, m);
@@ -793,14 +837,108 @@ async function drivePullAll(skipConfirm = false) {
   try {
     driveStatus = 'saving';
     updateDriveStatus();
-    const list = await driveListInFolder(driveFolderId);
-    await applyDriveData(list.files);
+    const { files, latestMtime } = await driveListAllFiles();
+    await applyDriveData(files);
     driveLastSyncAt = Date.now();
-    // Track max child mtime so next poll won't re-pull what we just got
-    driveLastModifiedTime = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
+    driveLastModifiedTime = latestMtime;
     driveStatus = 'saved';
     updateDriveStatus();
     toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
+    setTimeout(() => { if (driveStatus === 'saved') { driveStatus = 'idle'; updateDriveStatus(); } }, 1800);
+  } catch (e) {
+    driveStatus = 'error';
+    updateDriveStatus();
+    toast('가져오기 실패: ' + e.message, 'error');
+  }
+}
+
+async function driveImportFromFolder() {
+  if (!driveFolderId) { toast('먼저 Drive를 연결하세요'); return; }
+  const folderName = prompt('가져올 폴더 이름 (MindFlow/ 안에 있거나 최상위 폴더)', 'memos');
+  if (!folderName) return;
+
+  try {
+    driveStatus = 'saving';
+    updateDriveStatus();
+    toast('폴더 검색 중...');
+
+    // 1. Search inside MindFlow/ first
+    let targetFolderId = null;
+    const rootListing = await driveListInFolder(driveFolderId);
+    const found = rootListing.files.find(f =>
+      f.mimeType === 'application/vnd.google-apps.folder' &&
+      f.name.toLowerCase() === folderName.toLowerCase()
+    );
+    if (found) {
+      targetFolderId = found.id;
+    } else {
+      // 2. Search anywhere in Drive by name
+      await ensureDriveToken();
+      const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${folderName.replace(/'/g, "\\'")}' and trashed=false`);
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name)&pageSize=5`, {
+        headers: { 'Authorization': 'Bearer ' + driveAccessToken }
+      });
+      if (!res.ok) throw new Error('폴더 검색 실패: ' + res.status);
+      const data = await res.json();
+      if (data.files && data.files.length > 0) targetFolderId = data.files[0].id;
+    }
+
+    if (!targetFolderId) { toast(`"${folderName}" 폴더를 찾을 수 없습니다`, 'error'); driveStatus = 'idle'; updateDriveStatus(); return; }
+
+    // 3. List .md files in that folder
+    const listing = await driveListInFolder(targetFolderId);
+    const mdFiles = listing.files.filter(f =>
+      f.mimeType !== 'application/vnd.google-apps.folder' &&
+      f.name.toLowerCase().endsWith('.md')
+    );
+    if (!mdFiles.length) { toast(`"${folderName}" 폴더에 .md 파일이 없습니다`); driveStatus = 'idle'; updateDriveStatus(); return; }
+
+    toast(`${mdFiles.length}개 파일 다운로드 중...`);
+
+    // 4. Download all .md files
+    const raws = await batchAll(mdFiles, async f => {
+      try { return { text: await driveDownloadFile(f.id), name: f.name }; } catch { return null; }
+    });
+
+    // 5. Parse with frontmatter
+    const tombstones = load('memo_tombstones', {});
+    const remoteMemos = [];
+    let maxId = memos.reduce((m, x) => x.id > m ? x.id : m, 0);
+    for (const r of raws) {
+      if (!r) continue;
+      try {
+        const memo = parseFrontmatter(r.text, r.name, Date.now());
+        if (!memo.id) memo.id = ++maxId + 100000;
+        else if (memo.id > maxId) maxId = memo.id;
+        remoteMemos.push(memo);
+      } catch (e) { console.warn('Parse failed:', r.name, e); }
+    }
+
+    // 6. Merge: tombstone check + timestamp priority
+    const mergedMap = new Map(memos.map(m => [m.id, m]));
+    let importedCount = 0;
+    for (const m of remoteMemos) {
+      const deletedAt = tombstones[m.id];
+      if (deletedAt && deletedAt >= (m.date || '')) continue;
+      const existing = mergedMap.get(m.id);
+      if (!existing || new Date(m.date) > new Date(existing.date)) {
+        mergedMap.set(m.id, m);
+        importedCount++;
+      }
+    }
+
+    memos = [...mergedMap.values()];
+    memos.sort((a, b) => new Date(b.date) - new Date(a.date));
+    saveMemos();
+    renderMemoList();
+    renderMemoEditor();
+
+    driveDirty = true;
+    scheduleDriveAutoSave();
+
+    driveStatus = 'saved';
+    updateDriveStatus();
+    toast(`${importedCount}개 메모 가져와서 Drive에 동기화 중...`, 'success');
     setTimeout(() => { if (driveStatus === 'saved') { driveStatus = 'idle'; updateDriveStatus(); } }, 1800);
   } catch (e) {
     driveStatus = 'error';
@@ -831,11 +969,10 @@ async function drivePoll(force = false) {
   try {
     // Always list children — folder modifiedTime does NOT change when child file
     // contents change in Drive, so we must check max child mtime to detect updates
-    const list = await driveListInFolder(driveFolderId);
-    const latestChild = list.files.reduce((max, f) => f.modifiedTime > max ? f.modifiedTime : max, '');
-    if (driveLastModifiedTime && latestChild === driveLastModifiedTime) return;
-    await applyDriveData(list.files);
-    driveLastModifiedTime = latestChild;
+    const { files, latestMtime } = await driveListAllFiles();
+    if (driveLastModifiedTime && latestMtime === driveLastModifiedTime) return;
+    await applyDriveData(files);
+    driveLastModifiedTime = latestMtime;
     driveLastSyncAt = Date.now();
     driveStatus = 'saved';
     updateDriveStatus();
@@ -903,6 +1040,7 @@ function updateDriveStatus() {
   const reloadBtn = document.getElementById('drive-pull-btn');
   const disconnectBtn = document.getElementById('drive-disconnect-btn');
   const syncNowBtn = document.getElementById('drive-sync-now-btn');
+  const importFolderRow = document.getElementById('drive-import-folder-row');
   if (driveFolderId) {
     el.classList.add('connected');
     let statusText;
@@ -928,6 +1066,7 @@ function updateDriveStatus() {
     if (reloadBtn) reloadBtn.style.display = '';
     if (disconnectBtn) disconnectBtn.style.display = '';
     if (syncNowBtn) syncNowBtn.style.display = '';
+    if (importFolderRow) importFolderRow.style.display = '';
   } else {
     el.classList.remove('connected');
     el.innerHTML = `
@@ -940,6 +1079,7 @@ function updateDriveStatus() {
     if (reloadBtn) reloadBtn.style.display = 'none';
     if (disconnectBtn) disconnectBtn.style.display = 'none';
     if (syncNowBtn) syncNowBtn.style.display = 'none';
+    if (importFolderRow) importFolderRow.style.display = 'none';
   }
 }
 
