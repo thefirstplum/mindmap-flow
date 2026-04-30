@@ -39,6 +39,10 @@ function backToList() {
 
 function deleteMemo(id) {
   if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+  // Record deletion so Drive pull can't resurrect it
+  const tombs = load('memo_tombstones', {});
+  tombs[id] = new Date().toISOString();
+  save('memo_tombstones', tombs);
   memos = memos.filter(m => m.id !== id);
   if (activeMemoId === id) activeMemoId = null;
   saveMemos();
@@ -201,7 +205,7 @@ function renderMemoEditor() {
     </div>
     <div class="memo-tags-row">
       <div id="memo-tag-chips">
-        ${(memo.tags || []).map(t => `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`).join('')}
+        ${(memo.tags || []).map(t => `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="memo-tag-del">✕</button></span>`).join('')}
       </div>
       <button class="memo-tag-add-btn" onclick="focusMemoTagInput()">+ 태그</button>
       <input type="text" id="memo-tag-input" class="memo-tag-input" placeholder="태그명..."
