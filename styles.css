@@ -7485,3 +7485,285 @@ body[data-theme="dieci"] .mindmap-item.active {
     padding: 0 12px !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   JOURNAL — 최종 레이아웃 통합 (이 블록이 모든 이전 규칙을 덮어씀)
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 페이지 셸 ── */
+.journal-page {
+  display: flex !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* ── 사이드바 패널 ── */
+.journal-list-panel {
+  width: 260px !important;
+  min-width: 0 !important;
+  max-width: 300px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-right: 1px solid var(--border) !important;
+  background: var(--surface) !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  transition: width 0.28s ease !important;
+}
+.journal-page.list-collapsed .journal-list-panel {
+  width: 0 !important;
+  border-right: none !important;
+}
+
+/* ── 사이드바 헤더 ── */
+.journal-list-header {
+  padding: 14px 14px 10px !important;
+  background: var(--surface2) !important;
+  border-bottom: 1px solid var(--border) !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+}
+.journal-stats-row {
+  display: flex !important;
+  gap: 5px !important;
+  flex-wrap: wrap !important;
+  padding: 2px 0 0 !important;
+}
+.jstat-chip {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  background: var(--surface) !important;
+  color: var(--text-dim) !important;
+  border-radius: 100px !important;
+  padding: 2px 8px !important;
+  border: 1px solid var(--border) !important;
+  white-space: nowrap !important;
+}
+
+/* ── 사이드바 목록 ── */
+.journal-items {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 0 !important;
+}
+.journal-list-empty {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 48px 20px !important;
+  text-align: center !important;
+  color: var(--text-mute) !important;
+  gap: 8px !important;
+  font-size: 13px !important;
+  line-height: 1.6 !important;
+}
+.journal-list-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 10px !important;
+  padding: 10px 14px !important;
+  cursor: pointer !important;
+  border-bottom: 1px solid var(--border) !important;
+  border-left: 3px solid transparent !important;
+  border-top: none !important;
+  border-right: none !important;
+  background: transparent !important;
+  transition: background 0.1s !important;
+}
+.journal-list-item:hover { background: var(--surface2) !important; }
+.journal-list-item.active {
+  background: var(--accent-glow) !important;
+  border-left-color: var(--accent) !important;
+}
+.journal-list-item.active .journal-list-date,
+.journal-list-item.is-today .journal-list-date { color: var(--accent) !important; }
+.journal-list-mood {
+  font-size: 20px !important;
+  line-height: 1 !important;
+  padding-top: 1px !important;
+  flex-shrink: 0 !important;
+}
+.journal-list-info { flex: 1 !important; min-width: 0 !important; }
+.journal-list-date {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--text) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.journal-list-preview {
+  font-size: 12px !important;
+  color: var(--text-mute) !important;
+  margin-top: 2px !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ── 메인 영역 ── */
+.journal-main {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  background: var(--bg) !important;
+}
+
+/* ── 날짜 탐색 헤더 ── */
+.journal-nav-header {
+  height: 52px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 16px !important;
+  border-bottom: 1px solid var(--border) !important;
+  background: var(--surface2) !important;
+  flex-shrink: 0 !important;
+}
+.journal-nav-header .date-display {
+  flex: 1 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  text-align: center !important;
+  color: var(--text) !important;
+}
+#journal-today-btn {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 10px !important;
+  border-radius: 100px !important;
+  background: var(--accent-glow) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  height: auto !important;
+}
+#journal-today-btn:hover { background: var(--accent) !important; color: #fff !important; }
+
+/* ── 본문 영역 ── */
+.journal-body {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  padding: 24px 32px 40px !important;
+  max-width: 680px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+/* ── 무드 피커 — 데스크탑: 고정 크기 44px 버튼 ── */
+.mood-picker {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-bottom: 20px !important;
+  flex-shrink: 0 !important;
+}
+.mood-btn {
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 22px !important;
+  border-radius: 10px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--surface2) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  transition: background 0.12s, transform 0.12s, border-color 0.12s !important;
+  flex-shrink: 0 !important;
+  aspect-ratio: auto !important;
+}
+.mood-btn:hover {
+  background: var(--surface3) !important;
+  transform: scale(1.08) !important;
+}
+.mood-btn.active {
+  border-color: var(--accent) !important;
+  background: var(--accent-glow) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+  transform: scale(1.08) !important;
+}
+
+/* ── 일기 텍스트 영역 ── */
+.journal-textarea {
+  flex: 1 !important;
+  width: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  color: var(--text) !important;
+  font-family: 'Crimson Pro', Georgia, 'Times New Roman', serif !important;
+  font-size: 18px !important;
+  line-height: 1.85 !important;
+  letter-spacing: 0 !important;
+  resize: none !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  caret-color: var(--accent) !important;
+  min-height: 240px !important;
+}
+.journal-textarea::placeholder { color: var(--text-mute) !important; opacity: 1 !important; }
+
+/* ── 모바일 (≤768px) ── */
+@media (max-width: 768px) {
+  /* 사이드바 전체화면 오버레이 */
+  .journal-list-panel {
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    z-index: 10 !important;
+    transform: translateX(0) !important;
+    transition: transform 0.3s ease !important;
+  }
+  .journal-page.show-detail .journal-list-panel {
+    transform: translateX(-100%) !important;
+    pointer-events: none !important;
+  }
+  /* 메인이 항상 전체 폭 */
+  .journal-main { width: 100% !important; }
+  /* 패널 재열기 버튼 — 모바일에서만 show-detail 시 표시 */
+  .journal-page .panel-reopen-btn { display: none !important; }
+  .journal-page.show-detail .panel-reopen-btn { display: flex !important; }
+  /* 헤더 compact */
+  .journal-nav-header {
+    height: 50px !important;
+    padding: 0 12px !important;
+  }
+  /* 본문 패딩 */
+  .journal-body {
+    padding: 16px 16px 32px !important;
+    max-width: 100% !important;
+  }
+  /* 무드 피커 — 5열 그리드, 버튼이 폭 채움 */
+  .mood-picker {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+  .mood-btn {
+    width: 100% !important;
+    height: 48px !important;
+    font-size: 20px !important;
+    border-radius: 10px !important;
+    flex-shrink: 1 !important;
+  }
+  .journal-textarea {
+    font-size: 16px !important;
+    min-height: 180px !important;
+  }
+}
