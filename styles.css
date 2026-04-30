@@ -130,6 +130,7 @@ body[data-theme="leather"] {
   display: none;
   width: 100%; height: 100%;
   position: absolute; top: 0; left: 0;
+  overflow: hidden;
 }
 .page.active { display: flex; }
 
@@ -616,7 +617,7 @@ body[data-theme="leather"] {
 /* ────────────────────────────────────────────────────────────────
    §8  MIND MAP
    ──────────────────────────────────────────────────────────────── */
-.mindmap-page { flex-direction: row; }
+.mindmap-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; }
 
 .mindmap-list {
   width: 260px;
@@ -803,7 +804,7 @@ body[data-theme="leather"] {
 /* ────────────────────────────────────────────────────────────────
    §9  TIME BLOCK
    ──────────────────────────────────────────────────────────────── */
-.timeblock-page { flex-direction: row; overflow: hidden; }
+.timeblock-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; }
 
 .timeblock-list {
   width: 260px;
@@ -1114,7 +1115,7 @@ body[data-theme="leather"] {
 /* ────────────────────────────────────────────────────────────────
    §10  MEMO / EDITOR
    ──────────────────────────────────────────────────────────────── */
-.memo-page { flex-direction: row; overflow: hidden; }
+.memo-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; }
 
 .memo-list {
   width: 260px;
