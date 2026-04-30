@@ -1,82 +1,76 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  /* === MOLESKINE JOURNEY — light (default) ===
-     Warm cream paper · clean white cards · signature amber accent ·
-     soft warm hairline borders · minimal flat shadows. */
-  :root {
-    --bg: #f3eedf;
-    --bg-grad:
-      radial-gradient(ellipse at 100% 0%, rgba(245,210,120,0.10) 0%, transparent 60%),
-      radial-gradient(ellipse at 0% 100%, rgba(220,200,150,0.08) 0%, transparent 60%),
-      linear-gradient(160deg, #f6f1e2 0%, #ede5d0 100%);
-    --surface: #fffdf6;
-    --surface2: #faf5e6;
-    --surface3: #f0e9d3;
-    --border: #e1d8be;
-    --border-light: #c9bf9d;
-    --glass-stroke: #fffdf6;
-    --glass-shadow: 0 1px 2px rgba(60,40,20,0.04), 0 4px 14px rgba(60,40,20,0.05);
-    --text: #1d1a14;
-    --text-dim: #5a5346;
-    --text-mute: #908775;
-    --accent: #d99e1f;
-    --accent2: #f3c04a;
-    --accent-glow: rgba(217,158,31,0.22);
-    --primary: #1d1a14;
-    --green: #6a8c4f;
-    --orange: #c97a2c;
-    --red: #b44236;
-    --blue: #4a6c8a;
-    --pink: #b85577;
-    --cyan: #4d7d8f;
-    --code-color: #8b5cf6;
-    --paper-line: rgba(60,40,20,0.04);
-    --blur-amount: 12px;
-    --blur-strong: 20px;
-    --shadow-1: 0 1px 2px rgba(60,40,20,0.04), 0 2px 6px rgba(60,40,20,0.04);
-    --shadow-2: 0 2px 8px rgba(60,40,20,0.06), 0 8px 22px rgba(60,40,20,0.07);
-    --shadow-card: 0 1px 3px rgba(60,40,20,0.04), 0 4px 14px rgba(60,40,20,0.05);
-    --radius: 16px;
-    --radius-sm: 12px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bot: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
-    color-scheme: light;
-  }
 
-  /* === MOLESKINE JOURNEY — dark (espresso leather) === */
-  body[data-theme="leather"] {
-    --bg: #16110a;
-    --bg-grad:
-      radial-gradient(ellipse at 100% 0%, rgba(245,210,120,0.10) 0%, transparent 60%),
-      linear-gradient(160deg, #1c160e 0%, #0e0a06 100%);
-    --surface: #221a10;
-    --surface2: #2a2114;
-    --surface3: #34291a;
-    --border: #463524;
-    --border-light: #5a4530;
-    --glass-stroke: rgba(255,235,180,0.06);
-    --glass-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35);
-    --text: #f5ecd5;
-    --text-dim: #c2b294;
-    --text-mute: #8a7e64;
-    --accent: #f3c04a;
-    --accent2: #ffd870;
-    --accent-glow: rgba(243,192,74,0.25);
-    --primary: #f5ecd5;
-    --green: #97b06f;
-    --orange: #e09b58;
-    --red: #d97464;
-    --blue: #8caab8;
-    --pink: #d18799;
-    --cyan: #95b5c1;
-    --code-color: #c4b5fd;
-    --paper-line: rgba(245,236,213,0.04);
-    --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.3);
-    --shadow-2: 0 2px 8px rgba(0,0,0,0.5), 0 8px 22px rgba(0,0,0,0.4);
-    --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.3);
-    color-scheme: dark;
-  }
+/* === BEAR — light (default) === */
+:root {
+  --bg: #F5F5F7;
+  --bg-grad: none;
+  --surface: #FFFFFF;
+  --surface2: #F2F2F7;
+  --surface3: #E8E8ED;
+  --border: rgba(60,60,67,0.13);
+  --border-light: rgba(60,60,67,0.08);
+  --glass-stroke: rgba(255,255,255,0.8);
+  --glass-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  --text: #1C1C1E;
+  --text-dim: #3C3C43;
+  --text-mute: #8E8E93;
+  --accent: #D94F3D;
+  --accent2: #E8675A;
+  --accent-glow: rgba(217,79,61,0.12);
+  --primary: #1C1C1E;
+  --green: #34C759;
+  --orange: #FF9500;
+  --red: #FF3B30;
+  --blue: #007AFF;
+  --pink: #FF2D55;
+  --cyan: #32ADE6;
+  --code-color: #AF52DE;
+  --paper-line: rgba(0,0,0,0.035);
+  --blur-amount: 0px;
+  --blur-strong: 0px;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-2: 0 2px 8px rgba(0,0,0,0.08), 0 8px 22px rgba(0,0,0,0.06);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.05), 0 4px 14px rgba(0,0,0,0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  color-scheme: light;
+}
+
+/* === BEAR — dark === */
+body[data-theme="leather"] {
+  --bg: #1C1C1E;
+  --bg-grad: none;
+  --surface: #2C2C2E;
+  --surface2: #3A3A3C;
+  --surface3: #48484A;
+  --border: rgba(255,255,255,0.10);
+  --border-light: rgba(255,255,255,0.06);
+  --glass-stroke: rgba(255,255,255,0.06);
+  --glass-shadow: 0 1px 3px rgba(0,0,0,0.5), 0 8px 24px rgba(0,0,0,0.4);
+  --text: #FFFFFF;
+  --text-dim: rgba(255,255,255,0.75);
+  --text-mute: rgba(255,255,255,0.38);
+  --accent: #D94F3D;
+  --accent2: #E8675A;
+  --accent-glow: rgba(217,79,61,0.22);
+  --primary: #FFFFFF;
+  --green: #30D158;
+  --orange: #FF9F0A;
+  --red: #FF453A;
+  --blue: #0A84FF;
+  --pink: #FF375F;
+  --cyan: #64D2FF;
+  --code-color: #BF5AF2;
+  --paper-line: rgba(255,255,255,0.04);
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.3);
+  --shadow-2: 0 2px 8px rgba(0,0,0,0.5), 0 8px 22px rgba(0,0,0,0.4);
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 14px rgba(0,0,0,0.3);
+  color-scheme: dark;
+}
   html, body {
     height: 100%;
     overflow: hidden;
@@ -7767,3 +7761,233 @@ body[data-theme="dieci"] .mindmap-item.active {
     min-height: 180px !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   BEAR DESIGN SYSTEM — 전체 UI 재설계
+   사이드바·버튼·패널·리스트 모두 Bear 스타일로 통일
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Body & background ── */
+body {
+  background: var(--bg) !important;
+  background-image: none !important;
+}
+
+/* ── Remove paper line texture from memo editor ── */
+.memo-editor {
+  background-image: none !important;
+}
+
+/* ════ SIDEBAR (항상 다크) ════ */
+.sidebar {
+  background: #1E1E22 !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+/* Logo */
+.sidebar .logo {
+  background: var(--accent) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  border-radius: 10px !important;
+}
+/* Nav buttons (desktop) */
+.sidebar .nav-btn {
+  color: rgba(255,255,255,0.45) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.sidebar .nav-btn:hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: rgba(255,255,255,0.85) !important;
+}
+.sidebar .nav-btn.active {
+  background: rgba(255,255,255,0.11) !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+.sidebar .nav-btn.active svg {
+  color: var(--accent) !important;
+}
+
+/* Mobile bottom tab bar */
+@media (max-width: 768px) {
+  .sidebar {
+    background: rgba(20,20,24,0.96) !important;
+    border-top: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: none !important;
+    backdrop-filter: saturate(180%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  }
+  .sidebar .nav-btn {
+    color: rgba(255,255,255,0.4) !important;
+  }
+  .sidebar .nav-btn.active {
+    color: var(--accent) !important;
+    background: transparent !important;
+  }
+}
+
+/* ════ HEADER ════ */
+.header {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+.header-icon {
+  background: var(--accent) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+.header-btn {
+  border-radius: 8px !important;
+  font-size: 13px !important;
+}
+.header-btn.primary {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: none !important;
+}
+.header-btn.primary:hover {
+  background: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+}
+
+/* ════ PANELS & LIST ITEMS ════ */
+
+/* List panel backgrounds */
+.memo-list,
+.mindmap-list,
+.journal-list-panel,
+.tb-list-panel {
+  background: var(--surface) !important;
+}
+
+/* List headers */
+.memo-list-header,
+.mm-list-header,
+.journal-list-header,
+.timeblock-header {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+/* Generic list item active state — red left border */
+.memo-item.active,
+.mindmap-item.active,
+.journal-list-item.active,
+.tb-day-item.active {
+  background: rgba(217,79,61,0.06) !important;
+  border-left-color: var(--accent) !important;
+}
+
+/* ════ ACCENT BUTTONS ════ */
+/* New/add buttons */
+.new-btn,
+.new-mindmap-btn,
+[class*="new-btn"],
+.memo-search-wrap .new-btn {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+.new-btn:hover,
+.new-mindmap-btn:hover {
+  background: var(--accent2) !important;
+  border-color: var(--accent2) !important;
+  transform: none !important;
+}
+
+/* Primary/accent colored UI elements */
+.memo-filter-chip.active,
+.memo-tag-chip {
+  background: rgba(217,79,61,0.1) !important;
+  color: var(--accent) !important;
+  border-color: rgba(217,79,61,0.25) !important;
+}
+.memo-filter-chip.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+
+/* ════ MODALS & SURFACES ════ */
+.modal {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ════ MEMO EDITOR ════ */
+.memo-editor {
+  background: var(--surface) !important;
+}
+.memo-editor-header input {
+  color: var(--text) !important;
+}
+/* Mode segmented control */
+.memo-mode-seg button.active {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border-color: var(--accent) !important;
+}
+
+/* ════ TIMEBLOCK ════ */
+.tb-modal {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  backdrop-filter: none !important;
+}
+
+/* ════ SYNC STATUS ════ */
+.sync-pill {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  backdrop-filter: none !important;
+}
+
+/* ════ TOAST ════ */
+.toast {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-2) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ════ MINDMAP TOOLBAR ════ */
+.mindmap-toolbar {
+  background: var(--surface) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ════ DRAWING MODAL ════ */
+.drawing-modal-overlay {
+  backdrop-filter: blur(4px) !important;
+}
+
+/* ════ NODE ACTION BAR ════ */
+.node-action-bar {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-2) !important;
+  backdrop-filter: none !important;
+}
+
+/* ════ SCROLLBAR ════ */
+::-webkit-scrollbar { width: 4px !important; height: 4px !important; }
+::-webkit-scrollbar-track { background: transparent !important; }
+::-webkit-scrollbar-thumb { background: var(--border-light) !important; border-radius: 100px !important; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-mute) !important; }
