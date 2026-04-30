@@ -575,7 +575,7 @@ async function drivePushAll() {
         await driveUploadFile(fname, content, 'text/markdown', driveFolderId, { memoId: String(memo.id) });
         keptFiles.add(fname);
       }
-    }));
+    });
 
     // Delete orphan .md files (managed by us — has appProperties.memoId or legacy {id}- prefix — but no longer in memos)
     await batchAll([...byName].filter(([name, f]) => {
