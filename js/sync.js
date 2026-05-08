@@ -1544,7 +1544,20 @@ async function applyDriveData(files) {
     // --- Mindmaps ---
     const legacyApp = (appParsed?.app === 'mindflow') ? appParsed : null;
     if (remoteMmFiles.length > 0) {
-      const mmMap = new Map(mindmaps.map(m => [m.id, m]));
+      const mmSnap = pullSnap.mindmaps || {};
+      const remoteMmIdSet = new Set(mmRaws.filter(r => r?.id).map(r => r.id));
+      const mmMap = new Map();
+      // Add local mindmaps, but drop those that were in snapshot and now missing
+      // from remote (another device deleted them) AND haven't been edited since.
+      for (const m of mindmaps) {
+        if (!remoteMmIdSet.has(m.id) && (m.id in mmSnap)) {
+          const snapAt = new Date(mmSnap[m.id] || 0).getTime();
+          const localAt = new Date(m.updatedAt || 0).getTime();
+          if (localAt <= snapAt) continue; // accept remote deletion
+        }
+        mmMap.set(m.id, m);
+      }
+      // Apply remote (overwrite if remote is newer)
       for (const remote of mmRaws) {
         if (!remote?.id) continue;
         const local = mmMap.get(remote.id);
@@ -1567,6 +1580,20 @@ async function applyDriveData(files) {
     // --- Timeblocks ---
     if (remoteTbFiles.length > 0) {
       const localTbMeta = load('tb_meta', {});
+      const tbSnap = pullSnap.tbDays || {};
+      const remoteTbDaySet = new Set(tbRaws.filter(r => r?.dayKey).map(r => r.dayKey));
+      // Detect remote deletion: day was in snap but not in remote anymore
+      for (const day of Object.keys(timeBlocks)) {
+        if (!remoteTbDaySet.has(day) && (day in tbSnap)) {
+          const snapAt = new Date(tbSnap[day] || 0).getTime();
+          const localAt = new Date(localTbMeta[day] || 0).getTime();
+          if (localAt <= snapAt) {
+            // Another device deleted this day; local hasn't changed → accept
+            delete timeBlocks[day];
+            delete localTbMeta[day];
+          }
+        }
+      }
       for (const r of tbRaws) {
         if (!r) continue;
         const lAt = localTbMeta[r.dayKey];
@@ -1620,17 +1647,18 @@ async function applyDriveData(files) {
       } catch (e) { console.warn('Memo parse failed:', r.name, e); }
     }
 
-    // Per-memo timestamp merge: keep whichever side has the later updatedAt.
-    // Tombstones prevent locally-deleted memos from being resurrected by Drive pull.
-    // Tag preservation: if the winning side has no tags field but the loser does,
-    // copy tags over. Protects against losing tags during the transition before
-    // every Drive file has the new `tags:` frontmatter line.
+    // Per-memo merge with 3 protections:
+    //   1. Tombstones — locally-deleted memos can't be resurrected by Drive pull
+    //   2. Tag preservation — winning side keeps loser's tags if it lacks them
+    //   3. Snapshot-based remote-deletion — if a memo was in our snapshot but
+    //      isn't in remote anymore, and local hasn't edited since last sync,
+    //      ANOTHER DEVICE intentionally deleted it. Accept the deletion locally
+    //      instead of re-uploading. (This was the "다른 기기 청소가 무효" bug.)
     const tombstones = load('memo_tombstones', {});
+    const pullSnap = (typeof loadDriveSnapshot === 'function') ? loadDriveSnapshot() : { memos: {} };
+    const remoteIdSet = new Set(remoteMemos.map(m => m.id).filter(Boolean));
     const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
     const _mergeWithTags = (winner, loser) => {
-      // Winner is whichever updatedAt is more recent. If winner has no `tags`
-      // field at all (key absent — legacy file) but loser has tags, take loser's
-      // to avoid silent tag loss.
       if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
         return { ...winner, tags: loser.tags };
       }
@@ -1643,6 +1671,18 @@ async function applyDriveData(files) {
       mergedMemos.set(m.id, m);
     }
     for (const m of memos) {
+      if (m.id > maxId) maxId = m.id;
+
+      // Detect remote deletion: id was in snapshot but absent from remote now
+      if (!remoteIdSet.has(m.id) && pullSnap.memos && (m.id in pullSnap.memos)) {
+        const snapMtime = new Date(pullSnap.memos[m.id] || 0).getTime();
+        if (mtime(m) <= snapMtime) {
+          // Remote deleted; local hasn't been edited since last sync → accept deletion
+          continue;
+        }
+        // else: local edited after last sync → preserve (re-uploads on next push)
+      }
+
       const r = mergedMemos.get(m.id);
       if (!r) {
         mergedMemos.set(m.id, m);
@@ -1653,7 +1693,6 @@ async function applyDriveData(files) {
         // tags from local if remote's frontmatter lacks the field.
         mergedMemos.set(m.id, _mergeWithTags(r, m));
       }
-      if (m.id > maxId) maxId = m.id;
     }
     const newMemos = [...mergedMemos.values()];
     newMemos.sort((a, b) => mtime(b) - mtime(a));
