@@ -810,9 +810,24 @@ function computeDriveDirty() {
 // continues to push normally; the copy gets pushed in the next push cycle as
 // a brand-new item (fresh id, no snapshot entry → flagged dirty).
 
-async function _forkMemoConflict(driveFile) {
+// Returns true if remote file content is essentially the same as what we'd
+// have just pushed — used to skip spurious fork when Drive's modifiedTime
+// bumped from a metadata-only change (rename, appProperties patch).
+function _memoContentMatches(remoteText, localContent, localMemo) {
+  if (!remoteText) return false;
+  // Compare body only (strip frontmatter from both, since updated timestamps differ)
+  const stripFm = s => {
+    const m = s.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n\r?\n?([\s\S]*)$/);
+    return m ? m[1] : s;
+  };
+  const a = stripFm(remoteText).trim();
+  const b = (localMemo.content || '').trim();
+  return a === b;
+}
+
+async function _forkMemoConflict(driveFile, alreadyDownloadedContent) {
   try {
-    const content = await driveClient.download(driveFile.id);
+    const content = alreadyDownloadedContent || await driveClient.download(driveFile.id);
     const remoteMemo = (typeof window.SyncAdapters !== 'undefined')
       ? window.SyncAdapters.Memo.parse(driveFile, content)
       : (typeof parseFrontmatter === 'function' ? parseFrontmatter(content, driveFile.name, Date.now()) : null);
@@ -869,6 +884,64 @@ async function _forkTimeblockConflict(driveFile, dayKey) {
     driveConflictsThisSession.push({ type: 'timeblock', title: copy.dayKey });
     console.warn('[Sync] Timeblock conflict forked:', copy.dayKey);
   } catch (e) { console.warn('Timeblock conflict fork failed:', e); }
+}
+
+// User-facing cleanup tool: remove conflict copies that were spuriously created
+// by the pre-fix sync bug. Identifies by:
+//   - memos with #conflict tag OR title containing "(충돌"
+//   - mindmaps with name containing "(충돌"
+//   - timeblock days with "__conflict__" in dayKey
+// After local cleanup, schedules a push so Drive matches.
+async function cleanupSyncConflicts() {
+  const memosToDelete = (memos || []).filter(m =>
+    (m.tags || []).includes('conflict') || (m.title || '').includes('(충돌')
+  );
+  const mmsToDelete = (mindmaps || []).filter(mm => (mm.name || '').includes('(충돌'));
+  const tbDaysToDelete = Object.keys(timeBlocks || {}).filter(d => d.includes('__conflict__'));
+  const total = memosToDelete.length + mmsToDelete.length + tbDaysToDelete.length;
+  if (total === 0) {
+    toast('정리할 충돌 사본이 없어요', 'success');
+    return;
+  }
+  const msg = `충돌 사본 정리:\n` +
+    `• 메모 ${memosToDelete.length}개\n` +
+    `• 마인드맵 ${mmsToDelete.length}개\n` +
+    `• 타임블록 ${tbDaysToDelete.length}일\n\n` +
+    `복원 가능한 백업이 자동 생성된 후 삭제됩니다. 계속하시겠습니까?`;
+  if (!confirm(msg)) return;
+  // Pre-cleanup backup
+  if (typeof BackupService !== 'undefined') {
+    try { await BackupService.snapshot('pre-cleanup'); } catch {}
+  }
+  // Delete memos via tombstone path (so Drive sync removes them too)
+  const tombs = load('memo_tombstones', {});
+  for (const m of memosToDelete) {
+    tombs[m.id] = new Date().toISOString();
+  }
+  save('memo_tombstones', tombs);
+  memos = (memos || []).filter(m => !memosToDelete.find(d => d.id === m.id));
+  save('memos', memos);
+  // Delete mindmaps
+  if (mmsToDelete.length > 0) {
+    mindmaps = (mindmaps || []).filter(mm => !mmsToDelete.find(d => d.id === mm.id));
+    save('mindmaps', mindmaps);
+    if (typeof bindActiveMap === 'function') bindActiveMap();
+  }
+  // Delete timeblock days
+  for (const d of tbDaysToDelete) {
+    delete timeBlocks[d];
+    const meta = load('tb_meta', {});
+    delete meta[d];
+    save('tb_meta', meta);
+  }
+  if (tbDaysToDelete.length > 0) save('tb_blocks', timeBlocks);
+  // Trigger sync to propagate deletions to Drive
+  toast(`로컬 정리 완료 (${total}개) — Drive에 반영 중...`, 'success');
+  if (typeof scheduleDriveSave === 'function') scheduleDriveSave();
+  // UI refresh
+  if (window.SyncEvents) {
+    SyncEvents.emit('itemsMerged', { types: ['memo', 'mindmap', 'timeblock'] });
+  }
 }
 
 function _flushConflictNotifications() {
@@ -1056,8 +1129,15 @@ async function drivePushAll() {
       const existing = mindmapByName.get(fname);
       if (existing) {
         const lastDriveMtime = oldSnap.driveMtimes?.mindmap?.[mm.id];
-        if (lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
-          await _forkMindmapConflict(existing);
+        const isAlreadyConflict = (mm.name || '').includes('(충돌');
+        if (!isAlreadyConflict && lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
+          // Compare content first — skip fork if Drive's content matches local
+          try {
+            const remoteText = await driveClient.download(existing.id);
+            if (remoteText.trim() !== body.trim()) {
+              await _forkMindmapConflict(existing);
+            }
+          } catch (e) { console.warn('[Conflict mm] download failed:', e); }
         }
         const res = await driveUpdateFile(existing.id, body, 'application/json');
         trackMtime(res);
@@ -1085,8 +1165,14 @@ async function drivePushAll() {
       const existing = timeblockByName.get(fname);
       if (existing) {
         const lastDriveMtime = oldSnap.driveMtimes?.timeblock?.[dayKey];
-        if (lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
-          await _forkTimeblockConflict(existing, dayKey);
+        const isAlreadyConflict = dayKey.includes('__conflict__');
+        if (!isAlreadyConflict && lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
+          try {
+            const remoteText = await driveClient.download(existing.id);
+            if (remoteText.trim() !== payload.trim()) {
+              await _forkTimeblockConflict(existing, dayKey);
+            }
+          } catch (e) { console.warn('[Conflict tb] download failed:', e); }
         }
         const res = await driveUpdateFile(existing.id, payload, 'application/json');
         trackMtime(res);
@@ -1120,32 +1206,47 @@ async function drivePushAll() {
 
     await batchAll(diff.dirtyMemos, async memo => {
       // CRITICAL: capture updated and the body string in ONE synchronous tick.
-      // If user types between this read and the upload completing, the live
-      // memo.updatedAt will exceed `capturedMtime`, so the NEXT push will
-      // correctly detect the typing as dirty. If we read updatedAt AFTER the
-      // upload, we'd record a too-recent mtime and skip the user's edits.
       const capturedMtime = memo.updatedAt || memo.date || '';
       const fname = memoFilenames.get(memo.id);
       const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\nupdated: ${capturedMtime}\n---\n\n${memo.content || ''}`;
       const existing = byMemoId.get(memo.id) || byName.get(fname);
       if (existing) {
         // 3-way conflict check: did another device edit this file between our
-        // last push and now? Drive's modifiedTime differs from our recorded one.
+        // pushes? Compare Drive's modifiedTime to what we recorded on last push.
+        // Skip fork if remote content is byte-identical (metadata-only Drive
+        // change, e.g. our own previous PATCH bumped mtime without our seeing it).
+        // Skip fork if this is a conflict copy already (avoid recursive forking).
+        const isAlreadyConflict = (memo.tags || []).includes('conflict');
         const lastDriveMtime = oldSnap.driveMtimes?.memo?.[memo.id];
-        if (lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
-          await _forkMemoConflict(existing);
+        if (!isAlreadyConflict && lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
+          try {
+            const remoteContent = await driveClient.download(existing.id);
+            // Compare normalized content — if same, no real conflict
+            if (_memoContentMatches(remoteContent, content, memo)) {
+              // metadata-only drift, no fork needed
+            } else {
+              await _forkMemoConflict(existing, remoteContent);
+            }
+          } catch (e) { console.warn('[Conflict] download failed:', e); }
         }
         const res = await driveUpdateFile(existing.id, content, 'text/markdown');
         trackMtime(res);
-        if (res?.modifiedTime) newSnap.driveMtimes.memo[memo.id] = res.modifiedTime;
+        let finalMtime = res?.modifiedTime;
         const needsRename = existing.name !== fname;
         const needsProp = !existing.appProperties?.memoId;
         if (needsRename || needsProp) {
           const patch = {};
           if (needsRename) patch.name = fname;
           if (needsProp) patch.appProperties = { memoId: String(memo.id) };
-          try { await driveApi('PATCH', `/files/${existing.id}`, patch); } catch (e) { console.warn('Metadata patch failed:', e); }
+          try {
+            // CRITICAL: capture PATCH's modifiedTime — it bumps mtime higher than
+            // the prior driveUpdateFile. Without this, next push sees a spurious
+            // conflict and forks the file repeatedly → "duplicate every push" bug.
+            const patchRes = await driveApi('PATCH', `/files/${existing.id}`, patch, { fields: 'id,modifiedTime' });
+            if (patchRes?.modifiedTime) finalMtime = patchRes.modifiedTime;
+          } catch (e) { console.warn('Metadata patch failed:', e); }
         }
+        if (finalMtime) newSnap.driveMtimes.memo[memo.id] = finalMtime;
       } else {
         const res = await driveUploadFile(fname, content, 'text/markdown', driveMemosFolderId || driveFolderId, { memoId: String(memo.id) });
         trackMtime(res);
