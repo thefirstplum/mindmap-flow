@@ -2050,6 +2050,7 @@ function updateDriveStatus() {
   const disconnectBtn = document.getElementById('drive-disconnect-btn');
   const syncNowBtn = document.getElementById('drive-sync-now-btn');
   const importFolderRow = document.getElementById('drive-import-folder-row');
+  const cleanupRow = document.getElementById('drive-cleanup-row');
   if (driveFolderId) {
     el.classList.add('connected');
     let statusText;
@@ -2081,6 +2082,7 @@ function updateDriveStatus() {
     if (disconnectBtn) disconnectBtn.style.display = '';
     if (syncNowBtn) syncNowBtn.style.display = '';
     if (importFolderRow) importFolderRow.style.display = '';
+    if (cleanupRow) cleanupRow.style.display = '';
   } else {
     el.classList.remove('connected');
     el.innerHTML = `
@@ -2094,6 +2096,7 @@ function updateDriveStatus() {
     if (disconnectBtn) disconnectBtn.style.display = 'none';
     if (syncNowBtn) syncNowBtn.style.display = 'none';
     if (importFolderRow) importFolderRow.style.display = 'none';
+    if (cleanupRow) cleanupRow.style.display = 'none';
   }
 }
 
