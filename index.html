@@ -3,15 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MindFlow">
 <meta name="theme-color" content="#0f1117">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
 <title>MindFlow — 마인드맵 · 타임블록 · 메모</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260429f">
+<link rel="stylesheet" href="styles.css?v=20260508c">
 </head>
 <body>
 <div class="app">
@@ -405,6 +410,20 @@
       </div>
     </details>
 
+    <label style="margin-top:22px;">🛟 자동 로컬 백업</label>
+    <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
+      동기화 직전마다 이 기기의 모든 데이터를 IndexedDB에 자동 저장합니다. 동기화 사고가 나도 복원 가능 (최근 10개 보관).
+    </div>
+    <div id="backup-list" style="margin-top:10px;font-size:12px;"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+      <button class="tb-btn" onclick="manualBackup()" style="flex:1;min-width:100px;justify-content:center;">
+        💾 지금 백업
+      </button>
+      <button class="tb-btn" onclick="refreshBackupList()" style="flex:1;min-width:100px;justify-content:center;">
+        🔄 목록 새로고침
+      </button>
+    </div>
+
     <details style="margin-top:22px;">
       <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 다른 동기화 옵션 (Gist · 로컬 폴더 · JSON)</summary>
 
@@ -600,17 +619,20 @@
 <!-- CodeMirror 6 bundle (local, no CDN) -->
 <script src="js/vendor/cm6.bundle.js" defer></script>
 <!-- App scripts (order = dependency order) -->
-<script src="js/utils.js" defer></script>
-<script src="js/swipe-panel.js" defer></script>
-<script src="js/navigation.js" defer></script>
-<script src="js/mindmap.js" defer></script>
-<script src="js/timeblock.js" defer></script>
-<script src="js/memo.js" defer></script>
-<script src="js/journal.js" defer></script>
-<script src="js/ledger.js" defer></script>
-<script src="js/drawing.js" defer></script>
-<script src="js/sync.js" defer></script>
-<script src="js/main.js" defer></script>
+<script src="js/utils.js?v=20260508c" defer></script>
+<script src="js/backup.js?v=20260508c" defer></script>
+<script src="js/drive-client.js?v=20260508c" defer></script>
+<script src="js/sync-adapters.js?v=20260508c" defer></script>
+<script src="js/swipe-panel.js?v=20260508c" defer></script>
+<script src="js/navigation.js?v=20260508c" defer></script>
+<script src="js/mindmap.js?v=20260508c" defer></script>
+<script src="js/timeblock.js?v=20260508c" defer></script>
+<script src="js/memo.js?v=20260508c" defer></script>
+<script src="js/journal.js?v=20260508c" defer></script>
+<script src="js/ledger.js?v=20260508c" defer></script>
+<script src="js/drawing.js?v=20260508c" defer></script>
+<script src="js/sync.js?v=20260508c" defer></script>
+<script src="js/main.js?v=20260508c" defer></script>
 
 <!-- Mindmap color picker popup — must be direct child of body to escape backdrop-filter stacking context -->
 <div class="mm-color-popup" id="mm-color-popup">

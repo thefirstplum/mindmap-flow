@@ -409,7 +409,7 @@ async function insertDrawing() {
   const memo = memos.find(m => m.id === activeMemoId);
   if (memo) {
     memo.content = (memo.content || '') + insertText;
-    memo.date = new Date().toISOString();
+    touchMemo(memo);
     saveMemos();
     renderMemoEditor();
   }
