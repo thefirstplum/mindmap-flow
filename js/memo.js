@@ -9,8 +9,18 @@ function saveMemos() {
   save('memo_idcounter', memoIdCounter);
 }
 
+// Bump modification time. Sync uses updatedAt to decide which side wins
+// during merge; date stays in sync for backward-compat with old memos and
+// for the existing list UI that formats "오늘 hh:mm" etc.
+function touchMemo(memo) {
+  const now = new Date().toISOString();
+  memo.updatedAt = now;
+  memo.date = now;
+}
+
 function createMemo() {
-  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: new Date().toISOString(), tags: [] };
+  const now = new Date().toISOString();
+  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
   memos.unshift(memo);
   activeMemoId = memo.id;
   // New memos open in live mode so user gets Bear-style inline editing
@@ -722,7 +732,7 @@ function updateMemoTitle(val) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (memo) {
     memo.title = val;
-    memo.date = new Date().toISOString();
+    touchMemo(memo);
     saveMemos();
     renderMemoList();
   }
@@ -732,7 +742,7 @@ function updateMemoContent(val) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
   memo.content = val;
-  memo.date = new Date().toISOString();
+  touchMemo(memo);
   saveMemos();
   // Update char/word count in meta row without re-rendering the editor
   const meta = document.querySelector('.memo-meta');
@@ -771,7 +781,7 @@ function _refreshMemoTagChips() {
   const chipsEl = document.getElementById('memo-tag-chips');
   if (!chipsEl || !memo) return;
   chipsEl.innerHTML = (memo.tags || []).map(t =>
-    `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t)})" class="memo-tag-del">✕</button></span>`
+    `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="memo-tag-del">✕</button></span>`
   ).join('');
 }
 
@@ -782,6 +792,7 @@ function addMemoTag(tag) {
   if (!tag || (memo.tags || []).includes(tag)) return;
   if (!memo.tags) memo.tags = [];
   memo.tags.push(tag);
+  touchMemo(memo);
   saveMemos();
   _refreshMemoTagChips();
   renderMemoList();
@@ -791,6 +802,7 @@ function removeMemoTag(tag) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
   memo.tags = (memo.tags || []).filter(t => t !== tag);
+  touchMemo(memo);
   saveMemos();
   _refreshMemoTagChips();
   renderMemoList();
@@ -878,7 +890,7 @@ function insertIntoActiveMemo(insertText) {
 
   // View mode — switch to live and append
   memo.content = (memo.content || '') + insertText;
-  memo.date = new Date().toISOString();
+  touchMemo(memo);
   saveMemos();
   setMemoMode('live');
   return true;
