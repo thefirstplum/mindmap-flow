@@ -116,12 +116,12 @@ function touchMemo(memo) {
   memo.date = now;
 }
 
-// =================== INLINE HASHTAG EXTRACTION ===================
-// Bear/Obsidian-style: typing "#회의" or "#projectX" anywhere in a memo body
-// auto-promotes the word to a tag chip. Requires a boundary char (line start,
-// whitespace, or punctuation) before the # so URL fragments and markdown
-// headers (`# Heading` — note space) don't accidentally become tags.
+// =================== INLINE HASHTAG (Bear-style) ===================
+// Source of truth = memo.content. memo.tags is always derived from extraction.
+// + button inserts "#tag" into content; ✕ removes "#tag" from content;
+// editing content directly (typing/deleting #tag) updates the chip list.
 const HASHTAG_RE = /(?:^|[\s,.;:!?(){}\[\]"'`])#([가-힣a-zA-Z][가-힣\w-]*)/g;
+const _BOUNDARY_SET = `[\\s,.;:!?(){}\\[\\]"'\`]`;
 
 function extractHashtags(content) {
   if (!content) return [];
@@ -132,34 +132,62 @@ function extractHashtags(content) {
   return [...found];
 }
 
-// Adds inline hashtags from content to memo.tags (union). Returns true if any
-// new tag was added — caller decides whether to bump updatedAt + persist.
-// Manual tag chips are preserved (we only ADD, never REMOVE here).
-function syncMemoHashtags(memo) {
-  const inline = extractHashtags(memo.content || '');
-  if (inline.length === 0) return false;
-  if (!memo.tags) memo.tags = [];
-  let added = false;
-  for (const t of inline) {
-    if (!memo.tags.includes(t)) {
-      memo.tags.push(t);
-      added = true;
-    }
-  }
-  return added;
+function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function _hasInlineTag(content, tag) {
+  if (!content || !tag) return false;
+  const re = new RegExp(`(?:^|${_BOUNDARY_SET})#${_escapeRe(tag)}(?=$|${_BOUNDARY_SET})`);
+  return re.test(content);
 }
 
-// One-time migration: scan all existing memos for inline hashtags and promote
-// them. Idempotent via localStorage flag so it only runs once per device.
+function _addInlineTag(content, tag) {
+  if (_hasInlineTag(content, tag)) return content;
+  const c = content || '';
+  const sep = c.length === 0 ? '' : (c.endsWith('\n') ? '' : '\n');
+  return c + sep + '#' + tag;
+}
+
+function _removeInlineTag(content, tag) {
+  if (!content) return '';
+  // Match leading boundary char so we can preserve word separators around the tag.
+  const re = new RegExp(`(^|${_BOUNDARY_SET})#${_escapeRe(tag)}(?=$|${_BOUNDARY_SET})`, 'g');
+  let out = content.replace(re, '$1');
+  // If a leading newline was the boundary, we may have left "\n\n" — collapse trailing whitespace cleanly
+  out = out.replace(/[ \t]+\n/g, '\n');
+  return out;
+}
+
+// Re-derive memo.tags from current content. Returns true if tags actually changed.
+function syncMemoHashtags(memo) {
+  const inline = extractHashtags(memo.content || '');
+  const old = memo.tags || [];
+  const oldSet = new Set(old);
+  const newSet = new Set(inline);
+  const same = oldSet.size === newSet.size && [...newSet].every(t => oldSet.has(t));
+  if (same) return false;
+  memo.tags = inline;
+  return true;
+}
+
+// One-time migration: ensure every existing tag has its inline #tag in content,
+// then re-derive tags. After this runs, content is the source of truth.
+// Idempotent via localStorage flag.
 function migrateHashtagsFromContent() {
-  const KEY = 'mindflow_hashtag_migration_v1';
-  try {
-    if (localStorage.getItem(KEY)) return;
-  } catch { return; }
+  const KEY = 'mindflow_hashtag_migration_v2';
+  try { if (localStorage.getItem(KEY)) return; } catch { return; }
   if (typeof memos === 'undefined' || !Array.isArray(memos)) return;
   let touchedCount = 0;
   for (const m of memos) {
-    if (syncMemoHashtags(m)) {
+    const oldContent = m.content || '';
+    let content = oldContent;
+    // Ensure every existing tag is represented inline
+    for (const t of (m.tags || [])) {
+      if (!_hasInlineTag(content, t)) content = _addInlineTag(content, t);
+    }
+    const contentChanged = content !== oldContent;
+    if (contentChanged) m.content = content;
+    const tagsChanged = syncMemoHashtags(m);
+    if (contentChanged || tagsChanged) {
       touchMemo(m);
       touchedCount++;
     }
@@ -167,10 +195,11 @@ function migrateHashtagsFromContent() {
   if (touchedCount > 0) {
     saveMemos();
     if (typeof renderMemoList === 'function') renderMemoList();
+    if (typeof renderMemoEditor === 'function') renderMemoEditor();
     if (typeof toast === 'function') {
-      toast(`${touchedCount}개 메모에서 #해시태그 추출했어요`, 'success');
+      toast(`${touchedCount}개 메모의 태그를 본문에 동기화했어요`, 'success');
     }
-    console.log(`[Migration] Auto-tagged ${touchedCount} memos from inline hashtags`);
+    console.log(`[Migration] Synced ${touchedCount} memos: tags ↔ content`);
   }
   try { localStorage.setItem(KEY, '1'); } catch {}
 }
@@ -998,24 +1027,32 @@ function _refreshMemoTagChips() {
 function addMemoTag(tag) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
-  tag = tag.trim();
-  if (!tag || (memo.tags || []).includes(tag)) return;
-  if (!memo.tags) memo.tags = [];
-  memo.tags.push(tag);
+  tag = tag.trim().replace(/^#/, '');  // accept "#회의" or "회의"
+  if (!tag) return;
+  // Source of truth = content. Insert "#tag" into body if not present, then re-derive.
+  if (!_hasInlineTag(memo.content, tag)) {
+    memo.content = _addInlineTag(memo.content || '', tag);
+  }
+  syncMemoHashtags(memo);
   touchMemo(memo);
   saveMemos();
   _refreshMemoTagChips();
   renderMemoList();
+  // Re-render editor so the appended #tag becomes visible (and CodeMirror state stays in sync)
+  if (typeof renderMemoEditor === 'function') renderMemoEditor();
 }
 
 function removeMemoTag(tag) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
-  memo.tags = (memo.tags || []).filter(t => t !== tag);
+  // Strip every "#tag" occurrence from content, then re-derive tags
+  memo.content = _removeInlineTag(memo.content || '', tag);
+  syncMemoHashtags(memo);
   touchMemo(memo);
   saveMemos();
   _refreshMemoTagChips();
   renderMemoList();
+  if (typeof renderMemoEditor === 'function') renderMemoEditor();
 }
 
 function focusMemoTagInput() {
