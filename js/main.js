@@ -38,6 +38,11 @@ document.body.addEventListener('touchmove', e => {
 applySettings();
 if (typeof initLedger === 'function') initLedger();
 
+// One-time: extract inline hashtags from existing memo content into tag chips
+if (typeof migrateHashtagsFromContent === 'function') {
+  try { migrateHashtagsFromContent(); } catch (e) { console.warn('hashtag migration failed:', e); }
+}
+
 // Daily backup (idle, runs at most once per 24h)
 if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});

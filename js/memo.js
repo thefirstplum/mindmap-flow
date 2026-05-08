@@ -116,6 +116,65 @@ function touchMemo(memo) {
   memo.date = now;
 }
 
+// =================== INLINE HASHTAG EXTRACTION ===================
+// Bear/Obsidian-style: typing "#회의" or "#projectX" anywhere in a memo body
+// auto-promotes the word to a tag chip. Requires a boundary char (line start,
+// whitespace, or punctuation) before the # so URL fragments and markdown
+// headers (`# Heading` — note space) don't accidentally become tags.
+const HASHTAG_RE = /(?:^|[\s,.;:!?(){}\[\]"'`])#([가-힣a-zA-Z][가-힣\w-]*)/g;
+
+function extractHashtags(content) {
+  if (!content) return [];
+  const found = new Set();
+  for (const m of content.matchAll(HASHTAG_RE)) {
+    found.add(m[1]);
+  }
+  return [...found];
+}
+
+// Adds inline hashtags from content to memo.tags (union). Returns true if any
+// new tag was added — caller decides whether to bump updatedAt + persist.
+// Manual tag chips are preserved (we only ADD, never REMOVE here).
+function syncMemoHashtags(memo) {
+  const inline = extractHashtags(memo.content || '');
+  if (inline.length === 0) return false;
+  if (!memo.tags) memo.tags = [];
+  let added = false;
+  for (const t of inline) {
+    if (!memo.tags.includes(t)) {
+      memo.tags.push(t);
+      added = true;
+    }
+  }
+  return added;
+}
+
+// One-time migration: scan all existing memos for inline hashtags and promote
+// them. Idempotent via localStorage flag so it only runs once per device.
+function migrateHashtagsFromContent() {
+  const KEY = 'mindflow_hashtag_migration_v1';
+  try {
+    if (localStorage.getItem(KEY)) return;
+  } catch { return; }
+  if (typeof memos === 'undefined' || !Array.isArray(memos)) return;
+  let touchedCount = 0;
+  for (const m of memos) {
+    if (syncMemoHashtags(m)) {
+      touchMemo(m);
+      touchedCount++;
+    }
+  }
+  if (touchedCount > 0) {
+    saveMemos();
+    if (typeof renderMemoList === 'function') renderMemoList();
+    if (typeof toast === 'function') {
+      toast(`${touchedCount}개 메모에서 #해시태그 추출했어요`, 'success');
+    }
+    console.log(`[Migration] Auto-tagged ${touchedCount} memos from inline hashtags`);
+  }
+  try { localStorage.setItem(KEY, '1'); } catch {}
+}
+
 function createMemo() {
   const now = new Date().toISOString();
   const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
@@ -163,24 +222,43 @@ function deleteMemo(id) {
 function renderMemoList() {
   const search = document.getElementById('memo-search').value.toLowerCase();
 
-  // Tag filter bar
-  const allTags = [...new Set(memos.flatMap(m => m.tags || []))].sort();
+  // Tag filter bar (Bear-style): count per tag, "태그없음" option, sorted by frequency
+  const tagCounts = new Map();
+  let untaggedCount = 0;
+  for (const m of memos) {
+    const ts = m.tags || [];
+    if (ts.length === 0) untaggedCount++;
+    for (const t of ts) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+  }
+  const tagsByFreq = [...tagCounts.entries()].sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];     // count desc
+    return a[0].localeCompare(b[0], 'ko');      // then alpha
+  });
   const tagBar = document.getElementById('memo-tag-bar');
   if (tagBar) {
-    if (allTags.length > 0) {
-      tagBar.innerHTML = `<div class="memo-tag-bar-inner">
-        <span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체</span>
-        ${allTags.map(t => `<span class="memo-filter-chip${activeTagFilter === t ? ' active' : ''}" onclick="setTagFilter(${JSON.stringify(t).replace(/"/g, '&quot;')})">${escapeHtml(t)}</span>`).join('')}
-      </div>`;
+    if (tagsByFreq.length > 0 || untaggedCount > 0) {
+      const allChip = `<span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체 <span class="chip-count">${memos.length}</span></span>`;
+      const tagChips = tagsByFreq.map(([t, n]) => {
+        const safe = JSON.stringify(t).replace(/"/g, '&quot;');
+        const isActive = activeTagFilter === t;
+        return `<span class="memo-filter-chip${isActive ? ' active' : ''}" onclick="setTagFilter(${safe})">#${escapeHtml(t)} <span class="chip-count">${n}</span></span>`;
+      }).join('');
+      const untaggedChip = untaggedCount > 0
+        ? `<span class="memo-filter-chip${activeTagFilter === '__untagged__' ? ' active' : ''}" onclick="setTagFilter('__untagged__')">태그없음 <span class="chip-count">${untaggedCount}</span></span>`
+        : '';
+      tagBar.innerHTML = `<div class="memo-tag-bar-inner">${allChip}${tagChips}${untaggedChip}</div>`;
     } else {
       tagBar.innerHTML = '';
     }
   }
 
-  const filtered = memos.filter(m =>
-    (m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search)) &&
-    (!activeTagFilter || (m.tags || []).includes(activeTagFilter))
-  );
+  const filtered = memos.filter(m => {
+    const matchesSearch = m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search);
+    if (!matchesSearch) return false;
+    if (!activeTagFilter) return true;
+    if (activeTagFilter === '__untagged__') return !m.tags || m.tags.length === 0;
+    return (m.tags || []).includes(activeTagFilter);
+  });
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
   if (countEl) countEl.textContent = memos.length;
@@ -872,6 +950,8 @@ function updateMemoContent(val) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
   memo.content = val;
+  // Promote inline #hashtags into tag chips (additive — doesn't remove manual tags)
+  syncMemoHashtags(memo);
   touchMemo(memo);
   saveMemos();
   // Update char/word count in meta row without re-rendering the editor

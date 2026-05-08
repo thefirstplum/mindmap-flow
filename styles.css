@@ -1147,14 +1147,34 @@ body[data-theme="leather"] {
 }
 .memo-tag-bar-inner::-webkit-scrollbar { display: none; }
 .memo-filter-chip {
-  flex-shrink: 0; padding: 3px 10px; border-radius: 20px;
+  flex-shrink: 0; padding: 4px 10px; border-radius: 20px;
   font-size: 12px; font-weight: 500;
   background: var(--surface2); color: var(--text-dim);
   cursor: pointer; border: 1px solid var(--border);
   transition: all 0.12s; user-select: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  /* Touch target — make sure it's tappable on mobile */
+  min-height: 28px; line-height: 1.4;
 }
 .memo-filter-chip:hover { background: var(--surface3); color: var(--text); }
 .memo-filter-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.memo-filter-chip .chip-count {
+  font-size: 10px; font-weight: 600;
+  padding: 1px 6px; border-radius: 10px;
+  background: var(--surface3); color: var(--text-mute);
+  min-width: 16px; text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.memo-filter-chip.active .chip-count {
+  background: rgba(255,255,255,0.25); color: #fff;
+}
+
+/* Mobile: bigger touch targets, slightly tighter spacing */
+@media (max-width: 768px) {
+  .memo-tag-bar-inner { padding: 6px 10px 8px; gap: 6px; }
+  .memo-filter-chip { padding: 6px 12px; min-height: 32px; font-size: 12px; }
+  .memo-filter-chip .chip-count { font-size: 10px; padding: 1px 5px; }
+}
 
 /* Search bar */
 .memo-search-wrap { position: relative; display: flex; gap: 7px; }
@@ -1244,6 +1264,20 @@ body[data-theme="leather"] {
 .memo-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .memo-select-btn.danger { color: var(--red); border-color: var(--red); }
 .memo-select-btn.danger:hover { background: var(--red); color: #fff; }
+
+/* Mobile: bigger touch targets for bulk select toolbar */
+@media (max-width: 768px) {
+  .memo-select-bar {
+    padding: 10px 12px; gap: 6px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .memo-select-btn {
+    font-size: 13px; padding: 8px 12px;
+    min-height: 36px;
+  }
+  .memo-select-count { font-size: 13px; }
+  .memo-select-check { width: 26px; height: 26px; font-size: 16px; }
+}
 .memo-item-title {
   font-size: 14px; font-weight: 600; color: var(--text);
   margin-bottom: 4px;
