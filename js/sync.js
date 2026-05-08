@@ -683,7 +683,9 @@ const DRIVE_SNAPSHOT_KEY = 'drive_push_snapshot';
 // full re-evaluation. History:
 //   v2 (2026-05-07) — race-free capture (fixed buildSnapshotFromLocal data-loss bug)
 //   v3 (2026-05-08) — driveMtimes added for 3-way conflict detection
-const DRIVE_SNAPSHOT_VERSION = 3;
+//   v4 (2026-05-08) — tags now persisted in frontmatter; force re-push so
+//                     existing Drive files get their tags written
+const DRIVE_SNAPSHOT_VERSION = 4;
 try {
   const v = parseInt(localStorage.getItem('mindflow_drive_snapshot_ver') || '0');
   if (v < DRIVE_SNAPSHOT_VERSION) {
@@ -884,6 +886,146 @@ async function _forkTimeblockConflict(driveFile, dayKey) {
     driveConflictsThisSession.push({ type: 'timeblock', title: copy.dayKey });
     console.warn('[Sync] Timeblock conflict forked:', copy.dayKey);
   } catch (e) { console.warn('Timeblock conflict fork failed:', e); }
+}
+
+// =================== DRIVE CLEANUP / DEDUP TOOL ===================
+// Audits Drive against local memos and:
+//   1. Removes Drive duplicates (multiple files with same memoId — keep newest)
+//   2. Removes Drive orphans (files we don't recognize anymore)
+//   3. Merges memos with identical/similar content into one (locally) and pushes
+//      the merge result, deleting the redundant Drive files
+// Pre-cleanup backup is created automatically. Confirms before destructive ops.
+async function cleanupDriveDuplicates() {
+  if (!driveFolderId) { toast('먼저 Drive 연결하세요'); return; }
+  if (!driveClient.hasValidToken()) {
+    try { await driveClient.ensureToken(); }
+    catch { toast('인증이 필요해요. 동기화 버튼을 먼저 눌러주세요', 'error'); return; }
+  }
+  toast('Drive 분석 중...');
+  const { memoFiles } = await driveListAllFiles();
+
+  // Group Drive files by memoId
+  const groups = new Map();  // id → [files]
+  const noIdFiles = [];
+  for (const f of memoFiles) {
+    const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
+    const fnId = parseMemoIdFromFilename(f.name);
+    const id = propId || fnId;
+    if (!id) { noIdFiles.push(f); continue; }
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push(f);
+  }
+
+  // Stats
+  const localIds = new Set((memos || []).map(m => m.id));
+  const driveDupes = [];   // extra files for an id (keep newest)
+  const driveOrphans = []; // file's id is not in local memos
+  for (const [id, fs] of groups) {
+    fs.sort((a, b) => (b.modifiedTime || '').localeCompare(a.modifiedTime || ''));
+    if (!localIds.has(id)) {
+      // Whole group is orphan
+      fs.forEach(f => driveOrphans.push(f));
+    } else {
+      // Keep newest, rest are dupes
+      for (let i = 1; i < fs.length; i++) driveDupes.push(fs[i]);
+    }
+  }
+
+  // Find local memos with identical title+content (true duplicates)
+  const fingerprintMap = new Map();
+  const localDupes = [];  // memos to merge into another
+  for (const m of memos || []) {
+    const fp = (m.title || '').trim().toLowerCase() + '\n' + (m.content || '').trim();
+    if (!fp.replace(/\s/g, '').length) continue; // skip empty
+    if (fingerprintMap.has(fp)) {
+      localDupes.push({ keep: fingerprintMap.get(fp), drop: m });
+    } else {
+      fingerprintMap.set(fp, m);
+    }
+  }
+
+  // Find similar (same title) — for tag union
+  const titleMap = new Map();
+  const titleMerges = []; // {primary, others} — same title, different content
+  for (const m of memos || []) {
+    const t = (m.title || '').trim();
+    if (!t) continue;
+    if (!titleMap.has(t)) titleMap.set(t, []);
+    titleMap.get(t).push(m);
+  }
+  for (const [, group] of titleMap) {
+    if (group.length > 1) {
+      // Already-counted exact dupes excluded; only those with different content
+      const exactDropIds = new Set(localDupes.map(d => d.drop.id));
+      const remaining = group.filter(g => !exactDropIds.has(g.id));
+      if (remaining.length > 1) {
+        titleMerges.push({ primary: remaining[0], others: remaining.slice(1) });
+      }
+    }
+  }
+
+  const summary =
+    `🔍 Drive 분석 결과\n\n` +
+    `Drive 파일: 총 ${memoFiles.length}개\n` +
+    `  ├ ID 누락: ${noIdFiles.length}개\n` +
+    `  ├ 중복 (같은 메모): ${driveDupes.length}개\n` +
+    `  └ 고아 (로컬 없음): ${driveOrphans.length}개\n\n` +
+    `로컬 메모 분석:\n` +
+    `  ├ 완전 동일 메모: ${localDupes.length}쌍\n` +
+    `  └ 같은 제목 다른 내용: ${titleMerges.length}그룹\n\n` +
+    `자동 정리할 작업:\n` +
+    `  • Drive 중복 ${driveDupes.length}개 삭제\n` +
+    `  • Drive 고아 ${driveOrphans.length}개 삭제 (로컬에 없는 메모 파일)\n` +
+    `  • 로컬 동일 메모 ${localDupes.length}쌍 합치기 (태그 union)\n` +
+    `\n` +
+    `같은 제목이지만 내용 다른 그룹은 자동 처리 안 합니다. 콘솔 출력으로 확인하세요.\n\n` +
+    `진행할까요? (자동 백업 생성됩니다)`;
+
+  console.log('=== Drive cleanup analysis ===');
+  console.log('driveDupes:', driveDupes.map(f => f.name));
+  console.log('driveOrphans:', driveOrphans.map(f => f.name));
+  console.log('localDupes:', localDupes.map(d => `${d.drop.id} → ${d.keep.id} (${d.keep.title})`));
+  console.log('titleMerges (수동 검토):', titleMerges.map(g => `"${g.primary.title}" — ${g.others.length}개 더 있음`));
+
+  if (!confirm(summary)) return;
+
+  // Pre-cleanup backup
+  if (typeof BackupService !== 'undefined') {
+    try { await BackupService.snapshot('pre-drive-cleanup'); } catch {}
+  }
+
+  let deletedDriveCount = 0;
+  // Delete Drive dupes + orphans
+  await batchAll([...driveDupes, ...driveOrphans], async f => {
+    try { await driveClient.delete(f.id); deletedDriveCount++; }
+    catch (e) { console.warn('Cleanup delete failed:', f.name, e.message); }
+  });
+
+  // Merge local exact-dupes (drop into keep, union tags)
+  let mergedLocalCount = 0;
+  const tombs = load('memo_tombstones', {});
+  const now = new Date().toISOString();
+  for (const { keep, drop } of localDupes) {
+    keep.tags = Array.from(new Set([...(keep.tags || []), ...(drop.tags || [])]));
+    touchMemo(keep);
+    tombs[drop.id] = now;
+    mergedLocalCount++;
+  }
+  if (mergedLocalCount > 0) {
+    const dropIds = new Set(localDupes.map(d => d.drop.id));
+    memos = memos.filter(m => !dropIds.has(m.id));
+    save('memo_tombstones', tombs);
+    saveMemos();
+  }
+
+  // Refresh UI
+  if (window.SyncEvents) {
+    SyncEvents.emit('itemsMerged', { types: ['memo'] });
+  }
+
+  toast(`Drive 정리: ${deletedDriveCount}개 삭제, 로컬 ${mergedLocalCount}쌍 합침. Drive 동기화 중...`, 'success');
+  // Trigger push to propagate local changes (tag unions, memo merges) to Drive
+  if (typeof scheduleDriveSave === 'function') scheduleDriveSave();
 }
 
 // User-facing cleanup tool: remove conflict copies that were spuriously created
@@ -1226,7 +1368,10 @@ async function drivePushAll() {
       // CRITICAL: capture updated and the body string in ONE synchronous tick.
       const capturedMtime = memo.updatedAt || memo.date || '';
       const fname = memoFilenames.get(memo.id);
-      const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\nupdated: ${capturedMtime}\n---\n\n${memo.content || ''}`;
+      const tagsLine = (memo.tags && memo.tags.length)
+        ? `\ntags: [${memo.tags.map(t => JSON.stringify(t)).join(', ')}]`
+        : '';
+      const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\nupdated: ${capturedMtime}${tagsLine}\n---\n\n${memo.content || ''}`;
       const existing = byMemoId.get(memo.id) || byName.get(fname);
       if (existing) {
         // 3-way conflict check: did another device edit this file between our
@@ -1471,8 +1616,20 @@ async function applyDriveData(files) {
 
     // Per-memo timestamp merge: keep whichever side has the later updatedAt.
     // Tombstones prevent locally-deleted memos from being resurrected by Drive pull.
+    // Tag preservation: if the winning side has no tags field but the loser does,
+    // copy tags over. Protects against losing tags during the transition before
+    // every Drive file has the new `tags:` frontmatter line.
     const tombstones = load('memo_tombstones', {});
     const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
+    const _mergeWithTags = (winner, loser) => {
+      // Winner is whichever updatedAt is more recent. If winner has no `tags`
+      // field at all (key absent — legacy file) but loser has tags, take loser's
+      // to avoid silent tag loss.
+      if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
+        return { ...winner, tags: loser.tags };
+      }
+      return winner;
+    };
     const mergedMemos = new Map();
     for (const m of remoteMemos) {
       const deletedAt = tombstones[m.id];
@@ -1481,7 +1638,15 @@ async function applyDriveData(files) {
     }
     for (const m of memos) {
       const r = mergedMemos.get(m.id);
-      if (!r || mtime(m) > mtime(r)) mergedMemos.set(m.id, m);
+      if (!r) {
+        mergedMemos.set(m.id, m);
+      } else if (mtime(m) > mtime(r)) {
+        mergedMemos.set(m.id, _mergeWithTags(m, r));
+      } else {
+        // Remote (already in map) won the timestamp comparison — but recover
+        // tags from local if remote's frontmatter lacks the field.
+        mergedMemos.set(m.id, _mergeWithTags(r, m));
+      }
       if (m.id > maxId) maxId = m.id;
     }
     const newMemos = [...mergedMemos.values()];
@@ -2688,6 +2853,7 @@ function parseFrontmatter(text, filename, mtime) {
   let date = new Date(mtime).toISOString();
   let updatedAt = null;
   let id = null;
+  let tags;  // undefined = "not present in frontmatter" (preserve local), [] = "explicitly empty"
   let content = text;
   if (fmMatch) {
     const fm = fmMatch[1];
@@ -2696,6 +2862,7 @@ function parseFrontmatter(text, filename, mtime) {
     const dateM = fm.match(/^date:\s*(.+)$/m);
     const updM = fm.match(/^updated:\s*(.+)$/m);
     const idM = fm.match(/^id:\s*(\d+)$/m);
+    const tagsM = fm.match(/^tags:\s*\[(.*?)\]\s*$/m);
     if (titleM) title = titleM[1].trim().replace(/^["']|["']$/g, '');
     if (dateM) {
       const d = new Date(dateM[1].trim());
@@ -2706,13 +2873,32 @@ function parseFrontmatter(text, filename, mtime) {
       if (!isNaN(d)) updatedAt = d.toISOString();
     }
     if (idM) id = parseInt(idM[1]);
+    if (tagsM) {
+      const inner = tagsM[1].trim();
+      if (inner === '') {
+        tags = [];
+      } else {
+        try {
+          // Parse JSON-array form: ["a", "b"]
+          tags = JSON.parse('[' + inner + ']');
+          if (!Array.isArray(tags)) tags = undefined;
+        } catch {
+          // Fallback: comma-split, strip quotes
+          tags = inner.split(',').map(s => s.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+        }
+      }
+    }
   } else {
     const h1 = text.match(/^# (.+)$/m);
     if (h1) title = h1[1].trim();
   }
   // Fall back to date (which is mtime-derived for old memos without explicit updated)
   if (!updatedAt) updatedAt = date;
-  return { id, title, content, date, updatedAt };
+  const result = { id, title, content, date, updatedAt };
+  // Only attach `tags` field if frontmatter actually carried it — that lets the
+  // merge layer preserve local tags when remote file is from before this fix.
+  if (tags !== undefined) result.tags = tags;
+  return result;
 }
 
 async function loadFromFolder({ silent = true, force = false } = {}) {
