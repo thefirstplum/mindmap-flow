@@ -1199,6 +1199,51 @@ body[data-theme="leather"] {
   background: var(--accent-glow);
   border-left-color: var(--accent);
 }
+.memo-item.selected {
+  background: var(--accent-glow);
+  border-left-color: var(--accent2);
+}
+.memo-item-body { flex: 1; min-width: 0; }
+.memo-item { display: flex; align-items: flex-start; gap: 10px; }
+.memo-select-check {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; line-height: 1;
+  color: #fff; background: var(--surface);
+  margin-top: 2px;
+  transition: all 0.12s;
+}
+.memo-select-check.checked {
+  background: var(--accent2);
+  border-color: var(--accent2);
+}
+.memo-select-bar {
+  display: flex; gap: 6px; align-items: center;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.memo-select-count {
+  font-size: 12px; font-weight: 600; color: var(--text);
+  margin-right: auto;
+}
+.memo-select-btn {
+  font-size: 12px; padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.memo-select-btn:hover { background: var(--surface3); }
+.memo-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.memo-select-btn.danger { color: var(--red); border-color: var(--red); }
+.memo-select-btn.danger:hover { background: var(--red); color: #fff; }
 .memo-item-title {
   font-size: 14px; font-weight: 600; color: var(--text);
   margin-bottom: 4px;
