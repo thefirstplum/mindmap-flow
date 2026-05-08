@@ -178,10 +178,17 @@ class DriveClient {
 
   async delete(fileId) {
     await this.ensureToken();
-    await fetch(`${DRIVE_API_BASE}/files/${fileId}`, {
+    const r = await fetch(`${DRIVE_API_BASE}/files/${fileId}`, {
       method: 'DELETE',
       headers: { 'Authorization': 'Bearer ' + this.accessToken }
     });
+    // 404 means the file is already gone — treat as success (idempotent delete).
+    // Any other non-ok = real failure; throw so caller can retry / preserve state.
+    if (!r.ok && r.status !== 404) {
+      let msg = `Drive 삭제 실패 (${r.status})`;
+      try { const j = await r.json(); if (j.error?.message) msg = j.error.message; } catch {}
+      throw new Error(msg);
+    }
   }
 
   // Used for parent moves (addParents / removeParents) and metadata-only updates.

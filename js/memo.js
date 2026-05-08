@@ -9,6 +9,104 @@ function saveMemos() {
   save('memo_idcounter', memoIdCounter);
 }
 
+// =================== MULTI-SELECT MODE ===================
+let memoSelectMode = false;
+let memoSelectedIds = new Set();
+
+function toggleMemoSelectMode() {
+  memoSelectMode = !memoSelectMode;
+  memoSelectedIds.clear();
+  renderMemoList();
+}
+
+function exitMemoSelectMode() {
+  memoSelectMode = false;
+  memoSelectedIds.clear();
+  renderMemoList();
+}
+
+function toggleMemoSelected(id, ev) {
+  if (ev) { ev.stopPropagation(); }
+  if (memoSelectedIds.has(id)) memoSelectedIds.delete(id);
+  else memoSelectedIds.add(id);
+  renderMemoList();
+}
+
+function selectAllMemosInView() {
+  const search = (document.getElementById('memo-search')?.value || '').toLowerCase();
+  const visible = memos.filter(m =>
+    (m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search)) &&
+    (!activeTagFilter || (m.tags || []).includes(activeTagFilter))
+  );
+  visible.forEach(m => memoSelectedIds.add(m.id));
+  renderMemoList();
+}
+
+function bulkDeleteSelectedMemos() {
+  if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
+  const n = memoSelectedIds.size;
+  if (!confirm(`선택한 ${n}개 메모를 삭제할까요? (백업이 자동 생성됩니다)`)) return;
+  // Pre-bulk backup
+  if (typeof BackupService !== 'undefined') {
+    BackupService.safeSnapshot('pre-bulk-delete').catch(() => {});
+  }
+  const tombs = load('memo_tombstones', {});
+  const now = new Date().toISOString();
+  for (const id of memoSelectedIds) tombs[id] = now;
+  save('memo_tombstones', tombs);
+  memos = memos.filter(m => !memoSelectedIds.has(m.id));
+  if (memoSelectedIds.has(activeMemoId)) activeMemoId = null;
+  saveMemos();
+  exitMemoSelectMode();
+  renderMemoEditor();
+  backToList();
+  toast(`${n}개 메모 삭제됨`, 'success');
+}
+
+function bulkAddTagToSelectedMemos() {
+  if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
+  const tag = prompt('추가할 태그 (쉼표로 여러 개 가능)');
+  if (!tag) return;
+  const tags = tag.split(',').map(t => t.trim()).filter(Boolean);
+  if (tags.length === 0) return;
+  let count = 0;
+  for (const m of memos) {
+    if (!memoSelectedIds.has(m.id)) continue;
+    if (!m.tags) m.tags = [];
+    let added = false;
+    for (const t of tags) {
+      if (!m.tags.includes(t)) { m.tags.push(t); added = true; }
+    }
+    if (added) { touchMemo(m); count++; }
+  }
+  saveMemos();
+  renderMemoList();
+  toast(`${count}개 메모에 태그 추가됨`, 'success');
+}
+
+function bulkRemoveTagFromSelectedMemos() {
+  if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
+  // Build the union of tags across selected memos for a picker
+  const sel = memos.filter(m => memoSelectedIds.has(m.id));
+  const allTags = [...new Set(sel.flatMap(m => m.tags || []))].sort();
+  if (allTags.length === 0) { toast('선택된 메모에 태그가 없어요'); return; }
+  const tag = prompt(`삭제할 태그 (현재 태그: ${allTags.join(', ')})`);
+  if (!tag) return;
+  const t = tag.trim();
+  let count = 0;
+  for (const m of memos) {
+    if (!memoSelectedIds.has(m.id)) continue;
+    if (m.tags && m.tags.includes(t)) {
+      m.tags = m.tags.filter(x => x !== t);
+      touchMemo(m);
+      count++;
+    }
+  }
+  saveMemos();
+  renderMemoList();
+  toast(`${count}개 메모에서 "${t}" 태그 제거됨`, 'success');
+}
+
 // Bump modification time. Sync uses updatedAt to decide which side wins
 // during merge; date stays in sync for backward-compat with old memos and
 // for the existing list UI that formats "오늘 hh:mm" etc.
@@ -86,6 +184,28 @@ function renderMemoList() {
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
   if (countEl) countEl.textContent = memos.length;
+
+  // Render select-mode toolbar
+  const toolbar = document.getElementById('memo-select-toolbar');
+  if (toolbar) {
+    if (memoSelectMode) {
+      const n = memoSelectedIds.size;
+      toolbar.style.display = '';
+      toolbar.innerHTML = `
+        <div class="memo-select-bar">
+          <span class="memo-select-count">${n}개 선택</span>
+          <button class="memo-select-btn" onclick="selectAllMemosInView()">전체</button>
+          <button class="memo-select-btn" onclick="bulkAddTagToSelectedMemos()" ${n===0?'disabled':''}>🏷 태그추가</button>
+          <button class="memo-select-btn" onclick="bulkRemoveTagFromSelectedMemos()" ${n===0?'disabled':''}>태그제거</button>
+          <button class="memo-select-btn danger" onclick="bulkDeleteSelectedMemos()" ${n===0?'disabled':''}>🗑 삭제</button>
+          <button class="memo-select-btn" onclick="exitMemoSelectMode()">완료</button>
+        </div>`;
+    } else {
+      toolbar.style.display = 'none';
+      toolbar.innerHTML = '';
+    }
+  }
+
   if (filtered.length === 0) {
     container.innerHTML = `<div class="memo-empty">
       <div class="big-icon">📝</div>
@@ -106,24 +226,34 @@ function renderMemoList() {
     }
     const preview = m.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
     const wordCount = m.content.length;
+    const isSelected = memoSelectedIds.has(m.id);
+    const checkbox = memoSelectMode
+      ? `<span class="memo-select-check ${isSelected ? 'checked' : ''}" onclick="toggleMemoSelected(${m.id}, event)">${isSelected ? '✓' : ''}</span>`
+      : '';
+    const onClick = memoSelectMode
+      ? `toggleMemoSelected(${m.id}, event)`
+      : `selectMemo(${m.id})`;
     return `<div class="swipe-row" data-id="${m.id}">
-      <div class="memo-item swipe-content ${m.id === activeMemoId ? 'active' : ''}" onclick="selectMemo(${m.id})">
-        <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
-        <div class="memo-item-preview">${escapeHtml(preview)}</div>
-        <div class="memo-item-meta">
-          <span>${dateStr}</span>
-          <span class="dot"></span>
-          <span>${wordCount}자</span>
+      <div class="memo-item swipe-content ${m.id === activeMemoId && !memoSelectMode ? 'active' : ''} ${isSelected ? 'selected' : ''}" onclick="${onClick}">
+        ${checkbox}
+        <div class="memo-item-body">
+          <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
+          <div class="memo-item-preview">${escapeHtml(preview)}</div>
+          <div class="memo-item-meta">
+            <span>${dateStr}</span>
+            <span class="dot"></span>
+            <span>${wordCount}자</span>
+          </div>
         </div>
       </div>
       <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
     </div>`;
   }).join('');
-  // Wire swipe-to-delete (idempotent — handler attached once via flag)
+  // Wire swipe-to-delete (only when not in select mode)
   if (!container.dataset.swipeReady) {
     attachSwipeToDelete(container, {
       resolveId: (row) => parseInt(row.dataset.id),
-      onDelete: (id) => deleteMemo(id)
+      onDelete: (id) => { if (!memoSelectMode) deleteMemo(id); }
     });
     container.dataset.swipeReady = '1';
   }

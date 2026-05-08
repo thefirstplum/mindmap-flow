@@ -1151,9 +1151,18 @@ async function drivePushAll() {
     });
     await batchAll(diff.deletedMindmapIds, async id => {
       const f = mindmapByName.get(`mindmap-${id}.json`);
-      if (f) await driveDeleteFile(f.id).catch(() => {});
-      delete newSnap.mindmaps[id];
-      delete newSnap.driveMtimes.mindmap[id];
+      if (!f) {
+        delete newSnap.mindmaps[id];
+        delete newSnap.driveMtimes.mindmap[id];
+        return;
+      }
+      try {
+        await driveDeleteFile(f.id);
+        delete newSnap.mindmaps[id];
+        delete newSnap.driveMtimes.mindmap[id];
+      } catch (e) {
+        console.warn('[Sync] Mindmap delete failed for id', id, '— keeping in snapshot:', e.message);
+      }
     });
 
     // Timeblocks — uploaded into MindFlow/timeblocks/
@@ -1186,9 +1195,18 @@ async function drivePushAll() {
     });
     await batchAll(diff.deletedTbDays, async day => {
       const f = timeblockByName.get(`timeblock-${day}.json`);
-      if (f) await driveDeleteFile(f.id).catch(() => {});
-      delete newSnap.tbDays[day];
-      delete newSnap.driveMtimes.timeblock[day];
+      if (!f) {
+        delete newSnap.tbDays[day];
+        delete newSnap.driveMtimes.timeblock[day];
+        return;
+      }
+      try {
+        await driveDeleteFile(f.id);
+        delete newSnap.tbDays[day];
+        delete newSnap.driveMtimes.timeblock[day];
+      } catch (e) {
+        console.warn('[Sync] Timeblock delete failed for', day, '— keeping in snapshot:', e.message);
+      }
     });
 
     // Memos — build dedup'd filename map for the FULL memo set so dirty memos
@@ -1255,25 +1273,53 @@ async function drivePushAll() {
       newSnap.memos[memo.id] = capturedMtime;
     });
 
-    // Memo deletions — driven by snapshot diff (we know we previously pushed these)
+    // Memo deletions — driven by snapshot diff (we know we previously pushed these).
+    // Track which IDs actually got removed from Drive so we don't lie to the
+    // snapshot/tombstone bookkeeping. Failed deletes stay in snap → next push retries.
+    const successfullyDeletedMemoIds = new Set();
     await batchAll(diff.deletedMemoIds, async id => {
       const f = byMemoId.get(id);
-      if (f) await driveDeleteFile(f.id).catch(() => {});
+      if (!f) {
+        // File already absent on Drive — treat as deleted
+        successfullyDeletedMemoIds.add(id);
+        return;
+      }
+      try {
+        await driveDeleteFile(f.id);
+        successfullyDeletedMemoIds.add(id);
+      } catch (e) {
+        console.warn('[Sync] Memo delete failed for id', id, '— keeping in snapshot for retry:', e.message);
+      }
+    });
+    for (const id of successfullyDeletedMemoIds) {
       delete newSnap.memos[id];
       delete newSnap.driveMtimes.memo[id];
-    });
-
-    // Drive-side duplicate cleanup: delete extra files that all map to the same
-    // memo id (legacy bug). The chosen "winner" already has fresh content from
-    // the dirty-memo upload above (or is intentionally untouched if not dirty).
-    if (driveDuplicates.length > 0) {
-      console.log(`Cleaning up ${driveDuplicates.length} Drive duplicate file(s)`);
-      await batchAll(driveDuplicates, f => driveDeleteFile(f.id).catch(() => {}));
     }
 
-    // Tombstones fulfilled after successful push (direct localStorage to avoid
-    // triggering another scheduleDriveSave loop)
-    try { localStorage.setItem('mindflow_memo_tombstones', JSON.stringify({})); } catch {}
+    // Drive-side duplicate cleanup: delete extra files that all map to the same
+    // memo id. Failures get logged but don't break the push.
+    if (driveDuplicates.length > 0) {
+      console.log(`Cleaning up ${driveDuplicates.length} Drive duplicate file(s)`);
+      await batchAll(driveDuplicates, async f => {
+        try { await driveDeleteFile(f.id); }
+        catch (e) { console.warn('[Sync] Duplicate cleanup failed:', f.name, e.message); }
+      });
+    }
+
+    // Clear tombstones ONLY for memos whose Drive file deletion actually succeeded.
+    // If a delete fails (network glitch, permission), keeping the tombstone protects
+    // against the next pull resurrecting the memo from a Drive file that's still
+    // present. Stale tombstones are tiny (just timestamps) — safe to keep.
+    try {
+      const tombs = load('memo_tombstones', {});
+      let changed = false;
+      for (const id of successfullyDeletedMemoIds) {
+        if (tombs[id]) { delete tombs[id]; changed = true; }
+      }
+      if (changed) {
+        localStorage.setItem('mindflow_memo_tombstones', JSON.stringify(tombs));
+      }
+    } catch {}
 
     driveLastPushAt = Date.now();
     driveLastSyncAt = driveLastPushAt;
