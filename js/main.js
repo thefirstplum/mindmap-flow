@@ -48,6 +48,35 @@ if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});
 }
 
+// =================== SERVICE WORKER (PWA fresh-update) ===================
+// Registers a network-first SW so installed PWAs always pick up new deploys
+// the next time they're opened — no more "stuck on old version" on iOS/Android.
+if ('serviceWorker' in navigator) {
+  // Use ./service-worker.js so it works on GitHub Pages subpath
+  navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+    // Detect when a new SW is waiting (new deploy arrived)
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+          // A new version is ready — non-blocking toast offering reload
+          if (typeof toast === 'function') {
+            toast('새 버전이 설치됐어요. 새로고침하면 적용돼요', 'success');
+          }
+        }
+      });
+    });
+    // When the new SW takes control, reload once so the page actually uses it
+    let _reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (_reloaded) return;
+      _reloaded = true;
+      location.reload();
+    });
+  }).catch((e) => console.warn('SW register failed:', e));
+}
+
 // =================== SYNC EVENTS → UI WIRE-UP ===================
 // Sync engine emits domain events; the UI listens here. This keeps sync logic
 // unaware of which renderers exist — easier to test, less coupling.
