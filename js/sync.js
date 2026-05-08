@@ -181,7 +181,13 @@ function _formatBackupTime(iso) {
 async function refreshBackupList() {
   const el = document.getElementById('backup-list');
   if (!el || typeof BackupService === 'undefined') return;
+  // Force-trim oldest entries so the cap is honored even if older snapshots
+  // accumulated before BackupService.cleanup was called consistently.
+  try { await BackupService.cleanup(); } catch {}
   const records = await BackupService.list();
+  // Summary count next to the section title
+  const countEl = document.getElementById('backup-summary-count');
+  if (countEl) countEl.textContent = records.length ? `(${records.length}개)` : '';
   if (!records.length) {
     el.innerHTML = `<div style="padding:12px;background:var(--surface2);border-radius:8px;color:var(--text-mute);text-align:center;">백업이 아직 없어요. 첫 동기화 후 자동으로 생성돼요.</div>`;
     return;
