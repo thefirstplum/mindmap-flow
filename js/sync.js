@@ -332,6 +332,8 @@ let isPushingToDrive = false;
 // our pushes and we forked a "conflict copy" to preserve their version.
 let driveConflictsCount = 0;
 let driveConflictsThisSession = [];
+// Push progress — { uploaded: n, total: m } so the pill can show "동기화 중 14/87"
+let driveProgress = null;
 // driveDirty is persisted across sessions: if user closes browser before the 2s
 // debounce push fires, we remember on next load that there are unflushed local
 // changes — push them first before pulling (otherwise pull would clobber them).
@@ -957,7 +959,23 @@ async function drivePushAll() {
     const trackMtime = res => {
       if (res?.modifiedTime && res.modifiedTime > maxMtime) maxMtime = res.modifiedTime;
       pingDriveSavingProgress(); // extend watchdog while uploads are progressing
+      if (driveProgress) {
+        driveProgress.uploaded++;
+        // Refresh pill so user sees the count tick up
+        updateHeaderSyncPill();
+      }
     };
+
+    // Total items being uploaded — for "N/M" progress display
+    const totalToUpload =
+      (diff.journalDirty ? 1 : 0) +
+      (diff.prefixDirty ? 1 : 0) +
+      (diff.appDirty ? 1 : 0) +
+      diff.dirtyMindmaps.length +
+      diff.dirtyTbDays.length +
+      diff.dirtyMemos.length;
+    driveProgress = { uploaded: 0, total: totalToUpload };
+    updateHeaderSyncPill();
 
     // Build the new snapshot incrementally as items upload successfully. Start
     // from the OLD snapshot — items we don't touch here keep their old recorded
@@ -1167,10 +1185,12 @@ async function drivePushAll() {
     // Surface conflicts that were forked during this push (if any)
     _flushConflictNotifications();
 
+    driveProgress = null;
     setDriveStatus('saved');
     setTimeout(() => { if (driveStatus === 'saved') setDriveStatus('idle') }, 1800);
   } catch (e) {
     console.error('Drive push failed:', e);
+    driveProgress = null;
     setDriveStatus('error');
     toast('Drive 동기화 실패: ' + e.message, 'error');
     throw e;
@@ -1721,7 +1741,12 @@ function updateDriveStatus() {
   if (driveFolderId) {
     el.classList.add('connected');
     let statusText;
-    if (driveStatus === 'saving') statusText = '<span class="save-pulse"></span>동기화 중...';
+    if (driveStatus === 'saving') {
+      const prog = driveProgress && driveProgress.total > 0
+        ? ` (${driveProgress.uploaded}/${driveProgress.total})`
+        : '';
+      statusText = '<span class="save-pulse"></span>동기화 중' + prog + '...';
+    }
     else if (driveStatus === 'error') statusText = '⚠ 동기화 실패';
     else {
       const ago = driveLastSyncAt ? Math.max(0, Math.floor((Date.now() - driveLastSyncAt) / 1000)) : null;
@@ -1830,7 +1855,11 @@ function updateHeaderSyncPill() {
 
   if (status === 'saving') {
     pill.classList.add('syncing');
-    label.textContent = '동기화 중';
+    if (driveProgress && driveProgress.total > 0) {
+      label.textContent = `동기화 중 ${driveProgress.uploaded}/${driveProgress.total}`;
+    } else {
+      label.textContent = '동기화 중';
+    }
     if (banner) banner.classList.remove('show');
   } else if (status === 'error') {
     pill.classList.add('error');
