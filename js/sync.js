@@ -1541,6 +1541,12 @@ async function applyDriveData(files) {
       prefixF ? driveDownloadFile(prefixF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
     ]);
 
+    // Snapshot loaded once for all 3-way deletion detections below
+    // (memo/mindmap/timeblock all read it). Must be declared BEFORE the merges
+    // — earlier const TDZ caused every pull to ReferenceError silently, which
+    // is what kept resurrecting "deleted" items across devices.
+    const pullSnap = (typeof loadDriveSnapshot === 'function') ? loadDriveSnapshot() : { memos: {}, mindmaps: {}, tbDays: {} };
+
     // --- Mindmaps ---
     const legacyApp = (appParsed?.app === 'mindflow') ? appParsed : null;
     if (remoteMmFiles.length > 0) {
@@ -1655,7 +1661,6 @@ async function applyDriveData(files) {
     //      ANOTHER DEVICE intentionally deleted it. Accept the deletion locally
     //      instead of re-uploading. (This was the "다른 기기 청소가 무효" bug.)
     const tombstones = load('memo_tombstones', {});
-    const pullSnap = (typeof loadDriveSnapshot === 'function') ? loadDriveSnapshot() : { memos: {} };
     const remoteIdSet = new Set(remoteMemos.map(m => m.id).filter(Boolean));
     const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
     const _mergeWithTags = (winner, loser) => {
