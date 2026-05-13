@@ -571,6 +571,13 @@ async function driveMakePublic(fileId) {
   catch (e) { console.warn('Make public failed:', e); }
 }
 
+// New flow (Authorization Code + PKCE):
+//   driveConnect()  — initiated by user click → full-page redirect to Google
+//   driveCompleteConnection() — runs when the browser returns with ?code=...,
+//                               does the folder bootstrap + first push/pull
+// The two halves are separated by a page navigation, so any state we need
+// across the redirect lives in sessionStorage / localStorage (Client ID,
+// PKCE verifier).
 async function driveConnect() {
   const cidInput = document.getElementById('drive-client-id-input');
   const cid = (cidInput?.value || driveClientId || '').trim();
@@ -584,11 +591,27 @@ async function driveConnect() {
   driveClient.setClientId(cid);
 
   setDriveStatus('saving');
-  toast('Google 인증 중...');
+  toast('Google 인증 페이지로 이동합니다...');
 
   try {
-    await driveClient.authenticate(true);
-    // Get user email so user can verify same account is used on all devices
+    // Marks that a connect-flow is in progress, so when we come back we know
+    // to run the full folder bootstrap (vs. a routine session refresh).
+    sessionStorage.setItem('mindflow_drive_connecting', '1');
+    await driveClient.startAuthFlow(); // page redirects — code below won't run
+  } catch (e) {
+    console.error(e);
+    setDriveStatus('error');
+    sessionStorage.removeItem('mindflow_drive_connecting');
+    alert('❌ 인증 시작 실패\n\n' + e.message);
+  }
+}
+
+// Called after the OAuth callback has been processed and we hold a fresh
+// access token. Does the same folder bootstrap + initial push/pull that the
+// old driveConnect() did inline.
+async function driveCompleteConnection() {
+  setDriveStatus('saving');
+  try {
     try {
       const about = await driveClient.getAbout();
       driveUserEmail = about.user?.emailAddress || null;
@@ -599,13 +622,9 @@ async function driveConnect() {
     } catch {}
     driveFolderId = await driveFindOrCreateFolder(DRIVE_FOLDER_NAME, null);
     save('drive_folder_id', driveFolderId);
-    // Ensure all subfolders exist (memos/, mindmaps/, timeblocks/, assets/)
     await ensureDriveSubfolders();
     updateDriveStatus();
 
-    // Migrate any legacy root-level files into per-type subfolders BEFORE the
-    // first list/pull. After this runs, all subsequent listings see the new
-    // structure and no caller needs special-case handling.
     const migrated = await driveMigrateLegacyFiles();
     if (migrated > 0) toast(`기존 ${migrated}개 파일을 폴더별로 정리했습니다`, 'success');
 
@@ -617,31 +636,24 @@ async function driveConnect() {
       (f.name.startsWith('timeblock-') && f.name.endsWith('.json'))
     );
 
-    if (remoteHasData) {
-      await drivePullAll(true); // 타임스탬프 기준 항목별 병합
-    }
-    await drivePushAll(); // 로컬에만 있는 항목 업로드
-    if (cidInput) cidInput.value = '';
+    if (remoteHasData) await drivePullAll(true);
+    await drivePushAll();
     driveStartPolling();
-    // Explicit reset — drivePullAll/drivePushAll may noop and leave the
-    // 'saving' status set at line 510 stuck on the pill. Force it back to idle.
     if (driveStatus === 'saving') setDriveStatus('idle');
     toast('Google Drive 연결 완료', 'success');
   } catch (e) {
     console.error(e);
     setDriveStatus('error');
-    let detail = '';
-    if (/popup|blocked/i.test(e.message)) detail = '\n\n팝업 차단을 해제하고 다시 시도하세요.';
-    else if (/access_denied|denied/i.test(e.message)) detail = '\n\n동의 화면에서 권한을 허용해 주세요.';
-    else if (/origin/i.test(e.message)) detail = '\n\nGoogle Cloud Console에서 OAuth Client의\n"승인된 JavaScript 원본"에 https://thefirstplum.github.io 추가했는지 확인';
-    alert('❌ 연결 실패\n\n' + e.message + detail);
+    alert('❌ 연결 실패\n\n' + e.message);
   }
 }
 
 async function driveDisconnect() {
   if (!confirm('Drive 연결을 해제하시겠습니까? 로컬 데이터는 그대로 유지됩니다.\n(Drive 폴더는 그대로 남아있습니다)')) return;
   driveStopPolling();
-  driveClient.clearToken();
+  // clearToken is now async — it tells the worker to revoke the refresh_token
+  // and delete it from KV. Best-effort; we don't block disconnect on it.
+  await driveClient.clearToken();
   save('drive_user_email', null);
   driveUserEmail = null;
   driveClient.setLoginHint(null);
@@ -2022,12 +2034,21 @@ async function driveSyncNow() {
     clearTimeout(driveAutoSaveTimer); driveAutoSaveTimer = null;
     clearTimeout(driveMaxDelayTimer); driveMaxDelayTimer = null;
     toast('동기화 중...');
-    // Manual click — popup is allowed (and necessary if cached token expired).
-    // ensureDriveToken triggers driveAuth(false) which may show popup.
-    await ensureDriveToken();
+    // Manual click — silent refresh via worker if needed, or full redirect to
+    // re-consent if the refresh_token was revoked.
+    try {
+      await driveClient.ensureToken({ silent: false });
+    } catch (e) {
+      if (e.message === 'NEEDS_AUTH') {
+        toast('Google 재로그인이 필요해요 — 인증 페이지로 이동합니다');
+        sessionStorage.setItem('mindflow_drive_connecting', '1');
+        await driveClient.startAuthFlow(); // page redirects
+        return;
+      }
+      throw e;
+    }
     await drivePushAll();
     await drivePoll(true);
-    // Re-auth may have re-enabled sync; restart polling if it was stopped after a token expiry.
     if (!drivePollTimer) driveStartPolling();
     toast('동기화 완료', 'success');
   } catch (e) {
@@ -2256,10 +2277,46 @@ function dismissSyncError() {
 setInterval(updateHeaderSyncPill, 10_000);
 
 async function initDrive() {
+  // Step 1: if the page just came back from Google's consent screen, the URL
+  // will carry ?code=... — exchange it for tokens via the worker before doing
+  // anything else. This must run regardless of saved client_id state, because
+  // ?code= is meaningless to leave sitting in the URL.
+  driveClient.setClientId(driveClientId);
+  try {
+    const exchanged = await driveClient.handleOAuthCallback();
+    if (exchanged) {
+      const wasConnecting = sessionStorage.getItem('mindflow_drive_connecting') === '1';
+      sessionStorage.removeItem('mindflow_drive_connecting');
+      if (wasConnecting || !driveFolderId) {
+        // First-time connect: bootstrap the folder structure and do the
+        // initial push/pull. Returns here so we don't fall through to the
+        // routine-session branch below (which would re-pull immediately).
+        await driveCompleteConnection();
+        return;
+      }
+      // Routine session re-auth (e.g. refresh_token was revoked, user
+      // re-consented). Fall through to the normal restore path below.
+    }
+  } catch (e) {
+    console.error('OAuth callback handling failed:', e);
+    sessionStorage.removeItem('mindflow_drive_connecting');
+    setDriveStatus('error');
+    toast('Google 인증 실패: ' + e.message, 'error');
+    return;
+  }
+
+  // Step 2: routine session restore. If we have a folder configured and either
+  // a cached access token or a refresh_token at the worker, silently bring
+  // sync back up — no popup, no redirect.
   if (driveClientId && driveFolderId) {
     updateDriveStatus();
     try {
-      await driveClient.ensureToken();  // uses localStorage cache, no popup if token still valid
+      // ensureToken: cached → return; else silent refresh via worker. Throws
+      // NEEDS_AUTH only if both cache miss AND no refresh_token — in which
+      // case we leave the UI in 'error' state so the user clicks 동기화 to
+      // re-consent (which then page-redirects).
+      await driveClient.ensureToken({ silent: false });
+
       try {
         const about = await driveClient.getAbout();
         driveUserEmail = about.user?.emailAddress || null;
@@ -2269,8 +2326,6 @@ async function initDrive() {
         }
       } catch {}
 
-      // Make sure subfolder structure exists and migrate any legacy root files
-      // before push/pull touches anything. Idempotent.
       try {
         await ensureDriveSubfolders();
         const migrated = await driveMigrateLegacyFiles();
@@ -2299,6 +2354,9 @@ async function initDrive() {
     } catch (e) {
       console.warn('Drive auto-restore failed:', e);
       setDriveStatus('error');
+      if (e.message === 'NEEDS_AUTH') {
+        toast('Drive 재인증 필요 — 동기화 버튼을 눌러주세요', 'error');
+      }
     }
   }
 }
