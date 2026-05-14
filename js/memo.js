@@ -287,6 +287,11 @@ function renderMemoList() {
     if (!activeTagFilter) return true;
     if (activeTagFilter === '__untagged__') return !m.tags || m.tags.length === 0;
     return (m.tags || []).includes(activeTagFilter);
+  }).sort((a, b) => {
+    // Newest updates on top. Fall back to date for legacy memos missing updatedAt.
+    const ta = new Date(a.updatedAt || a.date || 0).getTime();
+    const tb = new Date(b.updatedAt || b.date || 0).getTime();
+    return tb - ta;
   });
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
