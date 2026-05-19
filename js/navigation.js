@@ -92,11 +92,6 @@ function initRoute() {
 // Wrap in arrow so the reference is resolved at click time — sync.js loads
 // after navigation.js, so a bare reference to openSyncModal here would
 // throw ReferenceError and abort the rest of this file.
-document.getElementById('sync-btn').addEventListener('click', () => {
-  openSyncModal();
-  closeMobileSidebar();
-});
-
 // Programmatic page navigation (used by ledger summary card on timeblock)
 function goToLedger() {
   const btn = document.querySelector('.sidebar .nav-btn[data-page="ledger"]');
