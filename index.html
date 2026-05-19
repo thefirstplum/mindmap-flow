@@ -11,30 +11,20 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
-<title>MindFlow — 마인드맵 · 타임블록 · 메모</title>
+<title>MindFlow — 노트 · 캘린더</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260519e">
+<link rel="stylesheet" href="styles.css?v=20260519f">
 </head>
 <body>
 <div class="app">
   <!-- Sidebar -->
-  <nav class="sidebar" id="sidebar">
+  <nav class="sidebar expanded" id="sidebar">
     <div class="sidebar-head">
       <div class="logo">M</div>
       <div class="sidebar-name">MindFlow</div>
-      <button class="sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" aria-label="사이드바 접기" title="사이드바 접기/펼치기">
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-      </button>
     </div>
-    <button class="nav-btn active" data-page="memo" aria-label="노트">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/>
-      </svg>
-      <span class="label">노트</span>
-    </button>
     <button class="nav-btn" data-page="calendar" aria-label="캘린더">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
@@ -49,7 +39,9 @@
       </svg>
       <span class="label">가계부</span>
     </button>
-    <div class="spacer"></div>
+    <div class="sidebar-sep"></div>
+    <!-- 태그 트리 (노트 내비게이션) -->
+    <div id="memo-tag-bar" class="sidebar-tags"></div>
     <div class="sidebar-sep"></div>
     <button class="nav-btn" id="sync-btn" aria-label="동기화">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -185,7 +177,7 @@
               </div>
             </div>
             <div id="memo-select-toolbar" style="display:none;"></div>
-            <div id="memo-tag-bar"></div>
+            <div id="memo-sort-bar"></div>
             <div class="memo-items" id="memo-items"></div>
           </div>
           <!-- Text-note detail -->
@@ -649,10 +641,10 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260519b" defer></script>
-<script src="js/navigation.js?v=20260519e" defer></script>
+<script src="js/navigation.js?v=20260519f" defer></script>
 <script src="js/mindmap.js?v=20260519b" defer></script>
 <script src="js/timeblock.js?v=20260509a" defer></script>
-<script src="js/memo.js?v=20260519c" defer></script>
+<script src="js/memo.js?v=20260519f" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260519d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>

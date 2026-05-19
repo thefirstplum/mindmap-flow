@@ -1328,9 +1328,34 @@ body[data-theme="leather"] {
 .tag-expand.collapsed svg { transform: rotate(-90deg); }
 .tag-expand-spacer { width: 16px; flex-shrink: 0; }
 @media (max-width: 768px) {
-  .tag-tree { max-height: 32vh; }
-  .tag-row { padding-top: 8px; padding-bottom: 8px; font-size: 13px; }
+  .tag-row { padding-top: 9px; padding-bottom: 9px; font-size: 13.5px; }
 }
+
+/* ── Tag tree inside the sidebar (Bear-style note navigation) ── */
+#memo-tag-bar {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+.sidebar .tag-tree {
+  max-height: none; overflow: visible;
+  border-bottom: none; padding: 0;
+}
+.tag-tree-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: rgba(255,255,255,0.30);
+  padding: 13px 10px 5px;
+}
+/* The sidebar is always dark — restyle the tag tree off theme vars */
+.sidebar .tag-row { color: rgba(255,255,255,0.60); }
+.sidebar .tag-row:hover { background: rgba(255,255,255,0.07); color: #fff; }
+.sidebar .tag-row.active { background: color-mix(in srgb, var(--accent) 32%, transparent); color: #fff; }
+.sidebar .tag-row.active .tag-row-count { background: rgba(255,255,255,0.22); color: #fff; }
+.sidebar .tag-row-special { color: rgba(255,255,255,0.92); font-weight: 600; }
+.sidebar .tag-row-count { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.5); }
+.sidebar .tag-hash { color: rgba(255,255,255,0.34); }
+.sidebar .tag-expand { color: rgba(255,255,255,0.42); }
 
 /* Search bar */
 .memo-search-wrap { position: relative; display: flex; gap: 7px; }
@@ -2091,7 +2116,7 @@ body[data-theme="ayu"] {
 
   /* Bear-style expanded sidebar — wide labelled panel */
   .sidebar.expanded {
-    width: 212px;
+    width: 232px;
     align-items: stretch;
     padding: 14px 10px calc(14px + var(--safe-bot));
   }

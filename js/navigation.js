@@ -54,6 +54,9 @@ function navigateTo(page, opts) {
       try { amt.click(); } catch {}
     }
   }
+  // Refresh the sidebar tag tree so its active-row highlight matches the
+  // page we just switched to (highlight only shows on the notes view).
+  if (typeof renderMemoList === 'function') renderMemoList();
 
   // Keep the URL hash in sync so a reload restores the same page.
   // replaceState (not pushState) — we don't want every tab switch in history.
@@ -111,35 +114,5 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeMobileSidebar();
 });
 
-// =================== BEAR-STYLE SIDEBAR (expand / collapse) ===================
-// Desktop: the sidebar can be a wide labelled panel (Bear-style) or a thin
-// icon rail. State persists. On mobile the sidebar is a bottom tab bar — the
-// "expanded" class is harmless there (desktop-only CSS scopes the styling).
-function applySidebarState() {
-  const sb = document.getElementById('sidebar');
-  if (!sb) return;
-  const collapsed = load('sidebar_collapsed', false);
-  sb.classList.toggle('expanded', !collapsed);
-  const toggle = document.getElementById('sidebar-toggle');
-  if (toggle) {
-    toggle.setAttribute('aria-label', collapsed ? '사이드바 펼치기' : '사이드바 접기');
-  }
-}
-
-function toggleSidebar() {
-  const sb = document.getElementById('sidebar');
-  if (!sb) return;
-  const nowExpanded = sb.classList.toggle('expanded');
-  save('sidebar_collapsed', !nowExpanded);
-  const toggle = document.getElementById('sidebar-toggle');
-  if (toggle) {
-    toggle.setAttribute('aria-label', nowExpanded ? '사이드바 접기' : '사이드바 펼치기');
-  }
-  // The mindmap canvas sizes itself to the available width — re-fit it
-  // once the width transition has settled.
-  if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 200);
-}
-
-// Apply persisted state before first paint (this script is deferred, so it
-// runs after HTML parse but before the page is painted → no flash).
-applySidebarState();
+// The sidebar is always the expanded panel now (it hosts the calendar link +
+// tag tree, Bear-style) — the `expanded` class is hardcoded in the HTML.
