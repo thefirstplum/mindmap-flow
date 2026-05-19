@@ -31,7 +31,7 @@ function getAllNotes() {
         type: 'mindmap', id: mm.id,
         title: mm.name || '',
         pinned: !!mm.pinned,
-        tags: [],
+        tags: mm.tags || [],
         updatedAt: mm.updatedAt || mm.createdAt,
         createdAt: mm.createdAt,
         searchText: ((mm.name || '') + ' ' + nodeText).toLowerCase(),
@@ -64,6 +64,7 @@ function selectNote(type, id) {
     activeMemoId = null;
     if (page) page.classList.add('note-mindmap', 'show-editor');
     if (typeof switchMindmap === 'function') switchMindmap(id);
+    if (typeof renderMindmapTags === 'function') renderMindmapTags();
     renderMemoList();
     if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 40);
     else if (typeof drawMindMap === 'function') drawMindMap();

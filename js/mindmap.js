@@ -220,6 +220,61 @@ function deleteMindmapActive() {
   deleteMindmapById(id);
 }
 
+// =================== MINDMAP TAGS ===================
+// 마인드맵도 노트이므로 태그를 가진다. memo와 달리 본문이 없어 tags 배열을 직접 편집.
+function renderMindmapTags() {
+  const wrap = document.getElementById('mm-tag-chips');
+  if (!wrap) return;
+  const m = activeMap();
+  const tags = (m && m.tags) || [];
+  wrap.innerHTML = tags.map(t => {
+    const safe = JSON.stringify(t).replace(/"/g, '&quot;');
+    return `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMindmapTag(${safe})" class="memo-tag-del" aria-label="태그 삭제">✕</button></span>`;
+  }).join('');
+}
+function focusMmTagInput() {
+  const i = document.getElementById('mm-tag-input');
+  if (!i) return;
+  i.classList.add('visible');
+  i.focus();
+}
+function hideMmTagInput() {
+  const i = document.getElementById('mm-tag-input');
+  if (!i || document.activeElement === i) return;
+  i.classList.remove('visible');
+  i.value = '';
+}
+function addMindmapTagFromInput() {
+  const i = document.getElementById('mm-tag-input');
+  if (!i) return;
+  addMindmapTag(i.value);
+  i.value = '';
+  i.classList.remove('visible');
+}
+function addMindmapTag(tag) {
+  const m = activeMap();
+  if (!m) return;
+  tag = (tag || '').trim().replace(/^#/, '');  // "#회의" 또는 "회의" 모두 허용
+  if (!tag) return;
+  if (!m.tags) m.tags = [];
+  if (!m.tags.includes(tag)) {
+    m.tags.push(tag);
+    m.updatedAt = new Date().toISOString();
+    save('mindmaps', mindmaps);
+  }
+  renderMindmapTags();
+  if (typeof renderMemoList === 'function') renderMemoList();  // 사이드바 태그 트리 갱신
+}
+function removeMindmapTag(tag) {
+  const m = activeMap();
+  if (!m || !m.tags) return;
+  m.tags = m.tags.filter(t => t !== tag);
+  m.updatedAt = new Date().toISOString();
+  save('mindmaps', mindmaps);
+  renderMindmapTags();
+  if (typeof renderMemoList === 'function') renderMemoList();
+}
+
 function toggleMindmapList() {
   const list = document.getElementById('mindmap-list');
   const backdrop = document.getElementById('mm-list-backdrop');
@@ -235,8 +290,11 @@ function closeMindmapList() {
 }
 
 function updateToolbarState() {
-  document.getElementById('delete-btn').disabled = !selectedNode && selectedEdge === null;
-  document.getElementById('connect-btn').disabled = !selectedNode;
+  // 연결·삭제는 노드 액션바로 옮겨졌으므로 툴바 버튼이 없을 수 있다 — null 가드
+  const d = document.getElementById('delete-btn');
+  if (d) d.disabled = !selectedNode && selectedEdge === null;
+  const c = document.getElementById('connect-btn');
+  if (c) c.disabled = !selectedNode;
 }
 
 function resizeCanvas() {
