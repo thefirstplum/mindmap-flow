@@ -692,6 +692,18 @@ function parseMemoIdFromFilename(name) {
   return m ? parseInt(m[1]) : null;
 }
 
+// Stable artificial memo id derived from a filename. An external/orphan .md
+// file (no frontmatter id, no appProperties, no id-prefix) must map to the
+// SAME memo id on every pull. The old `++maxId` counter shifted between pulls,
+// so each sync spawned a fresh duplicate memo + an endless push/pull loop.
+// Range 1e9–2e9 stays clear of real memo ids (small counters).
+function stableMemoIdFromName(name) {
+  let h = 5381;
+  const s = String(name || '');
+  for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
+  return 1000000000 + (Math.abs(h) % 1000000000);
+}
+
 // =================== DRIVE DIFF (snapshot-based partial push) ===================
 // Snapshot persists the state of what we last successfully pushed to Drive.
 // computeDriveDirty returns the per-item diff so push only uploads what changed.
@@ -1551,7 +1563,7 @@ async function applyDriveData(files) {
         // Carry appProperties + filename so we can recover the memo id even if
         // the markdown frontmatter is missing/corrupt — prevents duplicate-memo
         // explosion when files lose their `id:` line.
-        try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties }; } catch { return null; }
+        try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties, modifiedTime: f.modifiedTime }; } catch { return null; }
       }),
       appFile ? driveDownloadFile(appFile.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
       journalF ? driveDownloadFile(journalF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
@@ -1655,7 +1667,10 @@ async function applyDriveData(files) {
     for (const r of mdRaws) {
       if (!r) continue;
       try {
-        const memo = parseFrontmatter(r.text, r.name, Date.now());
+        // Fall back to the file's real Drive modifiedTime (stable) — NOT
+        // Date.now(), which made id-less files look freshly-edited every pull.
+        const fallbackMtime = r.modifiedTime ? Date.parse(r.modifiedTime) : Date.now();
+        const memo = parseFrontmatter(r.text, r.name, fallbackMtime);
         if (!memo.id) {
           const propId = r.appProperties?.memoId ? parseInt(r.appProperties.memoId) : null;
           if (propId && !isNaN(propId)) memo.id = propId;
@@ -1664,7 +1679,7 @@ async function applyDriveData(files) {
           const fnId = parseMemoIdFromFilename(r.name);
           if (fnId) memo.id = fnId;
         }
-        if (!memo.id) memo.id = ++maxId + 100000;
+        if (!memo.id) memo.id = stableMemoIdFromName(r.name);
         else if (memo.id > maxId) maxId = memo.id;
         remoteMemos.push(memo);
       } catch (e) { console.warn('Memo parse failed:', r.name, e); }
@@ -1916,7 +1931,7 @@ async function driveImportFromFolder() {
 
     // 4. Download all .md files
     const raws = await batchAll(mdFiles, async f => {
-      try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties }; } catch { return null; }
+      try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties, modifiedTime: f.modifiedTime }; } catch { return null; }
     });
 
     // 5. Parse with frontmatter (id fallback: frontmatter → appProperties → filename → artificial)
@@ -1926,7 +1941,8 @@ async function driveImportFromFolder() {
     for (const r of raws) {
       if (!r) continue;
       try {
-        const memo = parseFrontmatter(r.text, r.name, Date.now());
+        const fallbackMtime = r.modifiedTime ? Date.parse(r.modifiedTime) : Date.now();
+        const memo = parseFrontmatter(r.text, r.name, fallbackMtime);
         if (!memo.id) {
           const propId = r.appProperties?.memoId ? parseInt(r.appProperties.memoId) : null;
           if (propId && !isNaN(propId)) memo.id = propId;
@@ -1935,7 +1951,7 @@ async function driveImportFromFolder() {
           const fnId = parseMemoIdFromFilename(r.name);
           if (fnId) memo.id = fnId;
         }
-        if (!memo.id) memo.id = ++maxId + 100000;
+        if (!memo.id) memo.id = stableMemoIdFromName(r.name);
         else if (memo.id > maxId) maxId = memo.id;
         remoteMemos.push(memo);
       } catch (e) { console.warn('Parse failed:', r.name, e); }
@@ -2706,7 +2722,7 @@ async function applyGistData(data) {
         } catch (e) { console.warn('Failed to fetch raw:', e); }
       }
       const memo = parseFrontmatter(content, filename, Date.now());
-      if (!memo.id) memo.id = ++maxId + 100000;
+      if (!memo.id) memo.id = stableMemoIdFromName(filename);
       else if (memo.id > maxId) maxId = memo.id;
       remoteMemos.push(memo);
     }
@@ -3080,7 +3096,7 @@ async function loadFromFolder({ silent = true, force = false } = {}) {
           const file = await entry.getFile();
           const text = await file.text();
           const memo = parseFrontmatter(text, entry.name, file.lastModified);
-          if (!memo.id) memo.id = ++maxId + 100000;
+          if (!memo.id) memo.id = stableMemoIdFromName(entry.name);
           else if (memo.id > maxId) maxId = memo.id;
           memo._filename = entry.name;
           loaded.push(memo);
