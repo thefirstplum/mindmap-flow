@@ -326,7 +326,9 @@ function renderMemoList() {
     return;
   }
   container.innerHTML = filtered.map(m => {
-    const date = new Date(m.date);
+    // 정렬 기준(updatedAt)과 표시 날짜를 일치시킴 — 둘이 어긋나면
+    // 목록이 수정일순으로 안 보이는 것처럼 느껴진다.
+    const date = new Date(m.updatedAt || m.date);
     const now = new Date();
     let dateStr;
     if (isSameDay(date, now)) {

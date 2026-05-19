@@ -22,7 +22,15 @@
   <!-- Sidebar -->
   <nav class="sidebar">
     <div class="logo">M</div>
-    <button class="nav-btn active" data-page="timeblock" aria-label="타임블록">
+    <button class="nav-btn active" data-page="calendar" aria-label="캘린더">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+        <circle cx="8" cy="15" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="15" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="label">캘린더</span>
+    </button>
+    <button class="nav-btn" data-page="timeblock" aria-label="타임블록">
       <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
         <line x1="3" y1="10" x2="21" y2="10"/><rect x="6" y="13" width="4" height="3" rx="1" fill="currentColor"/>
@@ -102,6 +110,32 @@
     </div>
 
     <div class="content">
+      <!-- ===== CALENDAR PAGE ===== -->
+      <div class="page active" id="page-calendar">
+        <div class="calendar-page" id="calendar-page-root">
+          <div class="calendar-main">
+            <div class="calendar-toolbar">
+              <button class="cal-nav-arrow" onclick="calPrevMonth()" aria-label="이전 달">‹</button>
+              <div class="calendar-month-label" id="calendar-month-label">—</div>
+              <button class="cal-nav-arrow" onclick="calNextMonth()" aria-label="다음 달">›</button>
+              <div class="header-spacer"></div>
+              <button class="cal-today-btn" onclick="calGoToday()">오늘</button>
+            </div>
+            <div class="calendar-weekdays">
+              <span class="is-sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="is-sat">토</span>
+            </div>
+            <div class="calendar-grid" id="calendar-grid"></div>
+          </div>
+          <div class="calendar-detail">
+            <div class="calendar-detail-header">
+              <button class="cal-back-btn" onclick="calBackToGrid()" aria-label="달력으로">‹</button>
+              <div class="calendar-detail-title" id="calendar-detail-title">—</div>
+            </div>
+            <div class="calendar-detail-body" id="calendar-detail-body"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ===== MIND MAP PAGE ===== -->
       <div class="page" id="page-mindmap">
         <div class="mindmap-page" id="mindmap-page-root">
@@ -186,7 +220,7 @@
       </div>
 
       <!-- ===== TIME BLOCK PAGE ===== -->
-      <div class="page active" id="page-timeblock">
+      <div class="page" id="page-timeblock">
         <div class="timeblock-page" id="timeblock-page-root">
           <aside class="timeblock-list">
             <div class="tb-list-header">
@@ -650,6 +684,7 @@
 <script src="js/timeblock.js?v=20260509a" defer></script>
 <script src="js/memo.js?v=20260509a" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
+<script src="js/calendar.js?v=20260519a" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260509a" defer></script>
 <script src="js/sync.js?v=20260509a" defer></script>
