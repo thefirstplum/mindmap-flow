@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260519f">
+<link rel="stylesheet" href="styles.css?v=20260519g">
 </head>
 <body>
 <div class="app">
@@ -167,13 +167,16 @@
               <div class="memo-search-wrap">
                 <svg class="search-icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
                 <input type="text" class="search-input" placeholder="노트 검색" id="memo-search" oninput="filterMemos()">
-                <div class="new-note-wrap">
-                  <button class="new-btn" onclick="toggleNewNoteMenu(event)" title="새 노트 (⌘N)">+</button>
-                  <div class="new-note-menu" id="new-note-menu">
-                    <button onclick="createMemo()"><span class="nn-ic">📝</span> 텍스트 메모</button>
-                    <button onclick="createMindmap()"><span class="nn-ic">🗺</span> 마인드맵</button>
-                  </div>
-                </div>
+              </div>
+              <div class="note-create-row">
+                <button class="note-create-btn primary" onclick="createMemo()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  새 메모
+                </button>
+                <button class="note-create-btn" onclick="createMindmap()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="9.5" y1="10.5" x2="5.5" y2="7.5"/><line x1="14.5" y1="10.5" x2="18.5" y2="7.5"/><line x1="9.5" y1="13.5" x2="5.5" y2="16.5"/><line x1="14.5" y1="13.5" x2="18.5" y2="16.5"/></svg>
+                  마인드맵
+                </button>
               </div>
             </div>
             <div id="memo-select-toolbar" style="display:none;"></div>
@@ -642,9 +645,9 @@
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260519b" defer></script>
 <script src="js/navigation.js?v=20260519f" defer></script>
-<script src="js/mindmap.js?v=20260519b" defer></script>
+<script src="js/mindmap.js?v=20260519g" defer></script>
 <script src="js/timeblock.js?v=20260509a" defer></script>
-<script src="js/memo.js?v=20260519f" defer></script>
+<script src="js/memo.js?v=20260519g" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260519d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>

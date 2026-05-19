@@ -100,7 +100,6 @@ function renderMindmapList() {
 }
 
 function createMindmap() {
-  if (typeof closeNewNoteMenu === 'function') closeNewNoteMenu();
   // Save current map state first
   if (activeMap()) saveMindMap();
   const map = {
