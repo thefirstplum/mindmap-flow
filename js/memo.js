@@ -1,9 +1,97 @@
-// =================== MEMO ===================
+// =================== NOTES (memo + mindmap unified) ===================
 let memos = load('memos', []);
 let activeMemoId = null;
 let memoIdCounter = load('memo_idcounter', 1);
 let activeTagFilter = null;
 let memoSortMode = load('memo_sort', 'updated');  // 'updated' | 'created' | 'title'
+// Which kind of note the detail pane is showing: 'memo' (text) or 'mindmap'.
+let activeNoteType = 'memo';
+
+// Collect memos + mindmaps into one normalised list of "note" descriptors.
+// memos[] and mindmaps[] stay separate on disk — this is a view-layer merge.
+function getAllNotes() {
+  const out = [];
+  for (const m of memos) {
+    out.push({
+      type: 'memo', id: m.id,
+      title: m.title || '',
+      pinned: !!m.pinned,
+      tags: m.tags || [],
+      updatedAt: m.updatedAt || m.date,
+      createdAt: m.date,
+      searchText: ((m.title || '') + ' ' + (m.content || '')).toLowerCase(),
+      content: m.content || '',
+      ref: m
+    });
+  }
+  if (typeof mindmaps !== 'undefined' && Array.isArray(mindmaps)) {
+    for (const mm of mindmaps) {
+      const nodeText = (mm.nodes || []).map(n => n.text || '').join(' ');
+      out.push({
+        type: 'mindmap', id: mm.id,
+        title: mm.name || '',
+        pinned: !!mm.pinned,
+        tags: [],
+        updatedAt: mm.updatedAt || mm.createdAt,
+        createdAt: mm.createdAt,
+        searchText: ((mm.name || '') + ' ' + nodeText).toLowerCase(),
+        nodeCount: (mm.nodes || []).length,
+        edgeCount: (mm.edges || []).length,
+        ref: mm
+      });
+    }
+  }
+  return out;
+}
+
+// Is this note the one currently open in the detail pane?
+function isActiveNote(type, id) {
+  if (type === 'mindmap') return activeNoteType === 'mindmap' && typeof activeMindmapId !== 'undefined' && id === activeMindmapId;
+  return activeNoteType === 'memo' && id === activeMemoId;
+}
+
+// Open a note — routes to the text editor or the mindmap canvas by type.
+function selectNote(type, id) {
+  const page = document.getElementById('memo-page');
+  if (type === 'mindmap') {
+    activeNoteType = 'mindmap';
+    activeMemoId = null;
+    if (page) page.classList.add('note-mindmap', 'show-editor');
+    if (typeof switchMindmap === 'function') switchMindmap(id);
+    renderMemoList();
+    if (typeof resizeCanvas === 'function') setTimeout(resizeCanvas, 40);
+    else if (typeof drawMindMap === 'function') drawMindMap();
+  } else {
+    activeNoteType = 'memo';
+    activeMemoId = id;
+    if (page) { page.classList.remove('note-mindmap'); page.classList.add('show-editor'); }
+    renderMemoList();
+    renderMemoEditor();
+  }
+}
+
+// Delete a note by type — used by swipe-to-delete on the unified list.
+function deleteNote(type, id) {
+  if (type === 'mindmap') {
+    if (typeof deleteMindmapById === 'function') deleteMindmapById(id);
+    return;
+  }
+  deleteMemo(id);
+}
+
+// =================== NEW-NOTE TYPE PICKER ===================
+function toggleNewNoteMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const menu = document.getElementById('new-note-menu');
+  if (menu) menu.classList.toggle('open');
+}
+function closeNewNoteMenu() {
+  const menu = document.getElementById('new-note-menu');
+  if (menu) menu.classList.remove('open');
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.new-note-wrap')) closeNewNoteMenu();
+});
 const MEMO_SORT_LABELS = { updated: '수정일순', created: '생성일순', title: '제목순' };
 
 function cycleMemoSort() {
@@ -13,15 +101,24 @@ function cycleMemoSort() {
   renderMemoList();
 }
 
-function togglePinMemo(id, ev) {
+function togglePinNote(type, id, ev) {
   if (ev) ev.stopPropagation();
-  const m = memos.find(x => x.id === id);
-  if (!m) return;
-  m.pinned = !m.pinned;
   // 고정 토글은 수정시각을 바꾸지 않는다 (정렬 흔들림 방지)
-  saveMemos();
+  if (type === 'mindmap') {
+    const mm = (typeof mindmaps !== 'undefined' ? mindmaps : []).find(x => x.id === id);
+    if (!mm) return;
+    mm.pinned = !mm.pinned;
+    save('mindmaps', mindmaps);
+  } else {
+    const m = memos.find(x => x.id === id);
+    if (!m) return;
+    m.pinned = !m.pinned;
+    saveMemos();
+  }
   renderMemoList();
 }
+// Back-compat alias for text memos
+function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
 function saveMemos() {
   save('memos', memos);
@@ -224,9 +321,11 @@ function migrateHashtagsFromContent() {
 }
 
 function createMemo() {
+  closeNewNoteMenu();
   const now = new Date().toISOString();
   const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
   memos.unshift(memo);
+  activeNoteType = 'memo';
   activeMemoId = memo.id;
   // New memos open in live mode so user gets Bear-style inline editing
   memoMode = 'live';
@@ -234,7 +333,9 @@ function createMemo() {
   saveMemos();
   renderMemoList();
   renderMemoEditor();
-  document.getElementById('memo-page').classList.add('show-editor');
+  const page = document.getElementById('memo-page');
+  page.classList.remove('note-mindmap');
+  page.classList.add('show-editor');
   setTimeout(() => {
     const inp = document.querySelector('.memo-editor-header input');
     if (inp) { inp.focus(); inp.select(); }
@@ -242,10 +343,7 @@ function createMemo() {
 }
 
 function selectMemo(id) {
-  activeMemoId = id;
-  renderMemoList();
-  renderMemoEditor();
-  document.getElementById('memo-page').classList.add('show-editor');
+  selectNote('memo', id);
 }
 
 function backToList() {
@@ -269,12 +367,14 @@ function deleteMemo(id) {
 
 function renderMemoList() {
   const search = document.getElementById('memo-search').value.toLowerCase();
+  const allNotes = getAllNotes();
 
-  // Tag filter bar (Bear-style): count per tag, "태그없음" option, sorted by frequency
+  // Tag filter bar (Bear-style): count per tag, "태그없음" option, sorted by frequency.
+  // Mindmaps carry no tags — they always fall under "태그없음".
   const tagCounts = new Map();
   let untaggedCount = 0;
-  for (const m of memos) {
-    const ts = m.tags || [];
+  for (const n of allNotes) {
+    const ts = n.tags || [];
     if (ts.length === 0) untaggedCount++;
     for (const t of ts) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
   }
@@ -288,7 +388,7 @@ function renderMemoList() {
       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
       <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button>`;
     if (tagsByFreq.length > 0 || untaggedCount > 0) {
-      const allChip = `<span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체 <span class="chip-count">${memos.length}</span></span>`;
+      const allChip = `<span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체 <span class="chip-count">${allNotes.length}</span></span>`;
       const tagChips = tagsByFreq.map(([t, n]) => {
         const safe = JSON.stringify(t).replace(/"/g, '&quot;');
         const isActive = activeTagFilter === t;
@@ -303,31 +403,30 @@ function renderMemoList() {
     }
   }
 
-  const filtered = memos.filter(m => {
-    const matchesSearch = m.title.toLowerCase().includes(search) || m.content.toLowerCase().includes(search);
-    if (!matchesSearch) return false;
+  const filtered = allNotes.filter(n => {
+    if (search && !n.searchText.includes(search)) return false;
     if (!activeTagFilter) return true;
-    if (activeTagFilter === '__untagged__') return !m.tags || m.tags.length === 0;
-    return (m.tags || []).includes(activeTagFilter);
+    if (activeTagFilter === '__untagged__') return (n.tags || []).length === 0;
+    return (n.tags || []).includes(activeTagFilter);
   }).sort((a, b) => {
-    // 고정 메모는 항상 위로
+    // 고정 노트는 항상 위로
     if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
     if (memoSortMode === 'title') {
       return (a.title || '').localeCompare(b.title || '', 'ko');
     }
     if (memoSortMode === 'created') {
-      return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
     }
-    // 'updated' (기본) — 수정 최신순. 레거시 메모는 date로 폴백.
-    const ta = new Date(a.updatedAt || a.date || 0).getTime();
-    const tb = new Date(b.updatedAt || b.date || 0).getTime();
+    // 'updated' (기본) — 수정 최신순
+    const ta = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const tb = new Date(b.updatedAt || b.createdAt || 0).getTime();
     return tb - ta;
   });
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
-  if (countEl) countEl.textContent = memos.length;
+  if (countEl) countEl.textContent = allNotes.length;
 
-  // Render select-mode toolbar
+  // Render select-mode toolbar (multi-select applies to text memos only)
   const toolbar = document.getElementById('memo-select-toolbar');
   if (toolbar) {
     if (memoSelectMode) {
@@ -351,15 +450,13 @@ function renderMemoList() {
   if (filtered.length === 0) {
     container.innerHTML = `<div class="memo-empty">
       <div class="big-icon">📝</div>
-      ${memos.length === 0 ? '아직 메모가 없습니다<br>+ 버튼을 눌러 시작하세요' : '검색 결과가 없습니다'}
+      ${allNotes.length === 0 ? '아직 노트가 없습니다<br>+ 버튼을 눌러 시작하세요' : '검색 결과가 없습니다'}
     </div>`;
     return;
   }
-  container.innerHTML = filtered.map(m => {
-    // 정렬 기준(updatedAt)과 표시 날짜를 일치시킴 — 둘이 어긋나면
-    // 목록이 수정일순으로 안 보이는 것처럼 느껴진다.
-    const date = new Date(m.updatedAt || m.date);
-    const now = new Date();
+  const now = new Date();
+  container.innerHTML = filtered.map(n => {
+    const date = new Date(n.updatedAt || n.createdAt);
     let dateStr;
     if (isSameDay(date, now)) {
       dateStr = `오늘 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
@@ -368,29 +465,39 @@ function renderMemoList() {
       if (dayDiff < 7) dateStr = `${dayDiff}일 전`;
       else dateStr = `${date.getMonth()+1}월 ${date.getDate()}일`;
     }
-    const preview = m.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
-    const wordCount = m.content.length;
-    const isSelected = memoSelectedIds.has(m.id);
-    const checkbox = memoSelectMode
-      ? `<span class="memo-select-check ${isSelected ? 'checked' : ''}" onclick="toggleMemoSelected(${m.id}, event)">${isSelected ? '✓' : ''}</span>`
+    let preview, metaRight;
+    if (n.type === 'mindmap') {
+      preview = `노드 ${n.nodeCount}개 · 연결 ${n.edgeCount}개`;
+      metaRight = '마인드맵';
+    } else {
+      preview = n.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
+      metaRight = `${n.content.length}자`;
+    }
+    const isActive = isActiveNote(n.type, n.id) && !memoSelectMode;
+    const selectable = n.type === 'memo';
+    const isSelected = selectable && memoSelectedIds.has(n.id);
+    const checkbox = (memoSelectMode && selectable)
+      ? `<span class="memo-select-check ${isSelected ? 'checked' : ''}" onclick="toggleMemoSelected(${n.id}, event)">${isSelected ? '✓' : ''}</span>`
       : '';
-    const onClick = memoSelectMode
-      ? `toggleMemoSelected(${m.id}, event)`
-      : `selectMemo(${m.id})`;
+    const onClick = (memoSelectMode && selectable)
+      ? `toggleMemoSelected(${n.id}, event)`
+      : `selectNote('${n.type}', ${n.id})`;
     const pinBtn = memoSelectMode ? '' :
-      `<button class="memo-pin-btn ${m.pinned ? 'pinned' : ''}" onclick="togglePinMemo(${m.id}, event)" title="${m.pinned ? '고정 해제' : '고정'}" aria-label="고정">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="${m.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.6-2.4a3 3 0 01-.5-1.66V8a2 2 0 00-2-2H9.1a2 2 0 00-2 2v4.94a3 3 0 01-.5 1.66L5 17z"/></svg>
+      `<button class="memo-pin-btn ${n.pinned ? 'pinned' : ''}" onclick="togglePinNote('${n.type}', ${n.id}, event)" title="${n.pinned ? '고정 해제' : '고정'}" aria-label="고정">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="${n.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.6-2.4a3 3 0 01-.5-1.66V8a2 2 0 00-2-2H9.1a2 2 0 00-2 2v4.94a3 3 0 01-.5 1.66L5 17z"/></svg>
       </button>`;
-    return `<div class="swipe-row" data-id="${m.id}">
-      <div class="memo-item swipe-content ${m.id === activeMemoId && !memoSelectMode ? 'active' : ''} ${isSelected ? 'selected' : ''} ${m.pinned ? 'is-pinned' : ''}" onclick="${onClick}">
+    const typeIcon = n.type === 'mindmap' ? '🗺' : '📝';
+    return `<div class="swipe-row" data-id="${n.id}" data-note-type="${n.type}">
+      <div class="memo-item swipe-content ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${n.pinned ? 'is-pinned' : ''}" onclick="${onClick}">
         ${checkbox}
+        <span class="note-type-badge" aria-hidden="true">${typeIcon}</span>
         <div class="memo-item-body">
-          <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
+          <div class="memo-item-title">${escapeHtml(n.title) || '제목 없음'}</div>
           <div class="memo-item-preview">${escapeHtml(preview)}</div>
           <div class="memo-item-meta">
             <span>${dateStr}</span>
             <span class="dot"></span>
-            <span>${wordCount}자</span>
+            <span>${metaRight}</span>
           </div>
         </div>
         ${pinBtn}
@@ -402,7 +509,10 @@ function renderMemoList() {
   if (!container.dataset.swipeReady) {
     attachSwipeToDelete(container, {
       resolveId: (row) => parseInt(row.dataset.id),
-      onDelete: (id) => { if (!memoSelectMode) deleteMemo(id); }
+      onDelete: (id, row) => {
+        if (memoSelectMode) return;
+        deleteNote(row.dataset.noteType, id);
+      }
     });
     container.dataset.swipeReady = '1';
   }

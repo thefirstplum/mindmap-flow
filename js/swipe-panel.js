@@ -5,7 +5,8 @@ function togglePanel(pageId) {
   el.classList.toggle('list-collapsed');
   // Mindmap canvas pixels are sized in JS — once the wrapper width changes,
   // the canvas needs a redraw at the new dimensions or it appears clipped.
-  if (pageId === 'mindmap-page-root' && typeof resizeCanvas === 'function') {
+  // The canvas now lives inside the unified notes page (#memo-page).
+  if (pageId === 'memo-page' && typeof resizeCanvas === 'function') {
     // Allow the layout to settle first (one frame) so getBoundingClientRect
     // returns the post-collapse width
     requestAnimationFrame(() => requestAnimationFrame(resizeCanvas));
