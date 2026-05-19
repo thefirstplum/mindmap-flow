@@ -289,19 +289,21 @@ body[data-theme="leather"] {
 .header-spacer { flex: 1; }
 .header-btn {
   height: 34px;
-  padding: 0 13px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
+  padding: 0 9px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 13px; font-weight: 500;
   display: inline-flex; align-items: center; gap: 6px;
-  transition: background 0.12s;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
   white-space: nowrap;
 }
-.header-btn:hover { background: var(--surface3); }
-.header-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.header-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.header-btn:hover { background: var(--surface2); color: var(--text); }
+.header-btn .icon-sm { width: 19px; height: 19px; }
+.header-btn.primary { background: var(--accent); color: #fff; }
+.header-btn.primary:hover { background: var(--accent2); }
 
 /* Sync pill */
 .sync-pill .sync-dot {
@@ -1186,26 +1188,24 @@ body[data-theme="leather"] {
   margin-top: 1px;
 }
 
-/* "+ New note" type-picker menu */
-.new-note-wrap { position: relative; flex-shrink: 0; }
-.new-note-menu {
-  display: none;
-  position: absolute; top: calc(100% + 6px); right: 0;
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: 10px; padding: 5px;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.28);
-  z-index: 60; min-width: 170px;
+/* New-note creation row — 새 메모 / 마인드맵 (two split buttons) */
+.note-create-row { display: flex; gap: 7px; }
+.note-create-btn {
+  flex: 1; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
 }
-.new-note-menu.open { display: block; }
-.new-note-menu button {
-  display: flex; align-items: center; gap: 9px;
-  width: 100%; padding: 9px 11px;
-  background: transparent; border: none;
-  color: var(--text); font-size: 13px; font-weight: 500;
-  border-radius: 7px; cursor: pointer; text-align: left; white-space: nowrap;
+.note-create-btn:hover { background: var(--surface3); border-color: var(--accent); }
+.note-create-btn:active { transform: scale(0.97); }
+.note-create-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.note-create-btn.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
 }
-.new-note-menu button:hover { background: var(--surface2); }
-.new-note-menu .nn-ic { font-size: 15px; }
+.note-create-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
 
 .memo-list {
   width: 260px;
@@ -1371,14 +1371,6 @@ body[data-theme="leather"] {
   position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
   color: var(--text-mute); pointer-events: none;
 }
-.memo-search-wrap .new-btn {
-  width: 34px; height: 34px;
-  background: var(--accent); border: none;
-  border-radius: var(--radius-sm); color: #fff; font-size: 18px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-  transition: background 0.12s;
-}
-.memo-search-wrap .new-btn:hover { background: var(--accent2); }
 
 /* List */
 .memo-items { flex: 1; overflow-y: auto; padding: 4px 0; }
@@ -2326,8 +2318,8 @@ body[data-theme="ayu"] {
   .memo-page.note-mindmap.show-editor #mm-canvas-wrap { transform: translateX(0); }
   .memo-back { display: flex !important; width: 30px; height: 30px; font-size: 17px; }
   .memo-list-header { padding: 12px 13px 9px; }
-  .memo-search-wrap .search-input { height: 36px; }
-  .memo-search-wrap .new-btn { width: 36px; height: 36px; }
+  .memo-search-wrap .search-input { height: 38px; }
+  .note-create-btn { height: 40px; font-size: 13.5px; }
   .memo-item { padding: 12px 14px; }
   .memo-editor-toolbar { padding: 8px 11px; gap: 7px; }
   .memo-editor-header { padding: 12px 15px 5px; }

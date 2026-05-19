@@ -85,19 +85,6 @@ function deleteNote(type, id) {
   deleteMemo(id);
 }
 
-// =================== NEW-NOTE TYPE PICKER ===================
-function toggleNewNoteMenu(ev) {
-  if (ev) ev.stopPropagation();
-  const menu = document.getElementById('new-note-menu');
-  if (menu) menu.classList.toggle('open');
-}
-function closeNewNoteMenu() {
-  const menu = document.getElementById('new-note-menu');
-  if (menu) menu.classList.remove('open');
-}
-document.addEventListener('click', (e) => {
-  if (!e.target.closest('.new-note-wrap')) closeNewNoteMenu();
-});
 
 // =================== HIERARCHICAL TAG TREE ===================
 // Tags use "/" as a level separator (#work/proja). The notes list shows a
@@ -394,7 +381,6 @@ function migrateHashtagsFromContent() {
 }
 
 function createMemo() {
-  closeNewNoteMenu();
   const now = new Date().toISOString();
   const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
   memos.unshift(memo);
