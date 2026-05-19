@@ -92,6 +92,80 @@ function closeNewNoteMenu() {
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.new-note-wrap')) closeNewNoteMenu();
 });
+
+// =================== HIERARCHICAL TAG TREE ===================
+// Tags use "/" as a level separator (#work/proja). The notes list shows a
+// collapsible tree; clicking a node filters to that tag and all its children.
+let tagCollapsed = new Set(load('tag_collapsed', []));
+// Whole tag-tree section open/closed — keeps the note list roomy on mobile.
+let tagTreeOpen = load('tag_tree_open', true);
+
+function toggleTagNode(ev, path) {
+  if (ev) ev.stopPropagation();
+  if (tagCollapsed.has(path)) tagCollapsed.delete(path);
+  else tagCollapsed.add(path);
+  save('tag_collapsed', [...tagCollapsed]);
+  renderMemoList();
+}
+
+function toggleTagTreeSection() {
+  tagTreeOpen = !tagTreeOpen;
+  save('tag_tree_open', tagTreeOpen);
+  renderMemoList();
+}
+
+// Build a nested tree out of every full tag found across all notes.
+function buildTagTree(allNotes) {
+  const fullTags = new Set();
+  for (const n of allNotes) for (const t of (n.tags || [])) fullTags.add(t);
+  const root = { children: new Map() };
+  for (const full of fullTags) {
+    const parts = full.split('/').filter(Boolean);
+    let node = root, path = '';
+    for (const part of parts) {
+      path = path ? path + '/' + part : part;
+      if (!node.children.has(part)) {
+        node.children.set(part, { name: part, path, children: new Map(), count: 0 });
+      }
+      node = node.children.get(part);
+    }
+  }
+  // Count = distinct notes matching this tag OR any descendant tag
+  const matches = (tags, path) => (tags || []).some(t => t === path || t.startsWith(path + '/'));
+  (function fill(node) {
+    for (const child of node.children.values()) {
+      let c = 0;
+      for (const n of allNotes) if (matches(n.tags, child.path)) c++;
+      child.count = c;
+      fill(child);
+    }
+  })(root);
+  return root;
+}
+
+const _TAG_CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+
+function renderTagTree(node, depth) {
+  const kids = [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  let html = '';
+  for (const child of kids) {
+    const hasKids = child.children.size > 0;
+    const collapsed = tagCollapsed.has(child.path);
+    const isActive = activeTagFilter === child.path;
+    const safe = JSON.stringify(child.path).replace(/"/g, '&quot;');
+    const expander = hasKids
+      ? `<button class="tag-expand${collapsed ? ' collapsed' : ''}" onclick="toggleTagNode(event, ${safe})" aria-label="펼치기/접기">${_TAG_CHEVRON}</button>`
+      : '<span class="tag-expand-spacer"></span>';
+    html += `<div class="tag-row${isActive ? ' active' : ''}" style="--tag-depth:${depth}" onclick="setTagFilter(${safe})">
+      ${expander}
+      <span class="tag-hash">#</span>
+      <span class="tag-row-label">${escapeHtml(child.name)}</span>
+      <span class="tag-row-count">${child.count}</span>
+    </div>`;
+    if (hasKids && !collapsed) html += renderTagTree(child, depth + 1);
+  }
+  return html;
+}
 const MEMO_SORT_LABELS = { updated: '수정일순', created: '생성일순', title: '제목순' };
 
 function cycleMemoSort() {
@@ -236,7 +310,8 @@ function touchMemo(memo) {
 // Source of truth = memo.content. memo.tags is always derived from extraction.
 // + button inserts "#tag" into content; ✕ removes "#tag" from content;
 // editing content directly (typing/deleting #tag) updates the chip list.
-const HASHTAG_RE = /(?:^|[\s,.;:!?(){}\[\]"'`])#([가-힣a-zA-Z][가-힣\w-]*)/g;
+// Hierarchical tags: "#work/proja" — '/' separates levels (Bear-style).
+const HASHTAG_RE = /(?:^|[\s,.;:!?(){}\[\]"'`])#([가-힣a-zA-Z][가-힣\w-]*(?:\/[가-힣\w-]+)*)/g;
 const _BOUNDARY_SET = `[\\s,.;:!?(){}\\[\\]"'\`]`;
 
 function extractHashtags(content) {
@@ -369,35 +444,40 @@ function renderMemoList() {
   const search = document.getElementById('memo-search').value.toLowerCase();
   const allNotes = getAllNotes();
 
-  // Tag filter bar (Bear-style): count per tag, "태그없음" option, sorted by frequency.
-  // Mindmaps carry no tags — they always fall under "태그없음".
-  const tagCounts = new Map();
+  // Tag filter — hierarchical tree (Bear-style). Mindmaps carry no tags so
+  // they always fall under "태그 없음".
   let untaggedCount = 0;
   for (const n of allNotes) {
-    const ts = n.tags || [];
-    if (ts.length === 0) untaggedCount++;
-    for (const t of ts) tagCounts.set(t, (tagCounts.get(t) || 0) + 1);
+    if ((n.tags || []).length === 0) untaggedCount++;
   }
-  const tagsByFreq = [...tagCounts.entries()].sort((a, b) => {
-    if (b[1] !== a[1]) return b[1] - a[1];     // count desc
-    return a[0].localeCompare(b[0], 'ko');      // then alpha
-  });
+  const tagTree = buildTagTree(allNotes);
   const tagBar = document.getElementById('memo-tag-bar');
   if (tagBar) {
     const sortBtn = `<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
       <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button>`;
-    if (tagsByFreq.length > 0 || untaggedCount > 0) {
-      const allChip = `<span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체 <span class="chip-count">${allNotes.length}</span></span>`;
-      const tagChips = tagsByFreq.map(([t, n]) => {
-        const safe = JSON.stringify(t).replace(/"/g, '&quot;');
-        const isActive = activeTagFilter === t;
-        return `<span class="memo-filter-chip${isActive ? ' active' : ''}" onclick="setTagFilter(${safe})">#${escapeHtml(t)} <span class="chip-count">${n}</span></span>`;
-      }).join('');
-      const untaggedChip = untaggedCount > 0
-        ? `<span class="memo-filter-chip${activeTagFilter === '__untagged__' ? ' active' : ''}" onclick="setTagFilter('__untagged__')">태그없음 <span class="chip-count">${untaggedCount}</span></span>`
+    if (tagTree.children.size > 0 || untaggedCount > 0) {
+      const allRow = `<div class="tag-row tag-row-special${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">
+        <span class="tag-expand-spacer"></span>
+        <span class="tag-row-label">전체 노트</span>
+        <span class="tag-row-count">${allNotes.length}</span>
+      </div>`;
+      const untaggedRow = untaggedCount > 0
+        ? `<div class="tag-row tag-row-special${activeTagFilter === '__untagged__' ? ' active' : ''}" onclick="setTagFilter('__untagged__')">
+            <span class="tag-expand-spacer"></span>
+            <span class="tag-row-label">태그 없음</span>
+            <span class="tag-row-count">${untaggedCount}</span>
+          </div>`
         : '';
-      tagBar.innerHTML = `<div class="memo-tag-bar-inner">${allChip}${tagChips}${untaggedChip}</div><div class="memo-sort-row">${sortBtn}</div>`;
+      const header = `<div class="tag-tree-header${tagTreeOpen ? '' : ' collapsed'}" onclick="toggleTagTreeSection()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        <span>태그</span>
+        <svg class="tag-tree-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>`;
+      const tree = tagTreeOpen
+        ? `<div class="tag-tree">${allRow}${renderTagTree(tagTree, 0)}${untaggedRow}</div>`
+        : '';
+      tagBar.innerHTML = `${header}${tree}<div class="memo-sort-row">${sortBtn}</div>`;
     } else {
       tagBar.innerHTML = `<div class="memo-sort-row">${sortBtn}</div>`;
     }
@@ -407,7 +487,8 @@ function renderMemoList() {
     if (search && !n.searchText.includes(search)) return false;
     if (!activeTagFilter) return true;
     if (activeTagFilter === '__untagged__') return (n.tags || []).length === 0;
-    return (n.tags || []).includes(activeTagFilter);
+    // Selecting a parent tag also matches all of its child tags
+    return (n.tags || []).some(t => t === activeTagFilter || t.startsWith(activeTagFilter + '/'));
   }).sort((a, b) => {
     // 고정 노트는 항상 위로
     if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
