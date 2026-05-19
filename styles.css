@@ -195,6 +195,16 @@ body[data-theme="leather"] {
 }
 .sidebar:not(.expanded) .sidebar-toggle .chev { transform: rotate(180deg); }
 .sidebar .spacer { flex: 1; }
+/* Divider between main nav and the sync utility button */
+.sidebar-sep {
+  height: 1px;
+  background: rgba(255,255,255,0.09);
+  margin: 6px 4px 8px;
+  flex-shrink: 0;
+}
+.sidebar.expanded .sidebar-sep { margin: 6px 8px 8px; }
+/* Drawer backdrop — only ever visible on mobile */
+.sidebar-backdrop { display: none; }
 .sidebar .nav-btn {
   width: 48px; height: 48px;
   background: transparent;
@@ -262,6 +272,18 @@ body[data-theme="leather"] {
   display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
 }
+/* Hamburger — opens the sidebar drawer on mobile (hidden on desktop) */
+.header-menu-btn {
+  display: none;
+  width: 36px; height: 36px;
+  background: transparent; border: none;
+  color: var(--text); border-radius: 8px;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.header-menu-btn:active { background: var(--surface3); }
+.header-menu-btn svg { width: 22px; height: 22px; }
 .header h1 { font-size: 16px; font-weight: 700; color: var(--text); }
 .header .subtitle { color: var(--text-mute); font-size: 13px; }
 .header-spacer { flex: 1; }
@@ -2125,58 +2147,77 @@ body[data-theme="ayu"] {
   .main {
     order: 1;
     padding-top: var(--safe-top);
-    padding-bottom: calc(56px + var(--safe-bot));
+    padding-bottom: var(--safe-bot);
   }
 
   /* Header */
   .header {
-    padding: 0 12px; height: 50px; gap: 9px;
+    padding: 0 8px 0 6px; height: 50px; gap: 7px;
     background: var(--surface2);
   }
   .header h1 { font-size: 15px; }
   .header .subtitle { display: none; }
-  .header-icon { width: 30px; height: 30px; }
+  .header-icon { display: none; }
+  .header-menu-btn { display: flex; }
   .header-btn { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .header-btn .btn-label { display: none; }
 
-  /* Bottom tab bar */
+  /* Sidebar = slide-in drawer (no bottom tab bar) */
   .sidebar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-    width: 100%; height: auto;
-    flex-direction: row; justify-content: space-around; align-items: center;
-    padding: 4px 0 calc(4px + var(--safe-bot));
-    border-right: none; border-top: 1px solid rgba(255,255,255,0.10);
-    background: #1F1E1C; gap: 0;
+    position: fixed; top: 0; left: 0; bottom: 0; right: auto; z-index: 240;
+    width: 252px; height: auto;
+    flex-direction: column; align-items: stretch; gap: 3px;
+    padding: calc(14px + var(--safe-top)) 12px calc(14px + var(--safe-bot));
+    border-right: 1px solid rgba(255,255,255,0.10); border-top: none;
+    background: #1F1E1C;
+    transform: translateX(-100%);
+    transition: transform 0.26s cubic-bezier(0.32,0.72,0.16,1);
   }
-  .sidebar-head,
-  .sidebar .spacer { display: none; }
-  .sidebar #sync-btn { display: none; }
+  body.drawer-open .sidebar { transform: translateX(0); }
+  .sidebar-head {
+    display: flex; flex-direction: row; align-items: center;
+    gap: 9px; padding: 0 4px; margin-bottom: 16px;
+  }
+  .sidebar-name { display: block; }
+  .sidebar-toggle { display: none; }
+  .sidebar .spacer { display: block; flex: 1; }
+  .sidebar-sep { display: block; }
+  .sidebar #sync-btn { display: flex; }
   .sidebar .nav-btn {
-    flex: 1; height: 50px;
-    flex-direction: column; gap: 2px;
-    border-radius: 0; background: transparent;
-    color: rgba(255,255,255,0.40);
-    align-items: center; justify-content: center;
-    position: relative; transition: color 0.15s;
-    padding: 0 4px;
+    width: 100%; max-width: none; height: 48px;
+    flex-direction: row; justify-content: flex-start;
+    gap: 12px; padding: 0 13px; border-radius: 10px;
+    background: transparent; color: rgba(255,255,255,0.55);
+    position: relative; transition: background 0.12s, color 0.12s;
   }
   .sidebar .nav-btn::before { display: none; }
   .sidebar .nav-btn .icon { width: 22px; height: 22px; }
   .sidebar .nav-btn .label {
     display: block; position: static; left: auto; top: auto;
-    transform: none; opacity: 0.7;
-    visibility: visible; pointer-events: none;
-    font-size: 9.5px; font-weight: 600; letter-spacing: 0.01em;
+    transform: none; opacity: 1; visibility: visible; pointer-events: none;
+    font-size: 14.5px; font-weight: 600; letter-spacing: 0;
     color: inherit; background: none; border: none; box-shadow: none;
     padding: 0; border-radius: 0; white-space: nowrap; z-index: auto;
     transition: none; line-height: 1;
   }
-  .sidebar .nav-btn.active { color: #D96B5A; }
+  .sidebar .nav-btn.active {
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    color: var(--accent);
+  }
   .sidebar .nav-btn.active .label { opacity: 1; }
-  .sidebar .nav-btn:hover .label { opacity: 1; }
 
-  /* Toast above tab bar */
-  .toast { bottom: calc(68px + var(--safe-bot)); }
+  /* Drawer backdrop */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed; inset: 0; z-index: 235;
+    background: rgba(0,0,0,0.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.22s;
+  }
+  body.drawer-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+
+  /* Toast near the bottom (no tab bar to clear) */
+  .toast { bottom: calc(18px + var(--safe-bot)); }
 
   /* Modal as bottom sheet */
   .modal-overlay { padding: 0; align-items: flex-end; }
@@ -2308,14 +2349,14 @@ body[data-theme="ayu"] {
   .draw-width-control { display: none; }
 
   /* Node action bar: above bottom tab */
-  .node-action-bar { bottom: calc(14px + 50px + var(--safe-bot)); border-radius: 12px; padding: 7px 9px; gap: 3px; }
+  .node-action-bar { bottom: calc(16px + var(--safe-bot)); border-radius: 12px; padding: 7px 9px; gap: 3px; }
   .nab-color { width: 20px; height: 20px; }
   .nab-btn { padding: 3px 5px; }
 
   /* Theme picker popup: above tab bar */
   .theme-picker-popup {
     top: auto;
-    bottom: calc(58px + var(--safe-bot) + 8px);
+    bottom: calc(16px + var(--safe-bot));
     right: 8px; left: 8px; min-width: unset;
   }
   .theme-picker-grid { grid-template-columns: repeat(6, 1fr); }
