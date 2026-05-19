@@ -15,7 +15,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260519i">
+<link rel="stylesheet" href="styles.css?v=20260519j">
 </head>
 <body>
 <div class="app">
@@ -33,22 +33,9 @@
       </svg>
       <span class="label">캘린더</span>
     </button>
-    <button class="nav-btn" data-page="ledger" aria-label="가계부" style="display:none;">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-      </svg>
-      <span class="label">가계부</span>
-    </button>
     <div class="sidebar-sep"></div>
     <!-- 태그 트리 (노트 내비게이션) -->
     <div id="memo-tag-bar" class="sidebar-tags"></div>
-    <div class="sidebar-sep"></div>
-    <button class="nav-btn" id="sync-btn" aria-label="동기화">
-      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
-      </svg>
-      <span class="label">동기화</span>
-    </button>
   </nav>
   <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeMobileSidebar()"></div>
 
@@ -64,9 +51,6 @@
         <div class="subtitle" id="page-subtitle">메모와 마인드맵을 한 곳에서</div>
       </div>
       <div class="header-spacer"></div>
-      <button class="header-btn" onclick="openSettingsModal()" title="설정">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-      </button>
       <button class="header-btn theme-toggle" id="theme-toggle" onclick="openThemePicker()" title="테마 선택">
         <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="1.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="1.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="1.5" fill="currentColor"/><circle cx="6.5" cy="12.5" r="1.5" fill="currentColor"/><path d="M12 2C6.48 2 2 6.48 2 12c0 5.52 4.48 10 10 10 1.66 0 3-1.34 3-3 0-.78-.3-1.49-.79-2.02-.47-.51-.74-1.18-.74-1.92 0-1.55 1.26-2.81 2.81-2.81H18c2.21 0 4-1.79 4-4 0-4.41-4.48-8-10-8z"/></svg>
       </button>
@@ -535,34 +519,6 @@
 </div>
 
 <!-- Drawing modal -->
-<!-- Settings modal -->
-<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettingsModal()">
-  <div class="modal">
-    <h3>⚙️ 설정</h3>
-    <div class="modal-desc">기능을 켜고 끌 수 있어요. 변경사항은 즉시 적용됩니다.</div>
-
-    <label class="settings-toggle">
-      <div>
-        <div class="settings-toggle-title">💰 가계부</div>
-        <div class="settings-toggle-desc">사이드바에 가계부 탭 추가 — 빠른 수입/지출 입력</div>
-      </div>
-      <input type="checkbox" id="setting-ledger-enabled" onchange="setSetting('ledgerEnabled', this.checked)">
-    </label>
-
-    <div class="settings-group" id="settings-ledger-group" style="display:none;">
-      <div class="settings-group-header">
-        <div class="settings-group-title">💳 결제 수단</div>
-        <div class="settings-group-desc">한 줄에 하나씩. 가계부 입력 시 드롭다운에 나타납니다.</div>
-      </div>
-      <textarea id="setting-ledger-methods" class="settings-textarea" rows="8" spellcheck="false"></textarea>
-      <button class="tb-btn primary settings-save-btn" onclick="saveLedgerMethods()">저장</button>
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="closeSettingsModal()">닫기</button>
-    </div>
-  </div>
-</div>
 
 <div class="drawing-modal-overlay" id="drawing-modal-overlay" onclick="if(event.target===this)closeDrawingModal()">
   <div class="drawing-modal">
@@ -638,7 +594,7 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260519b" defer></script>
-<script src="js/navigation.js?v=20260519f" defer></script>
+<script src="js/navigation.js?v=20260519j" defer></script>
 <script src="js/mindmap.js?v=20260519h" defer></script>
 <script src="js/timeblock.js?v=20260509a" defer></script>
 <script src="js/memo.js?v=20260519h" defer></script>
