@@ -3,6 +3,25 @@ let memos = load('memos', []);
 let activeMemoId = null;
 let memoIdCounter = load('memo_idcounter', 1);
 let activeTagFilter = null;
+let memoSortMode = load('memo_sort', 'updated');  // 'updated' | 'created' | 'title'
+const MEMO_SORT_LABELS = { updated: '수정일순', created: '생성일순', title: '제목순' };
+
+function cycleMemoSort() {
+  const order = ['updated', 'created', 'title'];
+  memoSortMode = order[(order.indexOf(memoSortMode) + 1) % order.length];
+  save('memo_sort', memoSortMode);
+  renderMemoList();
+}
+
+function togglePinMemo(id, ev) {
+  if (ev) ev.stopPropagation();
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  m.pinned = !m.pinned;
+  // 고정 토글은 수정시각을 바꾸지 않는다 (정렬 흔들림 방지)
+  saveMemos();
+  renderMemoList();
+}
 
 function saveMemos() {
   save('memos', memos);
@@ -265,6 +284,9 @@ function renderMemoList() {
   });
   const tagBar = document.getElementById('memo-tag-bar');
   if (tagBar) {
+    const sortBtn = `<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button>`;
     if (tagsByFreq.length > 0 || untaggedCount > 0) {
       const allChip = `<span class="memo-filter-chip${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">전체 <span class="chip-count">${memos.length}</span></span>`;
       const tagChips = tagsByFreq.map(([t, n]) => {
@@ -275,9 +297,9 @@ function renderMemoList() {
       const untaggedChip = untaggedCount > 0
         ? `<span class="memo-filter-chip${activeTagFilter === '__untagged__' ? ' active' : ''}" onclick="setTagFilter('__untagged__')">태그없음 <span class="chip-count">${untaggedCount}</span></span>`
         : '';
-      tagBar.innerHTML = `<div class="memo-tag-bar-inner">${allChip}${tagChips}${untaggedChip}</div>`;
+      tagBar.innerHTML = `<div class="memo-tag-bar-inner">${allChip}${tagChips}${untaggedChip}</div><div class="memo-sort-row">${sortBtn}</div>`;
     } else {
-      tagBar.innerHTML = '';
+      tagBar.innerHTML = `<div class="memo-sort-row">${sortBtn}</div>`;
     }
   }
 
@@ -288,7 +310,15 @@ function renderMemoList() {
     if (activeTagFilter === '__untagged__') return !m.tags || m.tags.length === 0;
     return (m.tags || []).includes(activeTagFilter);
   }).sort((a, b) => {
-    // Newest updates on top. Fall back to date for legacy memos missing updatedAt.
+    // 고정 메모는 항상 위로
+    if (!!a.pinned !== !!b.pinned) return a.pinned ? -1 : 1;
+    if (memoSortMode === 'title') {
+      return (a.title || '').localeCompare(b.title || '', 'ko');
+    }
+    if (memoSortMode === 'created') {
+      return new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime();
+    }
+    // 'updated' (기본) — 수정 최신순. 레거시 메모는 date로 폴백.
     const ta = new Date(a.updatedAt || a.date || 0).getTime();
     const tb = new Date(b.updatedAt || b.date || 0).getTime();
     return tb - ta;
@@ -347,8 +377,12 @@ function renderMemoList() {
     const onClick = memoSelectMode
       ? `toggleMemoSelected(${m.id}, event)`
       : `selectMemo(${m.id})`;
+    const pinBtn = memoSelectMode ? '' :
+      `<button class="memo-pin-btn ${m.pinned ? 'pinned' : ''}" onclick="togglePinMemo(${m.id}, event)" title="${m.pinned ? '고정 해제' : '고정'}" aria-label="고정">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="${m.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.6-2.4a3 3 0 01-.5-1.66V8a2 2 0 00-2-2H9.1a2 2 0 00-2 2v4.94a3 3 0 01-.5 1.66L5 17z"/></svg>
+      </button>`;
     return `<div class="swipe-row" data-id="${m.id}">
-      <div class="memo-item swipe-content ${m.id === activeMemoId && !memoSelectMode ? 'active' : ''} ${isSelected ? 'selected' : ''}" onclick="${onClick}">
+      <div class="memo-item swipe-content ${m.id === activeMemoId && !memoSelectMode ? 'active' : ''} ${isSelected ? 'selected' : ''} ${m.pinned ? 'is-pinned' : ''}" onclick="${onClick}">
         ${checkbox}
         <div class="memo-item-body">
           <div class="memo-item-title">${escapeHtml(m.title) || '제목 없음'}</div>
@@ -359,6 +393,7 @@ function renderMemoList() {
             <span>${wordCount}자</span>
           </div>
         </div>
+        ${pinBtn}
       </div>
       <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
     </div>`;
