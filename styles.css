@@ -174,8 +174,8 @@ body[data-theme="leather"] {
   color: rgba(255,255,255,0.80);
 }
 .sidebar .nav-btn.active {
-  background: rgba(200,75,60,0.18);
-  color: #D96B5A;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
 }
 /* Left accent bar on active */
 .sidebar .nav-btn.active::before {
@@ -2151,4 +2151,331 @@ body[data-theme="ayu"] {
   .memo-editor-header input { font-size: 20px; }
   .day-summary { gap: 10px; }
   .day-summary .stat .value { font-size: 15px; }
+}
+
+/* =================================================================
+   Accessibility & mobile polish (Phase 1 quick wins)
+   ================================================================= */
+
+/* Keyboard focus rings — kept invisible for pointer users, restored
+   for keyboard nav. Single source of truth for all interactive elements. */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+[contenteditable]:focus:not(:focus-visible) {
+  outline: none;
+}
+.sidebar .nav-btn:focus-visible { outline-color: #fff; }
+
+/* iOS Safari force-zooms inputs whose computed font-size is < 16px.
+   Modal/search/popup inputs were at 13–14px so any focus on iPhone
+   triggered an annoying zoom that misaligned viewport. */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px;
+  }
+  /* Restore visual size for big editor surfaces that intentionally use
+     custom sizes via element-specific rules (kept >= 16px). */
+  .memo-editor-header input { font-size: 20px; }
+  #memo-live-editor .cm-content { font-size: 16.5px; }
+}
+
+/* Mobile tap-target floor — Apple HIG recommends ≥ 44pt. Several icon
+   buttons were 30×30. We keep their visual size but extend a transparent
+   hit-zone via padding so the bounding box is at least 44×44. */
+@media (max-width: 768px) {
+  .tb-btn { min-height: 36px; }
+  .draw-tool,
+  .memo-back,
+  .nav-arrow,
+  .nab-btn,
+  .icon-btn-sm,
+  .header-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Floating Action Button — appears bottom-right on mobile pages that
+   support a primary "create" action. Sits above the mobile tab bar
+   and respects safe-area inset. */
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(50px + var(--safe-bot, 0px) + 16px);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 56px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.18);
+  cursor: pointer;
+  z-index: 90;
+  display: none;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
+.fab:active { transform: scale(0.95); }
+@media (max-width: 768px) {
+  .fab { display: block; }
+}
+
+/* Command palette (Cmd+K / Ctrl+K) — full-screen overlay with a
+   spotlight-style input + filtered command list. */
+.cmd-palette-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  animation: fadeIn 0.12s ease-out;
+}
+.cmd-palette {
+  width: min(640px, calc(100vw - 32px));
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.2);
+  overflow: hidden;
+}
+.cmd-palette-input {
+  width: 100%;
+  padding: 16px 20px;
+  font-size: 16px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+.cmd-palette-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: var(--text);
+  font-size: 14px;
+}
+.cmd-palette-item.active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+}
+.cmd-palette-item .cmd-icon {
+  width: 20px; text-align: center;
+  font-size: 16px; color: var(--text-dim);
+}
+.cmd-palette-item .cmd-label { flex: 1; }
+.cmd-palette-item .cmd-hint {
+  font-size: 11px;
+  color: var(--text-mute);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.cmd-palette-empty {
+  padding: 24px 20px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+
+/* Offline banner — shown when navigator.onLine flips false */
+.offline-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  background: #b45309;
+  color: #fff;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  z-index: 200;
+  transform: translateY(-100%);
+  transition: transform 0.2s;
+}
+.offline-banner.show { transform: translateY(0); }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   §  CALENDAR  (타임블록 + 감정일기 통합 뷰)
+   ──────────────────────────────────────────────────────────────── */
+.calendar-page { display: flex; width: 100%; height: 100%; overflow: hidden; }
+.calendar-main {
+  flex: 1; display: flex; flex-direction: column;
+  min-width: 0; padding: 16px 18px;
+}
+.calendar-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.calendar-month-label { font-size: 18px; font-weight: 700; color: var(--text); min-width: 116px; text-align: center; }
+.cal-nav-arrow {
+  width: 34px; height: 34px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text-dim); font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, transform .08s;
+}
+.cal-nav-arrow:active { transform: scale(0.92); }
+.cal-nav-arrow:hover { background: var(--surface3); }
+.cal-today-btn {
+  padding: 7px 15px; border-radius: 9px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--text-dim); font-size: 13px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: background .12s, transform .08s;
+}
+.cal-today-btn:active { transform: scale(0.95); }
+.cal-today-btn:hover { background: var(--surface3); }
+
+.calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 6px; }
+.calendar-weekdays span {
+  text-align: center; font-size: 12px; font-weight: 600;
+  color: var(--text-mute); padding: 4px 0;
+}
+.calendar-weekdays .is-sun { color: #dc322f; }
+.calendar-weekdays .is-sat { color: #268bd2; }
+
+.calendar-grid {
+  flex: 1; display: grid; grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr; gap: 4px; min-height: 0;
+}
+.cal-cell {
+  border-radius: 10px; border: 1.5px solid transparent;
+  background: var(--surface2); padding: 5px 6px; cursor: pointer;
+  display: flex; flex-direction: column; gap: 3px; overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+.cal-cell:active { transform: scale(0.96); }
+.cal-cell:hover { background: var(--surface3); }
+.cal-cell.is-muted { background: transparent; cursor: default; }
+.cal-cell.is-muted:hover { background: transparent; }
+.cal-cell.is-muted:active { transform: none; }
+.cal-cell.is-muted .cal-daynum { opacity: .32; }
+.cal-cell.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, var(--surface2)); }
+.cal-cell-top { display: flex; align-items: center; justify-content: space-between; }
+.cal-daynum {
+  font-size: 13px; font-weight: 600; color: var(--text-dim);
+  width: 22px; height: 22px; display: flex; align-items: center;
+  justify-content: center; border-radius: 7px;
+}
+.cal-cell.is-sun .cal-daynum { color: #dc322f; }
+.cal-cell.is-sat .cal-daynum { color: #268bd2; }
+.cal-cell.is-today .cal-daynum { background: var(--accent); color: #fff; }
+.cal-mood { font-size: 13px; line-height: 1; }
+.cal-dots { display: flex; flex-wrap: wrap; gap: 3px; align-content: flex-start; }
+.cal-dot { width: 6px; height: 6px; border-radius: 50%; }
+.cal-more { font-size: 9px; color: var(--text-mute); line-height: 1; }
+
+/* 선택일 상세 패널 */
+.calendar-detail {
+  width: 340px; flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; background: var(--surface);
+}
+.calendar-detail-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.cal-back-btn {
+  display: none; width: 32px; height: 32px;
+  border: none; background: transparent; color: var(--text-dim);
+  font-size: 24px; cursor: pointer; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.calendar-detail-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.cal-detail-dow { font-size: 13px; color: var(--text-mute); font-weight: 500; margin-left: 3px; }
+.cal-detail-today {
+  margin-left: 7px; font-size: 10px; font-weight: 700;
+  background: var(--accent); color: #fff; padding: 2px 7px; border-radius: 5px;
+  vertical-align: middle;
+}
+.calendar-detail-body { flex: 1; overflow-y: auto; padding: 14px 16px; -webkit-overflow-scrolling: touch; }
+.cal-sec { margin-bottom: 22px; }
+.cal-sec:last-child { margin-bottom: 0; }
+.cal-sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; font-weight: 700; color: var(--text-dim); margin-bottom: 9px;
+}
+.cal-add-btn {
+  padding: 5px 11px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--surface2);
+  color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform .08s;
+}
+.cal-add-btn:active { transform: scale(0.93); }
+.cal-empty-mini { font-size: 13px; color: var(--text-mute); padding: 8px 0; }
+.cal-tb-list { display: flex; flex-direction: column; gap: 6px; }
+.cal-tb-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px; border-radius: 9px;
+  background: var(--surface2); border-left: 3px solid var(--accent);
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform .08s, background .12s;
+}
+.cal-tb-item:active { transform: scale(0.98); }
+.cal-tb-item.done { opacity: .55; }
+.cal-tb-item.done .cal-tb-title { text-decoration: line-through; }
+.cal-tb-check {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 6px; border: 1.5px solid var(--border);
+  background: transparent; color: var(--accent);
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.cal-tb-time { font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.cal-tb-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-mood-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.cal-mood-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: 1.5px solid transparent; background: var(--surface2);
+  font-size: 17px; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform .08s, border-color .12s;
+}
+.cal-mood-btn:active { transform: scale(0.9); }
+.cal-mood-btn.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--surface2)); }
+.cal-journal-ta {
+  width: 100%; min-height: 150px; resize: vertical;
+  border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface2); padding: 11px 13px;
+  font-size: 14px; color: var(--text); font-family: inherit; line-height: 1.65;
+}
+.cal-journal-ta:focus { outline: none; border-color: var(--accent); }
+
+/* 모바일 — 달력 / 상세 단계 전환 */
+@media (max-width: 760px) {
+  .calendar-main { padding: 12px; }
+  .calendar-detail {
+    position: absolute; inset: 0; width: 100%;
+    transform: translateX(100%); transition: transform .25s ease;
+    z-index: 5; border-left: none;
+  }
+  .calendar-page.show-detail .calendar-detail { transform: translateX(0); }
+  .cal-back-btn { display: flex; }
+  .cal-cell { padding: 4px; border-radius: 8px; }
+  .cal-daynum { font-size: 12px; width: 20px; height: 20px; }
 }

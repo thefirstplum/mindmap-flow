@@ -498,6 +498,8 @@ function renderTimeblockList() {
     });
     container.dataset.swipeReady = '1';
   }
+  // 캘린더 뷰가 켜져 있으면 함께 갱신 (타임블록 저장/삭제 후)
+  if (typeof _calRefreshHook === 'function') _calRefreshHook();
 }
 
 function openTbModal(hour) {
