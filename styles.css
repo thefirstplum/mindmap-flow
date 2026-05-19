@@ -148,6 +148,16 @@ body[data-theme="leather"] {
   padding: 14px 8px calc(14px + var(--safe-bot));
   gap: 3px;
   flex-shrink: 0;
+  transition: width 0.18s ease;
+}
+/* Sidebar header: logo + app name + collapse toggle */
+.sidebar-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  width: 100%;
 }
 .sidebar .logo {
   width: 36px; height: 36px;
@@ -155,9 +165,35 @@ body[data-theme="leather"] {
   border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
   font-weight: 800; font-size: 15px; color: #fff;
-  margin-bottom: 12px;
   flex-shrink: 0;
 }
+.sidebar-name {
+  display: none;
+  font-weight: 800; font-size: 15px; color: #fff;
+  letter-spacing: -0.2px;
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-toggle {
+  width: 30px; height: 30px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.45);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.sidebar-toggle:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.85);
+}
+.sidebar-toggle .chev {
+  width: 18px; height: 18px;
+  transition: transform 0.18s ease;
+}
+.sidebar:not(.expanded) .sidebar-toggle .chev { transform: rotate(180deg); }
 .sidebar .spacer { flex: 1; }
 .sidebar .nav-btn {
   width: 48px; height: 48px;
@@ -1115,6 +1151,40 @@ body[data-theme="leather"] {
    ──────────────────────────────────────────────────────────────── */
 .memo-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; }
 
+/* ── Unified notes page: detail pane swaps text-editor ↔ mindmap canvas ── */
+#mm-canvas-wrap { display: none; }
+.memo-page.note-mindmap > .memo-editor { display: none; }
+.memo-page.note-mindmap > #mm-canvas-wrap { display: flex; }
+
+/* Note-type badge in the unified list (📝 text / 🗺 mindmap) */
+.note-type-badge {
+  flex-shrink: 0;
+  font-size: 14px; line-height: 1;
+  width: 20px; text-align: center;
+  margin-top: 1px;
+}
+
+/* "+ New note" type-picker menu */
+.new-note-wrap { position: relative; flex-shrink: 0; }
+.new-note-menu {
+  display: none;
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 5px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.28);
+  z-index: 60; min-width: 170px;
+}
+.new-note-menu.open { display: block; }
+.new-note-menu button {
+  display: flex; align-items: center; gap: 9px;
+  width: 100%; padding: 9px 11px;
+  background: transparent; border: none;
+  color: var(--text); font-size: 13px; font-weight: 500;
+  border-radius: 7px; cursor: pointer; text-align: left; white-space: nowrap;
+}
+.new-note-menu button:hover { background: var(--surface2); }
+.new-note-menu .nn-ic { font-size: 15px; }
+
 .memo-list {
   width: 260px;
   background: var(--surface);
@@ -1932,6 +2002,46 @@ body[data-theme="ayu"] {
     min-width: 260px;
     max-width: 260px;
   }
+
+  /* Bear-style expanded sidebar — wide labelled panel */
+  .sidebar.expanded {
+    width: 212px;
+    align-items: stretch;
+    padding: 14px 10px calc(14px + var(--safe-bot));
+  }
+  .sidebar.expanded .sidebar-head {
+    flex-direction: row;
+    align-items: center;
+    gap: 9px;
+    padding: 0 4px;
+    margin-bottom: 14px;
+  }
+  .sidebar.expanded .sidebar-name { display: block; }
+  .sidebar.expanded .nav-btn {
+    width: 100%;
+    height: 42px;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 11px;
+    padding: 0 12px;
+  }
+  /* In expanded mode the label is an inline list label, not a hover tooltip */
+  .sidebar.expanded .nav-btn .label {
+    position: static;
+    left: auto;
+    opacity: 1;
+    pointer-events: auto;
+    background: none;
+    color: inherit;
+    padding: 0;
+    border-radius: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: none;
+    transition: none;
+    z-index: auto;
+  }
+  .sidebar.expanded .nav-btn.active::before { left: -10px; }
   /* Hide back/tb-back buttons on desktop */
   .tb-back-btn,
   .memo-back { display: none !important; }
@@ -1974,7 +2084,7 @@ body[data-theme="ayu"] {
     border-right: none; border-top: 1px solid rgba(255,255,255,0.10);
     background: #1F1E1C; gap: 0;
   }
-  .sidebar .logo,
+  .sidebar-head,
   .sidebar .spacer { display: none; }
   .sidebar #sync-btn { display: none; }
   .sidebar .nav-btn {
@@ -2078,6 +2188,12 @@ body[data-theme="ayu"] {
     transform: translateX(100%); transition: transform 0.25s ease; z-index: 5;
   }
   .memo-page.show-editor .memo-editor { transform: translateX(0); }
+  /* Mindmap canvas detail slides in the same way as the text editor */
+  #mm-canvas-wrap {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    transform: translateX(100%); transition: transform 0.25s ease; z-index: 6;
+  }
+  .memo-page.note-mindmap.show-editor #mm-canvas-wrap { transform: translateX(0); }
   .memo-back { display: flex !important; width: 30px; height: 30px; font-size: 17px; }
   .memo-list-header { padding: 12px 13px 9px; }
   .memo-search-wrap .search-input { height: 36px; }

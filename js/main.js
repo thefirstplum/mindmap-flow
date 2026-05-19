@@ -119,6 +119,10 @@ initDrive();
 // Initial header pill render
 updateHeaderSyncPill();
 
+// Restore the page from the URL hash (e.g. after a PWA reload). Runs here —
+// not in navigation.js — so every page renderer is already defined.
+if (typeof initRoute === 'function') initRoute();
+
 // When sync modal opens, attempt to verify folder permission silently
 async function tryRestoreFolder() {
   if (folderHandle && folderHandle.queryPermission) {

@@ -94,61 +94,18 @@ function saveMindMap() {
   renderMindmapList();
 }
 
+// The mindmap list is now part of the unified notes list — just refresh it.
 function renderMindmapList() {
-  const container = document.getElementById('mindmap-items');
-  if (!container) return;
-  const countEl = document.getElementById('mm-count');
-  if (countEl) countEl.textContent = mindmaps.length;
-  if (mindmaps.length === 0) {
-    container.innerHTML = `<div class="mm-empty"><div style="font-size:44px;opacity:.6;margin-bottom:12px">🗺️</div><div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px;letter-spacing:-0.2px">첫 마인드맵을 만들어보세요</div><div style="font-size:12px;line-height:1.6">위 + 버튼을 눌러<br>새로운 생각을 펼쳐보세요</div></div>`;
-    return;
-  }
-  container.innerHTML = mindmaps.map(m => {
-    const isActive = m.id === activeMindmapId;
-    return `<div class="swipe-row" data-id="${m.id}">
-      <div class="mindmap-item swipe-content ${isActive ? 'active' : ''}" onclick="switchMindmap(${m.id})">
-        <div class="mm-icon">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2.5"/><circle cx="5" cy="6" r="1.8"/><circle cx="19" cy="6" r="1.8"/><circle cx="5" cy="18" r="1.8"/><circle cx="19" cy="18" r="1.8"/><line x1="9.7" y1="10.5" x2="6.3" y2="7.5"/><line x1="14.3" y1="10.5" x2="17.7" y2="7.5"/><line x1="9.7" y1="13.5" x2="6.3" y2="16.5"/><line x1="14.3" y1="13.5" x2="17.7" y2="16.5"/></svg>
-        </div>
-        <div class="mm-content">
-          <div class="mm-name">${escapeHtml(m.name)}</div>
-          <div class="mm-meta">노드 ${m.nodes.length}개 · 연결 ${m.edges.length}개</div>
-        </div>
-        <button class="mm-menu-btn" onclick="event.stopPropagation();showMindmapMenu(${m.id})" title="이름 변경 / 삭제">⋯</button>
-      </div>
-      <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
-    </div>`;
-  }).join('');
-  if (!container.dataset.swipeReady) {
-    attachSwipeToDelete(container, {
-      resolveId: (row) => parseInt(row.dataset.id),
-      onDelete: (id) => {
-        if (mindmaps.length <= 1) { toast('최소 1개의 마인드맵이 필요합니다'); return; }
-        const m = mindmaps.find(x => x.id === id);
-        if (!m || !confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
-        mindmaps = mindmaps.filter(x => x.id !== id);
-        if (activeMindmapId === id) {
-          activeMindmapId = mindmaps[0].id;
-          bindActiveMap();
-        }
-        save('mindmaps', mindmaps);
-        save('mm_active', activeMindmapId);
-        renderMindmapList();
-        drawMindMap();
-      }
-    });
-    container.dataset.swipeReady = '1';
-  }
+  if (typeof renderMemoList === 'function') renderMemoList();
 }
 
 function createMindmap() {
-  const name = prompt('새 마인드맵 이름:', `마인드맵 ${mindmaps.length + 1}`);
-  if (!name || !name.trim()) return;
+  if (typeof closeNewNoteMenu === 'function') closeNewNoteMenu();
   // Save current map state first
   if (activeMap()) saveMindMap();
   const map = {
     id: Date.now(),
-    name: name.trim(),
+    name: '새 마인드맵',
     nodes: [],
     edges: [],
     idCounter: 1,
@@ -163,11 +120,37 @@ function createMindmap() {
   selectedEdge = null;
   bindActiveMap();
   saveMindMap();
-  renderMindmapList();
+  updateToolbarState();
+  if (typeof selectNote === 'function') selectNote('mindmap', map.id);
+  else drawMindMap();
+  toast('새 마인드맵 생성됨 — 빈 곳을 더블탭해 노드를 추가하세요', 'success');
+}
+
+// Delete a mindmap by id — used by the unified list (swipe / action sheet).
+function deleteMindmapById(id) {
+  const m = mindmaps.find(x => x.id === id);
+  if (!m) return;
+  if (!confirm(`마인드맵 "${m.name}"을(를) 삭제하시겠습니까?`)) return;
+  const wasActive = (activeMindmapId === id);
+  mindmaps = mindmaps.filter(x => x.id !== id);
+  if (wasActive) {
+    activeMindmapId = mindmaps[0] ? mindmaps[0].id : null;
+    selectedNode = null;
+    selectedEdge = null;
+    bindActiveMap();
+  }
+  save('mindmaps', mindmaps);
+  save('mm_active', activeMindmapId);
+  // If the deleted mindmap was open in the detail pane, drop back to the list
+  if (wasActive && typeof activeNoteType !== 'undefined' && activeNoteType === 'mindmap') {
+    const page = document.getElementById('memo-page');
+    if (page) page.classList.remove('note-mindmap', 'show-editor');
+    activeNoteType = 'memo';
+  }
   updateToolbarState();
   drawMindMap();
-  closeMindmapList();
-  toast('새 마인드맵 생성됨', 'success');
+  if (typeof renderMemoList === 'function') renderMemoList();
+  toast('마인드맵 삭제됨');
 }
 
 function switchMindmap(id) {
@@ -234,21 +217,8 @@ function duplicateMindmapActive() {
 
 function deleteMindmapActive() {
   const id = mmMenuTargetId;
-  const m = mindmaps.find(x => x.id === id);
-  if (!m) { closeMmMenu(); return; }
-  if (mindmaps.length <= 1) { closeMmMenu(); toast('최소 1개의 마인드맵이 필요합니다'); return; }
-  if (!confirm(`"${m.name}"을(를) 삭제하시겠습니까?`)) return;
   closeMmMenu();
-  mindmaps = mindmaps.filter(x => x.id !== id);
-  if (activeMindmapId === id) {
-    activeMindmapId = mindmaps[0].id;
-    bindActiveMap();
-  }
-  save('mindmaps', mindmaps);
-  save('mm_active', activeMindmapId);
-  renderMindmapList();
-  drawMindMap();
-  toast('삭제됨');
+  deleteMindmapById(id);
 }
 
 function toggleMindmapList() {
@@ -994,8 +964,11 @@ updateNodeActionBar();
 // Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-  const activePage = document.querySelector('.page.active').id;
-  if (activePage === 'page-mindmap') {
+  const activeEl = document.querySelector('.page.active');
+  const activePage = activeEl ? activeEl.id : '';
+  // The mindmap canvas now lives inside the unified notes page — only handle
+  // these shortcuts when a mindmap note is actually open.
+  if (activePage === 'page-memo' && typeof activeNoteType !== 'undefined' && activeNoteType === 'mindmap') {
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteSelected(); }
     if (e.key === 'n' || e.key === 'N') { e.preventDefault(); addMindNode(); }
     if (e.key === 'Escape') { selectedNode = null; selectedEdge = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); updateNodeActionBar(); drawMindMap(); }
