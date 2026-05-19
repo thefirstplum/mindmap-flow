@@ -85,6 +85,12 @@ if (window.SyncEvents) {
     if (types.includes('mindmap')) {
       if (typeof renderMindmapList === 'function') renderMindmapList();
       if (typeof drawMindMap === 'function') drawMindMap();
+      // Refresh the open mindmap's tag chips (a merge may have changed them).
+      // Skip if the user is focused in the tag input mid-typing.
+      const ae = document.activeElement;
+      if (typeof renderMindmapTags === 'function' && !(ae && ae.id === 'mm-tag-input')) {
+        renderMindmapTags();
+      }
     }
     if (types.includes('memo')) {
       if (typeof renderMemoList === 'function') renderMemoList();

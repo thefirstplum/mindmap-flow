@@ -1523,7 +1523,12 @@ async function applyDriveData(files) {
       ? { start: focusedEl.selectionStart, end: focusedEl.selectionEnd } : null;
 
     const ae = focusedEl;
-    const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
+    // The user is "editing" if focus is anywhere inside the memo editor — this
+    // includes the CodeMirror live editor (a contenteditable <div>, not a
+    // <textarea>), the raw textarea, the title input and the tag input.
+    // Missing the contenteditable case caused the editor to be rebuilt
+    // mid-typing on every sync — wiping the cursor / IME composition.
+    const editingMemoId = (ae && ae.closest && ae.closest('.memo-editor'))
       ? activeMemoId : null;
 
     // Classify files by type
@@ -2604,9 +2609,10 @@ async function applyGistData(data) {
   try {
     const fileMap = data.files || {};
 
-    // Track which memo is being edited so we don't blow away the user's draft
+    // Track which memo is being edited so we don't blow away the user's draft.
+    // Any focus inside .memo-editor counts — incl. the CodeMirror live editor.
     const ae = document.activeElement;
-    const editingMemoId = (ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.closest('.memo-editor-header'))))
+    const editingMemoId = (ae && ae.closest && ae.closest('.memo-editor'))
       ? activeMemoId : null;
 
     // Mindmaps + timeblocks: per-file timestamp merge (newest wins per item)

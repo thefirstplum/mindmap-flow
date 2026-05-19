@@ -2455,35 +2455,6 @@ select:focus:not(:focus-visible),
   }
 }
 
-/* Floating Action Button — appears bottom-right on mobile pages that
-   support a primary "create" action. Sits above the mobile tab bar
-   and respects safe-area inset. */
-.fab {
-  position: fixed;
-  right: 16px;
-  bottom: calc(50px + var(--safe-bot, 0px) + 16px);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  font-size: 28px;
-  font-weight: 300;
-  line-height: 56px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.18);
-  cursor: pointer;
-  z-index: 90;
-  display: none;
-  transition: transform 0.15s, box-shadow 0.15s;
-}
-.fab:hover { transform: scale(1.05); box-shadow: 0 6px 16px rgba(0,0,0,0.3); }
-.fab:active { transform: scale(0.95); }
-@media (max-width: 768px) {
-  .fab { display: block; }
-}
-
 /* Command palette (Cmd+K / Ctrl+K) — full-screen overlay with a
    spotlight-style input + filtered command list. */
 .cmd-palette-backdrop {
