@@ -44,6 +44,12 @@ function getAllNotes() {
   return out;
 }
 
+// True when the notes view is the one on screen — tag-tree highlights only
+// show then (otherwise the calendar page would look like it has a tag selected).
+function notesViewActive() {
+  return typeof currentPage === 'undefined' || currentPage === 'memo';
+}
+
 // Is this note the one currently open in the detail pane?
 function isActiveNote(type, id) {
   if (type === 'mindmap') return activeNoteType === 'mindmap' && typeof activeMindmapId !== 'undefined' && id === activeMindmapId;
@@ -97,20 +103,12 @@ document.addEventListener('click', (e) => {
 // Tags use "/" as a level separator (#work/proja). The notes list shows a
 // collapsible tree; clicking a node filters to that tag and all its children.
 let tagCollapsed = new Set(load('tag_collapsed', []));
-// Whole tag-tree section open/closed — keeps the note list roomy on mobile.
-let tagTreeOpen = load('tag_tree_open', true);
 
 function toggleTagNode(ev, path) {
   if (ev) ev.stopPropagation();
   if (tagCollapsed.has(path)) tagCollapsed.delete(path);
   else tagCollapsed.add(path);
   save('tag_collapsed', [...tagCollapsed]);
-  renderMemoList();
-}
-
-function toggleTagTreeSection() {
-  tagTreeOpen = !tagTreeOpen;
-  save('tag_tree_open', tagTreeOpen);
   renderMemoList();
 }
 
@@ -151,7 +149,7 @@ function renderTagTree(node, depth) {
   for (const child of kids) {
     const hasKids = child.children.size > 0;
     const collapsed = tagCollapsed.has(child.path);
-    const isActive = activeTagFilter === child.path;
+    const isActive = activeTagFilter === child.path && notesViewActive();
     const safe = JSON.stringify(child.path).replace(/"/g, '&quot;');
     const expander = hasKids
       ? `<button class="tag-expand${collapsed ? ' collapsed' : ''}" onclick="toggleTagNode(event, ${safe})" aria-label="펼치기/접기">${_TAG_CHEVRON}</button>`
@@ -451,36 +449,32 @@ function renderMemoList() {
     if ((n.tags || []).length === 0) untaggedCount++;
   }
   const tagTree = buildTagTree(allNotes);
+
+  // Sort control — lives in the note list panel (not the tag tree)
+  const sortBar = document.getElementById('memo-sort-bar');
+  if (sortBar) {
+    sortBar.innerHTML = `<div class="memo-sort-row"><button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button></div>`;
+  }
+
+  // Tag tree — lives in the sidebar: "전체 노트" + 계층형 #태그 + "태그 없음"
   const tagBar = document.getElementById('memo-tag-bar');
   if (tagBar) {
-    const sortBtn = `<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-      <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button>`;
-    if (tagTree.children.size > 0 || untaggedCount > 0) {
-      const allRow = `<div class="tag-row tag-row-special${!activeTagFilter ? ' active' : ''}" onclick="setTagFilter(null)">
-        <span class="tag-expand-spacer"></span>
-        <span class="tag-row-label">전체 노트</span>
-        <span class="tag-row-count">${allNotes.length}</span>
-      </div>`;
-      const untaggedRow = untaggedCount > 0
-        ? `<div class="tag-row tag-row-special${activeTagFilter === '__untagged__' ? ' active' : ''}" onclick="setTagFilter('__untagged__')">
-            <span class="tag-expand-spacer"></span>
-            <span class="tag-row-label">태그 없음</span>
-            <span class="tag-row-count">${untaggedCount}</span>
-          </div>`
-        : '';
-      const header = `<div class="tag-tree-header${tagTreeOpen ? '' : ' collapsed'}" onclick="toggleTagTreeSection()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-        <span>태그</span>
-        <svg class="tag-tree-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>`;
-      const tree = tagTreeOpen
-        ? `<div class="tag-tree">${allRow}${renderTagTree(tagTree, 0)}${untaggedRow}</div>`
-        : '';
-      tagBar.innerHTML = `${header}${tree}<div class="memo-sort-row">${sortBtn}</div>`;
-    } else {
-      tagBar.innerHTML = `<div class="memo-sort-row">${sortBtn}</div>`;
-    }
+    const allRow = `<div class="tag-row tag-row-special${(!activeTagFilter && notesViewActive()) ? ' active' : ''}" onclick="setTagFilter(null)">
+      <span class="tag-expand-spacer"></span>
+      <span class="tag-row-label">전체 노트</span>
+      <span class="tag-row-count">${allNotes.length}</span>
+    </div>`;
+    const untaggedRow = untaggedCount > 0
+      ? `<div class="tag-row tag-row-special${(activeTagFilter === '__untagged__' && notesViewActive()) ? ' active' : ''}" onclick="setTagFilter('__untagged__')">
+          <span class="tag-expand-spacer"></span>
+          <span class="tag-row-label">태그 없음</span>
+          <span class="tag-row-count">${untaggedCount}</span>
+        </div>`
+      : '';
+    const tagsLabel = tagTree.children.size > 0 ? `<div class="tag-tree-label">태그</div>` : '';
+    tagBar.innerHTML = `${allRow}${tagsLabel}<div class="tag-tree">${renderTagTree(tagTree, 0)}${untaggedRow}</div>`;
   }
 
   const filtered = allNotes.filter(n => {
@@ -1245,7 +1239,11 @@ function filterMemos() { renderMemoList(); }
 
 function setTagFilter(tag) {
   activeTagFilter = tag;
-  renderMemoList();
+  // Tags live in the sidebar now — picking one jumps to the notes view.
+  // navigateTo() re-renders the list/tag-tree, so no explicit render here.
+  if (typeof navigateTo === 'function') navigateTo('memo');
+  else renderMemoList();
+  if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
 }
 
 function _refreshMemoTagChips() {
