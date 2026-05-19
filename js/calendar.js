@@ -84,22 +84,64 @@ function renderCalDetail() {
       + (isToday ? '<span class="cal-detail-today">오늘</span>' : '');
   }
 
-  const blocks = (timeBlocks[key] || []).slice().sort((a,b) => a.start.localeCompare(b.start));
+  // Keep the real array index alongside each block so edit/toggle hit the
+  // right element even if the stored array isn't perfectly sorted.
+  const blocks = (timeBlocks[key] || [])
+    .map((b, origIdx) => ({ b, origIdx }))
+    .sort((x, z) => x.b.start.localeCompare(z.b.start));
   const journal = journalEntries[key] || { mood:'', content:'' };
 
-  // ── 타임블록 섹션 ──
+  // ── 요약 카드 ──
+  let totalMin = 0;
+  (timeBlocks[key] || []).forEach(b => {
+    const dur = minutesFromTime(b.end) - minutesFromTime(b.start);
+    if (dur > 0) totalMin += dur;
+  });
+  const blockCount = (timeBlocks[key] || []).length;
+  const doneCount = (timeBlocks[key] || []).filter(b => b.done).length;
+  const fmtDur = mm => mm >= 60 ? `${Math.floor(mm/60)}시간${mm%60 ? ' ' + (mm%60) + '분' : ''}` : `${mm}분`;
+  let summaryHtml = '';
+  if (blockCount > 0) {
+    summaryHtml = `<div class="cal-summary">
+      <div class="cal-summary-stat"><div class="v">${blockCount}</div><div class="l">블록</div></div>
+      <div class="cal-summary-stat"><div class="v">${fmtDur(totalMin)}</div><div class="l">계획 시간</div></div>
+      <div class="cal-summary-stat"><div class="v">${doneCount}/${blockCount}</div><div class="l">완료</div></div>
+    </div>`;
+  }
+
+  // ── 타임블록 섹션 (투두 포함) ──
   let tbHtml = `<div class="cal-sec-head"><span>⏱ 타임블록</span>
-    <button class="cal-add-btn" onclick="calAddBlock()">+ 추가</button></div>`;
+    <button class="cal-add-btn" onclick="calAddBlock()">+ 상세 추가</button></div>`;
   if (blocks.length === 0) {
     tbHtml += `<div class="cal-empty-mini">계획된 블록이 없어요</div>`;
   } else {
-    tbHtml += `<div class="cal-tb-list">` + blocks.map((b, i) => `
-      <div class="cal-tb-item${b.done ? ' done' : ''}" style="border-left-color:${tbHex(b.color)}" onclick="calEditBlock(${i})">
-        <button class="cal-tb-check" onclick="event.stopPropagation();calToggleBlock(${i})">${b.done ? '✓' : ''}</button>
-        <span class="cal-tb-time">${b.start}~${b.end}</span>
-        <span class="cal-tb-title">${escapeHtml(b.title)}</span>
-      </div>`).join('') + `</div>`;
+    tbHtml += `<div class="cal-tb-list">` + blocks.map(({ b, origIdx }) => {
+      const todos = b.todos || [];
+      const todoDone = todos.filter(t => t.done).length;
+      const todoHtml = todos.length
+        ? `<div class="cal-tb-todos">` + todos.map((t, j) => `
+            <div class="cal-tb-todo${t.done ? ' done' : ''}" onclick="event.stopPropagation();calToggleTodo(${origIdx},${j})">
+              <span class="cal-tb-todo-check">${t.done ? '✓' : ''}</span>
+              <span class="cal-tb-todo-text">${escapeHtml(t.text)}</span>
+            </div>`).join('') + `</div>`
+        : '';
+      return `<div class="cal-tb-item${b.done ? ' done' : ''}" style="border-left-color:${tbHex(b.color)}">
+        <div class="cal-tb-row" onclick="calEditBlock(${origIdx})">
+          <button class="cal-tb-check" onclick="event.stopPropagation();calToggleBlock(${origIdx})">${b.done ? '✓' : ''}</button>
+          <span class="cal-tb-time">${b.start}~${b.end}</span>
+          <span class="cal-tb-title">${escapeHtml(b.title)}</span>
+          ${todos.length ? `<span class="cal-tb-todo-badge">${todoDone}/${todos.length} ✓</span>` : ''}
+        </div>
+        ${todoHtml}
+      </div>`;
+    }).join('') + `</div>`;
   }
+  // 빠른 추가 — 제목만 입력하면 바로 블록 생성
+  tbHtml += `<div class="cal-quick-add">
+    <input type="text" id="cal-quick-input" placeholder="제목 입력 후 Enter — 빠른 추가"
+      onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();calQuickAddBlock();}">
+    <button onclick="calQuickAddBlock()">추가</button>
+  </div>`;
 
   // ── 감정일기 섹션 ──
   let jHtml = `<div class="cal-sec-head"><span>📔 감정일기</span></div>`;
@@ -108,7 +150,28 @@ function renderCalDetail() {
   ).join('') + `</div>`;
   jHtml += `<textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${escapeHtml(journal.content || '')}</textarea>`;
 
-  el.innerHTML = `<div class="cal-sec">${tbHtml}</div><div class="cal-sec">${jHtml}</div>`;
+  // ── 그날의 노트 ──
+  let notesHtml = '';
+  if (typeof getAllNotes === 'function') {
+    const dayNotes = getAllNotes()
+      .filter(n => dateKey(new Date(n.updatedAt || n.createdAt)) === key)
+      .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    notesHtml = `<div class="cal-sec-head"><span>📝 노트</span></div>`;
+    if (dayNotes.length === 0) {
+      notesHtml += `<div class="cal-empty-mini">이 날 작성한 노트가 없어요</div>`;
+    } else {
+      notesHtml += `<div class="cal-note-list">` + dayNotes.map(n =>
+        `<div class="cal-note-item" onclick="calOpenNote('${n.type}', ${n.id})">
+          <span class="cal-note-icon">${n.type === 'mindmap' ? '🗺' : '📝'}</span>
+          <span class="cal-note-title">${escapeHtml(n.title) || '제목 없음'}</span>
+        </div>`).join('') + `</div>`;
+    }
+  }
+
+  el.innerHTML = summaryHtml
+    + `<div class="cal-sec">${tbHtml}</div>`
+    + `<div class="cal-sec">${jHtml}</div>`
+    + (notesHtml ? `<div class="cal-sec">${notesHtml}</div>` : '');
 }
 
 // ── 네비게이션 ──
@@ -148,6 +211,58 @@ function calEditBlock(idx) {
 }
 function calToggleBlock(idx) {
   toggleTbDone(calSelectedKey, idx);  // renderTimeBlocks → _calRefreshHook
+}
+
+// 블록 안의 투두 항목 체크 토글
+function calToggleTodo(blockIdx, todoIdx) {
+  const blocks = timeBlocks[calSelectedKey];
+  const todo = blocks && blocks[blockIdx] && (blocks[blockIdx].todos || [])[todoIdx];
+  if (!todo) return;
+  todo.done = !todo.done;
+  save('tb_blocks', timeBlocks);
+  updateTbMeta(calSelectedKey);
+  if (typeof renderTimeBlocks === 'function') renderTimeBlocks();
+  renderCalDetail();
+}
+
+// 빠른 추가 — 제목만으로 블록 생성 (시작 시각은 자동 배치)
+function calQuickAddBlock() {
+  const input = document.getElementById('cal-quick-input');
+  if (!input) return;
+  const title = input.value.trim();
+  if (!title) { toast('제목을 입력하세요'); return; }
+  const key = calSelectedKey;
+  if (!timeBlocks[key]) timeBlocks[key] = [];
+  // 시작 시각: 마지막 블록의 끝, 없으면 현재 시각(06~22시로 클램프)
+  let startMin;
+  if (timeBlocks[key].length) {
+    startMin = Math.min(23 * 60, Math.max(...timeBlocks[key].map(b => minutesFromTime(b.end))));
+  } else {
+    startMin = Math.min(22, Math.max(6, new Date().getHours())) * 60;
+  }
+  const endMin = Math.min(23 * 60 + 59, startMin + 60);
+  const prefix = extractTbPrefix(title);
+  const color = prefix ? getColorForPrefix(prefix) : 'yellow';
+  timeBlocks[key].push({
+    title, start: minsToTime(startMin), end: minsToTime(endMin),
+    desc: '', color, done: false, todos: []
+  });
+  timeBlocks[key].sort((a, b) => a.start.localeCompare(b.start));
+  save('tb_blocks', timeBlocks);
+  updateTbMeta(key);
+  input.value = '';
+  if (typeof renderTimeBlocks === 'function') renderTimeBlocks();
+  if (typeof renderTimeblockList === 'function') renderTimeblockList();
+  renderCalendar();
+  renderCalDetail();
+  // 연속 추가가 편하도록 입력칸 다시 포커스
+  setTimeout(() => { const i = document.getElementById('cal-quick-input'); if (i) i.focus(); }, 30);
+}
+
+// 상세 화면의 노트 항목 → 노트 페이지로 이동해 해당 노트 열기
+function calOpenNote(type, id) {
+  if (typeof navigateTo === 'function') navigateTo('memo');
+  if (typeof selectNote === 'function') selectNote(type, id);
 }
 
 // ── 감정일기 (journalEntries 직접) ──

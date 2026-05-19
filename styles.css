@@ -2610,13 +2610,16 @@ select:focus:not(:focus-visible),
 .cal-empty-mini { font-size: 13px; color: var(--text-mute); padding: 8px 0; }
 .cal-tb-list { display: flex; flex-direction: column; gap: 6px; }
 .cal-tb-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 9px 11px; border-radius: 9px;
+  border-radius: 9px; overflow: hidden;
   background: var(--surface2); border-left: 3px solid var(--accent);
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: transform .08s, background .12s;
 }
-.cal-tb-item:active { transform: scale(0.98); }
+.cal-tb-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 11px;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: transform .08s;
+}
+.cal-tb-row:active { transform: scale(0.98); }
 .cal-tb-item.done { opacity: .55; }
 .cal-tb-item.done .cal-tb-title { text-decoration: line-through; }
 .cal-tb-check {
@@ -2628,7 +2631,65 @@ select:focus:not(:focus-visible),
   -webkit-tap-highlight-color: transparent;
 }
 .cal-tb-time { font-size: 11px; color: var(--text-mute); font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.cal-tb-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-tb-title { flex: 1; min-width: 0; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-tb-todo-badge {
+  flex-shrink: 0; font-size: 10px; font-weight: 700;
+  color: var(--text-mute); background: var(--surface3);
+  padding: 2px 7px; border-radius: 9px; font-variant-numeric: tabular-nums;
+}
+.cal-tb-todos { display: flex; flex-direction: column; padding: 0 11px 8px 34px; }
+.cal-tb-todo {
+  display: flex; align-items: center; gap: 7px;
+  padding: 4px 0; cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.cal-tb-todo-check {
+  width: 16px; height: 16px; flex-shrink: 0;
+  border-radius: 5px; border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+.cal-tb-todo.done .cal-tb-todo-check { background: var(--accent); border-color: var(--accent); }
+.cal-tb-todo-text { font-size: 12.5px; color: var(--text-dim); }
+.cal-tb-todo.done .cal-tb-todo-text { text-decoration: line-through; color: var(--text-mute); }
+
+/* 상세 요약 카드 */
+.cal-summary { display: flex; gap: 8px; margin-bottom: 18px; }
+.cal-summary-stat {
+  flex: 1; text-align: center;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 6px;
+}
+.cal-summary-stat .v { font-size: 15px; font-weight: 800; color: var(--text); }
+.cal-summary-stat .l { font-size: 10.5px; color: var(--text-mute); margin-top: 3px; }
+
+/* 타임블록 빠른 추가 */
+.cal-quick-add { display: flex; gap: 6px; margin-top: 8px; }
+.cal-quick-add input {
+  flex: 1; height: 34px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text);
+  padding: 0 11px; font-size: 13px; font-family: inherit;
+}
+.cal-quick-add input:focus { outline: none; border-color: var(--accent); }
+.cal-quick-add button {
+  flex-shrink: 0; padding: 0 14px; border-radius: 8px;
+  border: none; background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: transform .08s;
+}
+.cal-quick-add button:active { transform: scale(0.94); }
+
+/* 그날의 노트 */
+.cal-note-list { display: flex; flex-direction: column; gap: 4px; }
+.cal-note-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px;
+  background: var(--surface2); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; transition: background .12s;
+}
+.cal-note-item:hover { background: var(--surface3); }
+.cal-note-icon { font-size: 14px; flex-shrink: 0; }
+.cal-note-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cal-mood-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
 .cal-mood-btn {
   width: 34px; height: 34px; border-radius: 8px;
