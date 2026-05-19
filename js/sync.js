@@ -2253,13 +2253,10 @@ function updateHeaderSyncPill() {
     }
     if (banner) banner.classList.remove('show');
   } else if (status === 'error') {
+    // 실패는 헤더 동기화 칩 색상으로만 조용히 표시 — 큰 배너는 띄우지 않음.
+    // (자동 폴링이 15초마다 재시도하므로 일시적 실패는 곧 회복된다)
     pill.classList.add('error');
     label.textContent = '동기화 실패';
-    if (banner) {
-      banner.classList.add('show');
-      const msg = document.getElementById('sync-error-msg');
-      if (msg) msg.textContent = isOnline ? '동기화 실패 — 재시도하거나 동기화 모달 확인' : '오프라인 상태';
-    }
   } else {
     pill.classList.add('synced');
     if (lastSync) {
@@ -2358,9 +2355,13 @@ async function initDrive() {
       driveStartPolling();
     } catch (e) {
       console.warn('Drive auto-restore failed:', e);
-      setDriveStatus('error');
       if (e.message === 'NEEDS_AUTH') {
+        // 진짜 재인증이 필요한 경우만 에러 상태로 — 사용자가 동기화 버튼을 눌러야 함
+        setDriveStatus('error');
         toast('Drive 재인증 필요 — 동기화 버튼을 눌러주세요', 'error');
+      } else {
+        // 일시적 실패(네트워크 등) — 에러로 표시하지 않고 폴링으로 조용히 재시도
+        driveStartPolling();
       }
     }
   }
