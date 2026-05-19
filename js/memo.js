@@ -154,10 +154,19 @@ function renderTagTree(node, depth) {
 }
 const MEMO_SORT_LABELS = { updated: '수정일순', created: '생성일순', title: '제목순' };
 
+// Note-type filter: 'all' | 'memo' | 'mindmap'
+let noteTypeFilter = load('note_type_filter', 'all');
+
 function cycleMemoSort() {
   const order = ['updated', 'created', 'title'];
   memoSortMode = order[(order.indexOf(memoSortMode) + 1) % order.length];
   save('memo_sort', memoSortMode);
+  renderMemoList();
+}
+
+function setNoteTypeFilter(t) {
+  noteTypeFilter = t;
+  save('note_type_filter', t);
   renderMemoList();
 }
 
@@ -437,10 +446,15 @@ function renderMemoList() {
   }
   const tagTree = buildTagTree(allNotes);
 
-  // Sort control — lives in the note list panel (not the tag tree)
+  // Sort control + note-type filter — lives in the note list panel
   const sortBar = document.getElementById('memo-sort-bar');
   if (sortBar) {
-    sortBar.innerHTML = `<div class="memo-sort-row"><button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
+    const typeSeg = `<div class="note-type-seg">
+      <button class="${noteTypeFilter === 'all' ? 'active' : ''}" onclick="setNoteTypeFilter('all')">전체</button>
+      <button class="${noteTypeFilter === 'memo' ? 'active' : ''}" onclick="setNoteTypeFilter('memo')">메모</button>
+      <button class="${noteTypeFilter === 'mindmap' ? 'active' : ''}" onclick="setNoteTypeFilter('mindmap')">마인드맵</button>
+    </div>`;
+    sortBar.innerHTML = `<div class="memo-sort-row">${typeSeg}<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
       <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
       <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button></div>`;
   }
@@ -465,6 +479,7 @@ function renderMemoList() {
   }
 
   const filtered = allNotes.filter(n => {
+    if (noteTypeFilter !== 'all' && n.type !== noteTypeFilter) return false;
     if (search && !n.searchText.includes(search)) return false;
     if (!activeTagFilter) return true;
     if (activeTagFilter === '__untagged__') return (n.tags || []).length === 0;
