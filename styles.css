@@ -2354,6 +2354,7 @@ body[data-theme="ayu"] {
   /* Mindmap canvas detail slides in the same way as the text editor */
   #mm-canvas-wrap {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--bg);
     transform: translateX(100%); transition: transform 0.25s ease; z-index: 6;
   }
   .memo-page.note-mindmap.show-editor #mm-canvas-wrap { transform: translateX(0); }
