@@ -1219,13 +1219,14 @@ body[data-theme="leather"] {
 .memo-page.note-mindmap > .memo-editor { display: none; }
 .memo-page.note-mindmap > #mm-canvas-wrap { display: flex; }
 
-/* Note-type badge in the unified list (📝 text / 🗺 mindmap) */
+/* Note-type badge in the unified list (edit_note / account_tree) */
 .note-type-badge {
   flex-shrink: 0;
-  font-size: 14px; line-height: 1;
-  width: 20px; text-align: center;
+  color: var(--text-mute);
   margin-top: 1px;
 }
+.memo-item.active .note-type-badge,
+.memo-item.is-pinned .note-type-badge { color: var(--accent); }
 
 /* New-note creation row — 새 메모 / 마인드맵 (two split buttons) */
 .note-create-row { display: flex; gap: 7px; }
@@ -2757,7 +2758,7 @@ select:focus:not(:focus-visible),
   -webkit-tap-highlight-color: transparent; transition: background .12s;
 }
 .cal-note-item:hover { background: var(--surface3); }
-.cal-note-icon { font-size: 14px; flex-shrink: 0; }
+.cal-note-icon { font-size: 18px; color: var(--text-dim); flex-shrink: 0; }
 .cal-note-title { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cal-mood-row { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
 .cal-mood-btn {
