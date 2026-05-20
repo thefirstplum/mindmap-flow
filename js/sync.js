@@ -697,11 +697,134 @@ function parseMemoIdFromFilename(name) {
 // SAME memo id on every pull. The old `++maxId` counter shifted between pulls,
 // so each sync spawned a fresh duplicate memo + an endless push/pull loop.
 // Range 1e9–2e9 stays clear of real memo ids (small counters).
+const STABLE_ID_FLOOR = 1_000_000_000;
 function stableMemoIdFromName(name) {
   let h = 5381;
   const s = String(name || '');
   for (let i = 0; i < s.length; i++) h = (((h << 5) + h) + s.charCodeAt(i)) | 0;
-  return 1000000000 + (Math.abs(h) % 1000000000);
+  return STABLE_ID_FLOOR + (Math.abs(h) % STABLE_ID_FLOOR);
+}
+
+// =================== SHARED MERGE HELPERS (Drive + folder import) ===================
+// Single source of truth for the memo/mindmap merge logic so a bug fixed in one
+// path (Drive auto-pull / manual import) applies to all paths uniformly.
+
+// Recover a memo id from a remote file object — covers ALL the fallbacks so
+// that orphan .md files (no frontmatter id, no appProperties) still get a
+// stable id, never null. Caller passes a Drive `File` or any object with
+// `name` and (optionally) `appProperties`.
+function recoverMemoIdFromFile(f) {
+  if (!f || !f.name) return null;
+  const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
+  if (propId && !isNaN(propId)) return propId;
+  const fnId = parseMemoIdFromFilename(f.name);
+  if (fnId) return fnId;
+  return stableMemoIdFromName(f.name);
+}
+
+// Parse a remote .md file (Drive / folder / Gist) into a memo with a stable id
+// and stable updatedAt. Source: { text, name, appProperties?, modifiedTime? }.
+function parseRemoteMemoFile(src) {
+  // Stable fallback date — NEVER Date.now() (would churn id-less files every pull)
+  const fallbackMtime = src.modifiedTime ? Date.parse(src.modifiedTime) : Date.now();
+  const memo = parseFrontmatter(src.text, src.name, fallbackMtime);
+  if (!memo.id) memo.id = recoverMemoIdFromFile(src);
+  return memo;
+}
+
+// Merge remote memos into local memos. Applies all the protections the
+// codebase has accumulated: tombstones (no resurrection), 3-way deletion
+// detection (via pullSnap), per-item updatedAt comparison with tag
+// preservation, and preservation of the in-progress edit (editingMemoId).
+function mergeMemos(remoteMemos, localMemos, opts) {
+  opts = opts || {};
+  const tombstones = opts.tombstones || {};
+  const pullSnap = opts.pullSnap || {};
+  const editingMemoId = opts.editingMemoId == null ? null : opts.editingMemoId;
+
+  const remoteIdSet = new Set(remoteMemos.map(m => m && m.id).filter(Boolean));
+  const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
+  const mergeWithTags = (winner, loser) => {
+    if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
+      return { ...winner, tags: loser.tags };
+    }
+    return winner;
+  };
+
+  const merged = new Map();
+  for (const m of remoteMemos) {
+    if (!m) continue;
+    const deletedAt = tombstones[m.id];
+    if (deletedAt && new Date(deletedAt).getTime() >= mtime(m)) continue;
+    merged.set(m.id, m);
+  }
+  for (const m of localMemos) {
+    // Snapshot-based remote-deletion: id was in snapshot but absent from
+    // remote now AND local hasn't been edited since last sync → accept deletion
+    if (!remoteIdSet.has(m.id) && pullSnap.memos && (m.id in pullSnap.memos)) {
+      const snapMtime = new Date(pullSnap.memos[m.id] || 0).getTime();
+      if (mtime(m) <= snapMtime) continue;
+    }
+    const r = merged.get(m.id);
+    if (!r) merged.set(m.id, m);
+    else if (mtime(m) > mtime(r)) merged.set(m.id, mergeWithTags(m, r));
+    else merged.set(m.id, mergeWithTags(r, m));
+  }
+  const out = [...merged.values()];
+  out.sort((a, b) => mtime(b) - mtime(a));
+
+  // Always preserve the in-progress edit (whatever timestamp comparison says)
+  if (editingMemoId != null) {
+    const local = localMemos.find(m => m.id === editingMemoId);
+    if (local) {
+      const idx = out.findIndex(m => m.id === editingMemoId);
+      if (idx >= 0) out[idx] = local;
+      else out.unshift(local);
+    }
+  }
+  return out;
+}
+
+// Merge remote mindmaps into local mindmaps. Mirrors mergeMemos' protections:
+// 3-way deletion detection AND tag preservation when remote lacks the field.
+function mergeMindmaps(remoteMms, localMms, opts) {
+  opts = opts || {};
+  const pullSnapMm = opts.pullSnapMm || {};
+  const remoteIdSet = new Set(remoteMms.map(m => m && m.id).filter(Boolean));
+  const mergeWithTags = (winner, loser) => {
+    if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
+      return { ...winner, tags: loser.tags };
+    }
+    return winner;
+  };
+  const map = new Map();
+  for (const m of localMms) {
+    if (!remoteIdSet.has(m.id) && (m.id in pullSnapMm)) {
+      const snapAt = new Date(pullSnapMm[m.id] || 0).getTime();
+      const localAt = new Date(m.updatedAt || 0).getTime();
+      if (localAt <= snapAt) continue; // accept remote deletion
+    }
+    map.set(m.id, m);
+  }
+  for (const remote of remoteMms) {
+    if (!remote?.id) continue;
+    const local = map.get(remote.id);
+    if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0)) {
+      map.set(remote.id, mergeWithTags(remote, local));
+    }
+  }
+  return [...map.values()];
+}
+
+// Compute memoIdCounter excluding artificial ids in the stable range.
+// Without this, a single orphan import would inflate the counter to ~1e9 and
+// `createMemo()` would emit ids colliding with future stable-artificial ids.
+function recomputeMemoIdCounter(memos) {
+  let maxReal = 0;
+  for (const m of memos) {
+    if (m && m.id && m.id < STABLE_ID_FLOOR && m.id > maxReal) maxReal = m.id;
+  }
+  return Math.max(maxReal, memos.length) + 1;
 }
 
 // =================== DRIVE DIFF (snapshot-based partial push) ===================
@@ -1170,11 +1293,12 @@ async function drivePushAll() {
 
     // Group memo files by id (memos/ subfolder + leaked root .md) to detect
     // Drive-side duplicates and clean them up. Prefers files inside memos/.
+    // Use the same id-recovery chain as the parse layer (incl. stableMemoId
+    // fallback) so orphan/external .md files still match push-time lookups —
+    // otherwise push couldn't find them and would create a 2nd file.
     const idGroups = new Map();
     for (const f of memoFiles) {
-      const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
-      const fnId = parseMemoIdFromFilename(f.name);
-      const id = propId || fnId;
+      const id = recoverMemoIdFromFile(f);
       if (!id) continue;
       const inMemosFolder = (f.parents?.[0] === driveMemosFolderId);
       if (!idGroups.has(id)) idGroups.set(id, []);
@@ -1579,27 +1703,12 @@ async function applyDriveData(files) {
     // --- Mindmaps ---
     const legacyApp = (appParsed?.app === 'mindflow') ? appParsed : null;
     if (remoteMmFiles.length > 0) {
-      const mmSnap = pullSnap.mindmaps || {};
-      const remoteMmIdSet = new Set(mmRaws.filter(r => r?.id).map(r => r.id));
-      const mmMap = new Map();
-      // Add local mindmaps, but drop those that were in snapshot and now missing
-      // from remote (another device deleted them) AND haven't been edited since.
-      for (const m of mindmaps) {
-        if (!remoteMmIdSet.has(m.id) && (m.id in mmSnap)) {
-          const snapAt = new Date(mmSnap[m.id] || 0).getTime();
-          const localAt = new Date(m.updatedAt || 0).getTime();
-          if (localAt <= snapAt) continue; // accept remote deletion
-        }
-        mmMap.set(m.id, m);
-      }
-      // Apply remote (overwrite if remote is newer)
-      for (const remote of mmRaws) {
-        if (!remote?.id) continue;
-        const local = mmMap.get(remote.id);
-        if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0))
-          mmMap.set(remote.id, remote);
-      }
-      mindmaps = [...mmMap.values()];
+      // Shared mindmap merge — tombstone-equivalent (3-way deletion via snap)
+      // + tag preservation when remote lacks the field (otherwise tags vanish
+      // every time another device that doesn't carry tags wins the timestamp).
+      mindmaps = mergeMindmaps(mmRaws.filter(r => r?.id), mindmaps, {
+        pullSnapMm: pullSnap.mindmaps || {},
+      });
       activeMindmapId = mindmaps.find(m => m.id === activeMindmapId)?.id ?? mindmaps[0]?.id ?? null;
       localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));
       localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId));
@@ -1656,96 +1765,26 @@ async function applyDriveData(files) {
     }
 
     // --- Memos ---
-    // Recover memo id with fallback chain so files with broken frontmatter don't
-    // get fresh artificial ids on every pull (which would create duplicates):
-    //   1. id from frontmatter (parseFrontmatter)
-    //   2. appProperties.memoId (Drive metadata we set on push)
-    //   3. legacy "${id}-title.md" filename prefix
-    //   4. last resort: artificial id (file is truly orphaned/external)
+    // Parse remote .md files with the shared helper (id-recovery chain +
+    // stable updatedAt fallback so id-less files don't churn every pull).
     const remoteMemos = [];
-    let maxId = 0;
     for (const r of mdRaws) {
       if (!r) continue;
-      try {
-        // Fall back to the file's real Drive modifiedTime (stable) — NOT
-        // Date.now(), which made id-less files look freshly-edited every pull.
-        const fallbackMtime = r.modifiedTime ? Date.parse(r.modifiedTime) : Date.now();
-        const memo = parseFrontmatter(r.text, r.name, fallbackMtime);
-        if (!memo.id) {
-          const propId = r.appProperties?.memoId ? parseInt(r.appProperties.memoId) : null;
-          if (propId && !isNaN(propId)) memo.id = propId;
-        }
-        if (!memo.id) {
-          const fnId = parseMemoIdFromFilename(r.name);
-          if (fnId) memo.id = fnId;
-        }
-        if (!memo.id) memo.id = stableMemoIdFromName(r.name);
-        else if (memo.id > maxId) maxId = memo.id;
-        remoteMemos.push(memo);
-      } catch (e) { console.warn('Memo parse failed:', r.name, e); }
+      try { remoteMemos.push(parseRemoteMemoFile(r)); }
+      catch (e) { console.warn('Memo parse failed:', r.name, e); }
     }
 
-    // Per-memo merge with 3 protections:
-    //   1. Tombstones — locally-deleted memos can't be resurrected by Drive pull
-    //   2. Tag preservation — winning side keeps loser's tags if it lacks them
-    //   3. Snapshot-based remote-deletion — if a memo was in our snapshot but
-    //      isn't in remote anymore, and local hasn't edited since last sync,
-    //      ANOTHER DEVICE intentionally deleted it. Accept the deletion locally
-    //      instead of re-uploading. (This was the "다른 기기 청소가 무효" bug.)
-    const tombstones = load('memo_tombstones', {});
-    const remoteIdSet = new Set(remoteMemos.map(m => m.id).filter(Boolean));
-    const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
-    const _mergeWithTags = (winner, loser) => {
-      if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
-        return { ...winner, tags: loser.tags };
-      }
-      return winner;
-    };
-    const mergedMemos = new Map();
-    for (const m of remoteMemos) {
-      const deletedAt = tombstones[m.id];
-      if (deletedAt && new Date(deletedAt).getTime() >= mtime(m)) continue; // deleted locally after last remote write
-      mergedMemos.set(m.id, m);
-    }
-    for (const m of memos) {
-      if (m.id > maxId) maxId = m.id;
-
-      // Detect remote deletion: id was in snapshot but absent from remote now
-      if (!remoteIdSet.has(m.id) && pullSnap.memos && (m.id in pullSnap.memos)) {
-        const snapMtime = new Date(pullSnap.memos[m.id] || 0).getTime();
-        if (mtime(m) <= snapMtime) {
-          // Remote deleted; local hasn't been edited since last sync → accept deletion
-          continue;
-        }
-        // else: local edited after last sync → preserve (re-uploads on next push)
-      }
-
-      const r = mergedMemos.get(m.id);
-      if (!r) {
-        mergedMemos.set(m.id, m);
-      } else if (mtime(m) > mtime(r)) {
-        mergedMemos.set(m.id, _mergeWithTags(m, r));
-      } else {
-        // Remote (already in map) won the timestamp comparison — but recover
-        // tags from local if remote's frontmatter lacks the field.
-        mergedMemos.set(m.id, _mergeWithTags(r, m));
-      }
-    }
-    const newMemos = [...mergedMemos.values()];
-    newMemos.sort((a, b) => mtime(b) - mtime(a));
-
-    // Always preserve the in-progress edit, regardless of timestamp comparison
-    if (editingMemoId != null) {
-      const local = memos.find(m => m.id === editingMemoId);
-      if (local) {
-        const idx = newMemos.findIndex(m => m.id === editingMemoId);
-        if (idx >= 0) newMemos[idx] = local;
-        else newMemos.unshift(local);
-      }
-    }
+    // Per-memo merge with all the protections collected in mergeMemos:
+    // tombstones, 3-way deletion via pullSnap, tag preservation, and in-
+    // progress edit preservation (so a sync mid-typing doesn't clobber).
+    const newMemos = mergeMemos(remoteMemos, memos, {
+      tombstones: load('memo_tombstones', {}),
+      pullSnap,
+      editingMemoId,
+    });
 
     memos = newMemos;
-    memoIdCounter = Math.max(maxId, memos.length) + 1;
+    memoIdCounter = recomputeMemoIdCounter(memos);
     localStorage.setItem('mindflow_memos', JSON.stringify(memos));
     localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
     if (!memos.find(m => m.id === activeMemoId)) {
@@ -1797,11 +1836,12 @@ async function applyDriveData(files) {
         // Match by sourced fileId if we have it (we don't currently track per-memo file id;
         // fallback to scanning by appProperties or filename pattern)
       }
-      // For driveMtimes we need (id → file.modifiedTime). Walk mdFiles + applying same id-recovery.
+      // For driveMtimes we need (id → file.modifiedTime). Walk mdFiles using
+      // the same id-recovery chain as the parse layer (incl. stableMemoId).
+      // Without the stable fallback, orphan files had no mtime entry and the
+      // 3-way conflict check for their memos was silently skipped.
       for (const f of mdFiles) {
-        const propId = f.appProperties?.memoId ? parseInt(f.appProperties.memoId) : null;
-        const fnId = parseMemoIdFromFilename(f.name);
-        const id = propId || fnId;
+        const id = recoverMemoIdFromFile(f);
         if (id && f.modifiedTime) newMemoDriveMtimes[id] = f.modifiedTime;
       }
       snap.memos = newMemoSnap;
@@ -1934,45 +1974,30 @@ async function driveImportFromFolder() {
       try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties, modifiedTime: f.modifiedTime }; } catch { return null; }
     });
 
-    // 5. Parse with frontmatter (id fallback: frontmatter → appProperties → filename → artificial)
-    const tombstones = load('memo_tombstones', {});
+    // 5. Parse remote .md files via shared helper (consistent id-recovery +
+    //    stable updatedAt fallback so id-less files don't churn).
     const remoteMemos = [];
-    let maxId = memos.reduce((m, x) => x.id > m ? x.id : m, 0);
     for (const r of raws) {
       if (!r) continue;
-      try {
-        const fallbackMtime = r.modifiedTime ? Date.parse(r.modifiedTime) : Date.now();
-        const memo = parseFrontmatter(r.text, r.name, fallbackMtime);
-        if (!memo.id) {
-          const propId = r.appProperties?.memoId ? parseInt(r.appProperties.memoId) : null;
-          if (propId && !isNaN(propId)) memo.id = propId;
-        }
-        if (!memo.id) {
-          const fnId = parseMemoIdFromFilename(r.name);
-          if (fnId) memo.id = fnId;
-        }
-        if (!memo.id) memo.id = stableMemoIdFromName(r.name);
-        else if (memo.id > maxId) maxId = memo.id;
-        remoteMemos.push(memo);
-      } catch (e) { console.warn('Parse failed:', r.name, e); }
+      try { remoteMemos.push(parseRemoteMemoFile(r)); }
+      catch (e) { console.warn('Parse failed:', r.name, e); }
     }
+    // Count new arrivals for the toast (anything not already in local memos
+    // or whose remote-mtime beats local's).
+    const _localIds = new Set(memos.map(m => m.id));
+    const _localMtime = id => {
+      const m = memos.find(x => x.id === id);
+      return m ? new Date(m.updatedAt || m.date || 0).getTime() : 0;
+    };
+    const importedCount = remoteMemos.filter(r =>
+      !_localIds.has(r.id) || new Date(r.updatedAt || r.date || 0).getTime() > _localMtime(r.id)
+    ).length;
 
-    // 6. Merge: tombstone check + updatedAt priority
-    const mtime = m => new Date(m.updatedAt || m.date || 0).getTime();
-    const mergedMap = new Map(memos.map(m => [m.id, m]));
-    let importedCount = 0;
-    for (const m of remoteMemos) {
-      const deletedAt = tombstones[m.id];
-      if (deletedAt && new Date(deletedAt).getTime() >= mtime(m)) continue;
-      const existing = mergedMap.get(m.id);
-      if (!existing || mtime(m) > mtime(existing)) {
-        mergedMap.set(m.id, m);
-        importedCount++;
-      }
-    }
-
-    memos = [...mergedMap.values()];
-    memos.sort((a, b) => mtime(b) - mtime(a));
+    // 6. Merge via the shared helper — same protections as auto-pull.
+    memos = mergeMemos(remoteMemos, memos, {
+      tombstones: load('memo_tombstones', {}),
+    });
+    memoIdCounter = recomputeMemoIdCounter(memos);
     saveMemos();
     renderMemoList();
     renderMemoEditor();
@@ -1991,11 +2016,11 @@ async function driveImportFromFolder() {
 
 async function drivePoll(force = false) {
   if (!driveFolderId || isLoadingFromDrive || isPushingToDrive) return;
-  // CRITICAL: never trigger OAuth popup from background polling. If the cached
-  // token expired, stop polling entirely and surface error — user must click
-  // "동기화" button (manual gesture) to re-auth.
+  // Token miss is often transient (proactive refresh hasn't fired yet,
+  // network blip, tab was just unhidden). Skip this tick and let the next
+  // 15s try again — do NOT killing the polling timer permanently, which
+  // would silently stop background sync for the rest of the session.
   if (!hasValidDriveToken()) {
-    driveStopPolling();
     setDriveStatus('error');
     return;
   }
