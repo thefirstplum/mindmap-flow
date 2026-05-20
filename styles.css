@@ -1608,7 +1608,7 @@ body[data-theme="leather"] {
 /* Tags row */
 .memo-tags-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
-  padding: 0 18px 9px; min-height: 26px;
+  padding: 0 26px 9px; min-height: 26px;
 }
 .memo-tag-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -2121,14 +2121,15 @@ body[data-theme="ayu"] {
    ──────────────────────────────────────────────────────────────── */
 
 /* ── Wide screens: constrain reading column ── */
+/* Title, meta, tags, body all share the same centered reading-column
+   padding so they line up vertically (no jaggy left edge). */
 @media (min-width: 1200px) {
   .memo-editor-header,
-  .memo-meta {
-    padding-left: max(26px, calc(50% - 380px));
-    padding-right: max(26px, calc(50% - 380px));
-  }
+  .memo-meta,
+  .memo-tags-row,
   .memo-body-wrap:not(.split) .markdown-body,
-  .memo-body-wrap.edit-only textarea {
+  .memo-body-wrap.edit-only textarea,
+  .memo-body-wrap.edit-only .bear-editor {
     padding-left: max(26px, calc(50% - 380px));
     padding-right: max(26px, calc(50% - 380px));
   }
