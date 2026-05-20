@@ -1741,6 +1741,8 @@ body[data-theme="leather"] {
   width: 100%; height: 100%; overflow: hidden; flex: 1;
 }
 #memo-live-editor .cm-editor { height: 100%; background: transparent; font-size: 16.5px; }
+/* Align body text with title/meta/tags (all use 26px side padding) */
+#memo-live-editor .cm-content { padding: 8px 26px 80px; }
 #memo-live-editor .cm-scroller { -webkit-overflow-scrolling: touch; overflow-y: auto; }
 #memo-live-editor .cm-focused { outline: none; }
 #memo-live-editor .cm-selectionBackground { background: rgba(200,75,60,0.15) !important; }
@@ -2375,7 +2377,7 @@ body[data-theme="ayu"] {
   .memo-body-wrap.split { flex-direction: column; }
   .memo-body-wrap.split textarea { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--border); }
   .memo-body-wrap.split .markdown-body { width: 100%; height: 50%; }
-  #memo-live-editor .cm-content { padding: 8px 16px 140px !important; }
+  #memo-live-editor .cm-content { padding: 8px 15px 140px !important; }
 
   /* Journal */
   .journal-list-panel {
