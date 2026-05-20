@@ -1,13 +1,15 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
-const pages = { memo: '노트', calendar: '캘린더', ledger: '가계부' };
+const pages = { memo: '노트', calendar: '캘린더', routine: '루틴', ledger: '가계부' };
 const subtitles = {
   memo: '메모와 마인드맵을 한 곳에서',
   calendar: '하루를 한눈에 — 일정·할 일·감정',
+  routine: '오늘의 루틴 체크 + 시간별 알림',
   ledger: '수입과 지출을 빠르게 기록하세요'
 };
 const pageIcons = {
   memo: '<span class="mi mi-sm">edit_note</span>',
   calendar: '<span class="mi mi-sm">calendar_month</span>',
+  routine: '<span class="mi mi-sm">fitness_center</span>',
   ledger: '<span class="mi mi-sm">account_balance_wallet</span>'
 };
 
@@ -38,6 +40,7 @@ function navigateTo(page, opts) {
   currentPage = page;
 
   if (page === 'calendar') { renderCalendar(); renderCalDetail(); }
+  if (page === 'routine' && typeof renderRoutinePage === 'function') renderRoutinePage();
   if (page === 'memo') {
     // The notes page hosts the mindmap canvas — if a mindmap note is open,
     // its canvas needs a resize once this page becomes visible.

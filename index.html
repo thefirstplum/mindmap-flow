@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260520e">
+<link rel="stylesheet" href="styles.css?v=20260520f">
 </head>
 <body>
 <div class="app">
@@ -29,6 +29,10 @@
     <button class="nav-btn" data-page="calendar" aria-label="캘린더">
       <span class="mi">calendar_month</span>
       <span class="label">캘린더</span>
+    </button>
+    <button class="nav-btn" data-page="routine" aria-label="루틴">
+      <span class="mi">fitness_center</span>
+      <span class="label">루틴</span>
     </button>
     <div class="sidebar-sep"></div>
     <!-- 태그 트리 (노트 내비게이션) -->
@@ -86,6 +90,13 @@
             </div>
             <div class="calendar-detail-body" id="calendar-detail-body"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- ===== ROUTINE PAGE ===== -->
+      <div class="page" id="page-routine">
+        <div class="routine-page" id="routine-page-root">
+          <div class="routine-body" id="routine-body"></div>
         </div>
       </div>
 
@@ -545,12 +556,13 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260519b" defer></script>
-<script src="js/navigation.js?v=20260520b" defer></script>
+<script src="js/navigation.js?v=20260520c" defer></script>
 <script src="js/mindmap.js?v=20260519h" defer></script>
 <script src="js/timeblock.js?v=20260509a" defer></script>
 <script src="js/memo.js?v=20260520e" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260520e" defer></script>
+<script src="js/routine.js?v=20260520a" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260509a" defer></script>
 <script src="js/sync.js?v=20260520a" defer></script>
