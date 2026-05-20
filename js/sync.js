@@ -858,8 +858,8 @@ function loadDriveSnapshot() {
   // we can detect when another device wrote between our pushes.
   const empty = {
     memos: {}, mindmaps: {}, tbDays: {},
-    journal: '', prefix: '', app: '',
-    driveMtimes: { memo: {}, mindmap: {}, timeblock: {}, journal: '', prefix: '', app: '' }
+    journal: '', prefix: '', app: '', routine: '',
+    driveMtimes: { memo: {}, mindmap: {}, timeblock: {}, journal: '', prefix: '', app: '', routine: '' }
   };
   try {
     const raw = localStorage.getItem('mindflow_' + DRIVE_SNAPSHOT_KEY);
@@ -934,11 +934,16 @@ function computeDriveDirty() {
   const prefixDirty = prefixStr !== snap.prefix;
   const appDirty = appStr !== snap.app;
 
+  // Routine: small singleton bundle (config + checks + updatedAt)
+  const routineStr = (typeof getRoutinePayload === 'function')
+    ? JSON.stringify(getRoutinePayload()) : '';
+  const routineDirty = !!routineStr && routineStr !== snap.routine;
+
   const isEmpty =
     !dirtyMemos.length && !deletedMemoIds.length &&
     !dirtyMindmaps.length && !deletedMindmapIds.length &&
     !dirtyTbDays.length && !deletedTbDays.length &&
-    !journalDirty && !prefixDirty && !appDirty;
+    !journalDirty && !prefixDirty && !appDirty && !routineDirty;
 
   return {
     dirtyMemos, deletedMemoIds,
@@ -947,6 +952,7 @@ function computeDriveDirty() {
     journalDirty, journalMax,
     prefixDirty, prefixStr,
     appDirty, appStr,
+    routineDirty, routineStr,
     localTbBlocks, localTbMeta,
     isEmpty
   };
@@ -1340,6 +1346,7 @@ async function drivePushAll() {
       (diff.journalDirty ? 1 : 0) +
       (diff.prefixDirty ? 1 : 0) +
       (diff.appDirty ? 1 : 0) +
+      (diff.routineDirty ? 1 : 0) +
       diff.dirtyMindmaps.length +
       diff.dirtyTbDays.length +
       diff.dirtyMemos.length;
@@ -1358,13 +1365,15 @@ async function drivePushAll() {
       journal: oldSnap.journal || '',
       prefix: oldSnap.prefix || '',
       app: oldSnap.app || '',
+      routine: oldSnap.routine || '',
       driveMtimes: {
         memo: { ...(oldSnap.driveMtimes?.memo || {}) },
         mindmap: { ...(oldSnap.driveMtimes?.mindmap || {}) },
         timeblock: { ...(oldSnap.driveMtimes?.timeblock || {}) },
         journal: oldSnap.driveMtimes?.journal || '',
         prefix: oldSnap.driveMtimes?.prefix || '',
-        app: oldSnap.driveMtimes?.app || ''
+        app: oldSnap.driveMtimes?.app || '',
+        routine: oldSnap.driveMtimes?.routine || ''
       }
     };
 
@@ -1395,6 +1404,17 @@ async function drivePushAll() {
       trackMtime(res);
       newSnap.prefix = prefixStr;
       if (res?.modifiedTime) newSnap.driveMtimes.prefix = res.modifiedTime;
+    }
+
+    // Routine — config + checks + updatedAt bundle, single small file
+    if (diff.routineDirty) {
+      const routineFile = byName.get('routine.json');
+      const res = routineFile
+        ? await driveUpdateFile(routineFile.id, diff.routineStr, 'application/json')
+        : await driveUploadFile('routine.json', diff.routineStr, 'application/json', driveFolderId);
+      trackMtime(res);
+      newSnap.routine = diff.routineStr;
+      if (res?.modifiedTime) newSnap.driveMtimes.routine = res.modifiedTime;
     }
 
     // App meta — capture stringified state atomically
@@ -1507,7 +1527,7 @@ async function drivePushAll() {
 
     // Memos — build dedup'd filename map for the FULL memo set so dirty memos
     // get consistent rename targets even when their neighbors aren't being pushed
-    const usedNames = new Set([DRIVE_APP_FILENAME, 'journal.json', 'tb-prefix-colors.json']);
+    const usedNames = new Set([DRIVE_APP_FILENAME, 'journal.json', 'tb-prefix-colors.json', 'routine.json']);
     const memoFilenames = new Map();
     for (const memo of memos) {
       const base = sanitizeDriveName(memo.title);
@@ -1673,10 +1693,11 @@ async function applyDriveData(files) {
     const appFile = files.find(f => f.name === DRIVE_APP_FILENAME);
     const journalF = files.find(f => f.name === 'journal.json');
     const prefixF = files.find(f => f.name === 'tb-prefix-colors.json');
+    const routineF = files.find(f => f.name === 'routine.json');
     const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
 
     // Download everything in batches of 8 concurrent — fast but rate-limit safe
-    const [mmRaws, tbRaws, mdRaws, appParsed, journalParsed, prefixParsed] = await Promise.all([
+    const [mmRaws, tbRaws, mdRaws, appParsed, journalParsed, prefixParsed, routineParsed] = await Promise.all([
       batchAll(remoteMmFiles, f =>
         driveDownloadFile(f.id).then(t => JSON.parse(t)).catch(() => null)),
       batchAll(remoteTbFiles, async f => {
@@ -1692,6 +1713,7 @@ async function applyDriveData(files) {
       appFile ? driveDownloadFile(appFile.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
       journalF ? driveDownloadFile(journalF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
       prefixF ? driveDownloadFile(prefixF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      routineF ? driveDownloadFile(routineF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
     ]);
 
     // Snapshot loaded once for all 3-way deletion detections below
@@ -1818,6 +1840,14 @@ async function applyDriveData(files) {
       } catch {}
     }
 
+    // --- Routine ---
+    // Merge bundled config + per-day checks. applyRoutinePayload uses an
+    // updatedAt tie-break — newer wins; older remote is ignored.
+    if (routineParsed && typeof applyRoutinePayload === 'function') {
+      try { applyRoutinePayload(routineParsed); }
+      catch (e) { console.warn('Routine merge failed:', e); }
+    }
+
     // --- Snapshot update ---
     // Reflect the post-merge truth that "Drive has these mtimes". Any local
     // item with a higher mtime will be flagged dirty by the next push (correct).
@@ -1879,6 +1909,8 @@ async function applyDriveData(files) {
       }
       // Prefix: remote stringified
       if (prefixParsed) snap.prefix = JSON.stringify(prefixParsed);
+      // Routine: remote stringified (matches what we'd push if local equals remote)
+      if (routineParsed) snap.routine = JSON.stringify(routineParsed);
       // App meta: remote stringified subset matching what we push
       if (appParsed?.app === 'mindflow') {
         snap.app = JSON.stringify({
@@ -1888,13 +1920,14 @@ async function applyDriveData(files) {
       }
 
       // Drive-side modifiedTimes (used for 3-way conflict detection on next push)
-      snap.driveMtimes = snap.driveMtimes || { memo: {}, mindmap: {}, timeblock: {}, journal: '', prefix: '', app: '' };
+      snap.driveMtimes = snap.driveMtimes || { memo: {}, mindmap: {}, timeblock: {}, journal: '', prefix: '', app: '', routine: '' };
       snap.driveMtimes.memo = newMemoDriveMtimes;
       if (remoteMmFiles.length > 0) snap.driveMtimes.mindmap = newMmDriveMtimes;
       if (remoteTbFiles.length > 0) snap.driveMtimes.timeblock = newTbDriveMtimes;
       if (journalF?.modifiedTime) snap.driveMtimes.journal = journalF.modifiedTime;
       if (prefixF?.modifiedTime) snap.driveMtimes.prefix = prefixF.modifiedTime;
       if (appFile?.modifiedTime) snap.driveMtimes.app = appFile.modifiedTime;
+      if (routineF?.modifiedTime) snap.driveMtimes.routine = routineF.modifiedTime;
 
       saveDriveSnapshot(snap);
     }

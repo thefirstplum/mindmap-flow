@@ -80,6 +80,8 @@ function _routineId() { return 'r' + Date.now().toString(36) + Math.random().toS
 
 // User-editable config. Falls back to the default when no saved config exists.
 let routineConfig = load('routine_config', null) || _cloneDefaultRoutine();
+// Top-level mtime used to break ties when Drive sync brings in a remote copy.
+let routineUpdatedAt = load('routine_updated_at', new Date(0).toISOString());
 // Migration: backfill `link` fields from defaults onto already-saved configs
 // (so users who saved before YouTube links were added still get them).
 (function _migrateRoutineLinks() {
@@ -102,7 +104,41 @@ let _notifiedToday = load('routine_notified', {});
 let _routineCheckTimer = null;
 let routineEditMode = false;
 
-function _saveRoutineConfig() { save('routine_config', routineConfig); }
+function _bumpRoutineMtime() {
+  routineUpdatedAt = new Date().toISOString();
+  save('routine_updated_at', routineUpdatedAt);
+}
+function _saveRoutineConfig() {
+  _bumpRoutineMtime();
+  save('routine_config', routineConfig);
+}
+function _saveRoutineChecks() {
+  _bumpRoutineMtime();
+  save('routine_checks', routineChecks);
+}
+
+// ── Sync bridge (Drive uses these) ──
+// getRoutinePayload returns the full bundle that's pushed as routine.json.
+// applyRoutinePayload merges a remote bundle in (latest-mtime-wins).
+function getRoutinePayload() {
+  return { config: routineConfig, checks: routineChecks, updatedAt: routineUpdatedAt };
+}
+function applyRoutinePayload(remote) {
+  if (!remote || typeof remote !== 'object') return false;
+  const remoteAt = remote.updatedAt || '';
+  if (remoteAt <= (routineUpdatedAt || '')) return false; // local same/newer — skip
+  if (Array.isArray(remote.config)) routineConfig = remote.config;
+  if (remote.checks && typeof remote.checks === 'object') routineChecks = remote.checks;
+  routineUpdatedAt = remoteAt;
+  // Raw localStorage writes — skip save() so we don't immediately re-push
+  try {
+    localStorage.setItem('mindflow_routine_config', JSON.stringify(routineConfig));
+    localStorage.setItem('mindflow_routine_checks', JSON.stringify(routineChecks));
+    localStorage.setItem('mindflow_routine_updated_at', JSON.stringify(routineUpdatedAt));
+  } catch {}
+  if (typeof renderRoutinePage === 'function') renderRoutinePage();
+  return true;
+}
 
 // =================== CHECK TOGGLE (view mode) ===================
 function toggleRoutineItem(itemId) {
@@ -111,7 +147,7 @@ function toggleRoutineItem(itemId) {
   if (routineChecks[today][itemId]) delete routineChecks[today][itemId];
   else routineChecks[today][itemId] = true;
   if (Object.keys(routineChecks[today]).length === 0) delete routineChecks[today];
-  save('routine_checks', routineChecks);
+  _saveRoutineChecks();
   renderRoutinePage();
 }
 
