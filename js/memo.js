@@ -630,21 +630,8 @@ function renderMemoEditor() {
   //   'edit' — raw textarea (fastest on mobile, plain source)
   const renderedHtml = memo.content.trim() ? md2html(memo.content) : '<div class="markdown-empty">내용을 추가하려면 라이브뷰 또는 편집 모드로 전환하세요</div>';
 
-  let bodyHtml;
-  if (memoMode === 'view') {
-    bodyHtml = `<div class="memo-body-wrap"><div class="markdown-body view-clickable" id="memo-preview" onclick="if(!event.target.closest('a, img'))setMemoMode('live')">${renderedHtml}</div></div>`;
-  } else if (memoMode === 'live') {
-    bodyHtml = `<div class="memo-body-wrap edit-only"><div class="bear-editor" id="memo-live-editor"></div></div>`;
-  } else {
-    bodyHtml = `<div class="memo-body-wrap edit-only">
-      <textarea id="memo-textarea" oninput="updateMemoContent(this.value)" placeholder="메모를 입력하세요... (마크다운 지원)" spellcheck="false">${escapeHtml(memo.content)}</textarea>
-    </div>`;
-  }
-
-  // 3-way segmented mode control icons
-  const viewIcon = `<span class="mi mi-sm">visibility</span>`;
-  const liveIcon = `<span class="mi mi-sm">edit</span>`;
-  const editIcon = `<span class="mi mi-sm">code</span>`;
+  // Bear-style only — always render the inline live editor (view/edit modes removed)
+  const bodyHtml = `<div class="memo-body-wrap edit-only"><div class="bear-editor" id="memo-live-editor"></div></div>`;
 
   // Don't blow away the DOM if the user is actively typing in this editor
   if (document.activeElement && editor.contains(document.activeElement)) return;
@@ -656,11 +643,6 @@ function renderMemoEditor() {
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-toolbar-spacer"></div>
-      <div class="memo-mode-seg" role="group" aria-label="편집 모드">
-        <button class="${memoMode === 'view' ? 'active' : ''}" onclick="setMemoMode('view')" title="뷰어">${viewIcon}</button>
-        <button class="${memoMode === 'live' ? 'active' : ''}" onclick="setMemoMode('live')" title="라이브뷰">${liveIcon}</button>
-        <button class="${memoMode === 'edit' ? 'active' : ''}" onclick="setMemoMode('edit')" title="편집">${editIcon}</button>
-      </div>
       <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
         <span class="mi mi-sm">brush</span>
       </button>
@@ -694,13 +676,12 @@ function renderMemoEditor() {
   // Restore decoded images to avoid iOS re-decode flicker
   _patchImagesAfterRender(editor, _imgCache);
 
-  if (memoMode === 'live') {
-    const bearEl = document.getElementById('memo-live-editor');
-    if (bearEl && window.CM6) {
-      if (window._cm6View) { try { window._cm6View.destroy(); } catch {} window._cm6View = null; }
-      window._cm6View = window.CM6.createEditor(bearEl, memo.content, (text) => updateMemoContent(text));
-      setTimeout(() => { try { window._cm6View.focus(); } catch {} }, 30);
-    }
+  // Always mount the CodeMirror live editor (Bear-style)
+  const bearEl = document.getElementById('memo-live-editor');
+  if (bearEl && window.CM6) {
+    if (window._cm6View) { try { window._cm6View.destroy(); } catch {} window._cm6View = null; }
+    window._cm6View = window.CM6.createEditor(bearEl, memo.content, (text) => updateMemoContent(text));
+    setTimeout(() => { try { window._cm6View.focus(); } catch {} }, 30);
   }
 
   // Mark cached images as loaded so the skeleton shimmer goes away
@@ -1151,27 +1132,13 @@ function setupBearEditor(editor, content, onChange) {
   });
 }
 
-// Three modes: 'view' (rendered), 'live' (split textarea+preview), 'edit' (textarea only).
-// Migrate old values from prior builds: 'split'/'preview' → 'live'.
-let memoMode = load('memo_mode', 'view');
-if (!['view', 'live', 'edit'].includes(memoMode)) {
-  memoMode = (memoMode === 'split') ? 'live' : 'view';
-}
-function setMemoMode(mode) {
-  memoMode = mode;
-  save('memo_mode', mode);
+// Bear-style only — view/edit modes removed. The variable is kept to satisfy
+// older references; it's always 'live' now. setMemoMode is a no-op-ish helper
+// that just re-renders (still called from a few legacy paths).
+let memoMode = 'live';
+function setMemoMode(_mode) {
+  memoMode = 'live';
   renderMemoEditor();
-  // Focus is handled inside renderMemoEditor for live mode;
-  // for edit mode focus the textarea here.
-  if (mode === 'edit') {
-    setTimeout(() => {
-      const ta = document.getElementById('memo-textarea');
-      if (ta) {
-        ta.focus();
-        try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch {}
-      }
-    }, 30);
-  }
 }
 
 // Sync scroll between textarea and preview in split mode (proportional)
