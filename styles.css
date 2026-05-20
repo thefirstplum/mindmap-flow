@@ -1743,7 +1743,13 @@ body[data-theme="leather"] {
 #memo-live-editor .cm-editor { height: 100%; background: transparent; font-size: 16.5px; }
 /* Align body text with title/meta/tags (all use 26px side padding) */
 #memo-live-editor .cm-content { padding: 8px 26px 80px; }
-#memo-live-editor .cm-scroller { -webkit-overflow-scrolling: touch; overflow-y: auto; }
+#memo-live-editor .cm-scroller {
+  overflow-y: auto;
+  /* Prevent scroll chaining: when at top/bottom, don't pass scroll to body
+     (iOS Safari was pausing on boundary then resuming as parent scroll) */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 #memo-live-editor .cm-focused { outline: none; }
 #memo-live-editor .cm-selectionBackground { background: rgba(200,75,60,0.15) !important; }
 #memo-live-editor .cm-activeLine { background: rgba(0,0,0,0.018); }
@@ -2133,6 +2139,12 @@ body[data-theme="ayu"] {
   .memo-body-wrap:not(.split) .markdown-body,
   .memo-body-wrap.edit-only textarea,
   .memo-body-wrap.edit-only .bear-editor {
+    padding-left: max(26px, calc(50% - 380px));
+    padding-right: max(26px, calc(50% - 380px));
+  }
+  /* CM6 lives inside #memo-live-editor (id wins over class), so the rule
+     above doesn't reach .cm-content — duplicate the column padding here */
+  #memo-live-editor .cm-content {
     padding-left: max(26px, calc(50% - 380px));
     padding-right: max(26px, calc(50% - 380px));
   }
