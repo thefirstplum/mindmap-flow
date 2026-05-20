@@ -414,49 +414,9 @@
     </details>
 
     <details style="margin-top:22px;">
-      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 다른 동기화 옵션 (Gist · 로컬 폴더 · JSON)</summary>
+      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 다른 동기화 옵션 (로컬 폴더 · JSON)</summary>
 
-    <label style="margin-top:14px;">☁️ GitHub Gist 자동 동기화 <span style="color:var(--text-mute);font-weight:500;font-size:10px;">대안 (이미지 미지원)</span></label>
-    <div class="folder-status" id="gist-status">
-      <div class="icon-circle" style="background:var(--surface3)">☁</div>
-      <div class="text-area">
-        <div class="name" style="color:var(--text-dim)">연결되지 않음</div>
-        <div class="desc">GitHub Token으로 모든 기기에서 자동 동기화 (iOS·Mac 모두)</div>
-      </div>
-    </div>
-    <input type="password" id="gist-token-input" placeholder="GitHub Token (ghp_xxx 또는 github_pat_xxx)" style="margin-top:8px;">
-    <input type="text" id="gist-id-input" placeholder="기존 Gist ID (선택, 비우면 자동 생성)" style="margin-top:6px;font-family:ui-monospace,Menlo,monospace;font-size:12px;">
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-      <button class="tb-btn" onclick="gistConnect()" style="flex:1;min-width:100px;justify-content:center;">
-        🔗 연결
-      </button>
-      <button class="tb-btn" onclick="gistSyncNow()" id="gist-sync-now-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
-        🔄 지금 동기화
-      </button>
-      <button class="tb-btn" onclick="gistPullAll()" id="gist-pull-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
-        ⬇ 가져오기
-      </button>
-      <button class="tb-btn danger" onclick="gistDisconnect()" id="gist-disconnect-btn" style="flex:1;min-width:100px;justify-content:center;display:none;">
-        ✕ 연결 해제
-      </button>
-    </div>
-    <details style="margin-top:8px;font-size:11px;color:var(--text-dim);">
-      <summary style="cursor:pointer;color:var(--accent2);font-weight:600;">📖 GitHub Token 만드는 법 (3분)</summary>
-      <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;">
-        <strong style="color:var(--text);">1.</strong> <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" style="color:var(--accent2);text-decoration:underline;">github.com/settings/personal-access-tokens/new</a> 접속<br>
-        <strong style="color:var(--text);">2.</strong> Token name: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow Sync</code><br>
-        <strong style="color:var(--text);">3.</strong> Expiration: 원하는 기간 (최대 1년 권장)<br>
-        <strong style="color:var(--text);">4.</strong> Repository access: <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">Public Repositories (read-only)</code> 그대로<br>
-        <strong style="color:var(--text);">5.</strong> 아래로 스크롤 → <strong style="color:var(--accent2);">Account permissions</strong> → <strong>Gists</strong> 항목 → <strong style="color:var(--green);">Read and write</strong> 선택<br>
-        <strong style="color:var(--text);">6.</strong> 맨 아래 <strong>Generate token</strong> → <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">github_pat_xxx</code> 복사 → 위 입력란에 붙여넣고 [연결]<br>
-        <br>
-        💡 다른 기기에서 동일하게 동작하려면: <strong>같은 Token</strong> + <strong>같은 Gist ID</strong> 입력<br>
-        💡 Gist ID는 처음 연결 시 자동 생성되어 표시됩니다 — 다른 기기 입력란에 복사해 주세요<br>
-        💡 Token은 이 브라우저 localStorage에만 저장됩니다 (외부 전송 안 됨)
-      </div>
-    </details>
-
-    <label style="margin-top:18px;">📁 Vault 폴더 (자동 동기화)</label>
+    <label style="margin-top:14px;">📁 Vault 폴더 (자동 동기화)</label>
     <div class="folder-status" id="folder-status">
       <div class="icon-circle" style="background:var(--surface3)">📁</div>
       <div class="text-area">
