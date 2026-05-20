@@ -252,6 +252,23 @@ body[data-theme="leather"] {
 .icon { width: 22px; height: 22px; flex-shrink: 0; }
 .icon-sm { width: 18px; height: 18px; flex-shrink: 0; }
 
+/* ── Material Symbols (icon font) ── */
+/* Use as <span class="mi">menu</span> — name is the Material Symbols id */
+.mi {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal; font-style: normal;
+  font-size: 22px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  white-space: nowrap; direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none; flex-shrink: 0;
+}
+.mi-sm { font-size: 18px; }
+.mi-lg { font-size: 26px; }
+.mi-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+
 /* ────────────────────────────────────────────────────────────────
    §6  HEADER
    ──────────────────────────────────────────────────────────────── */
