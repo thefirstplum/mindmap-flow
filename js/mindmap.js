@@ -80,7 +80,8 @@ function bindActiveMap() {
 }
 bindActiveMap();
 
-function saveMindMap() {
+function saveMindMap(opts) {
+  opts = opts || {};
   const m = activeMap();
   if (!m) return;
   m.nodes = nodes;
@@ -88,6 +89,14 @@ function saveMindMap() {
   m.pan = pan;
   m.zoom = zoom;
   m.idCounter = nodeIdCounter;
+  if (opts.viewOnly) {
+    // Pan/zoom are per-device view state — persist locally, but DON'T bump
+    // updatedAt or trigger Drive sync. Otherwise every pan on Device A
+    // races against Device B's pan and forks conflict copies endlessly.
+    try { localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps)); } catch {}
+    try { localStorage.setItem('mindflow_mm_active', JSON.stringify(activeMindmapId)); } catch {}
+    return;
+  }
   m.updatedAt = new Date().toISOString();
   save('mindmaps', mindmaps);
   save('mm_active', activeMindmapId);
@@ -706,8 +715,8 @@ function pointerUp(e) {
     drawMindMap();
     return;
   }
-  if (draggingNode) saveMindMap();
-  if (isPanning) saveMindMap();
+  if (draggingNode) saveMindMap();          // node move = content change
+  if (isPanning) saveMindMap({ viewOnly: true }); // pan = local view only
   draggingNode = null;
   isPanning = false;
   pinchStart = null;
@@ -781,7 +790,7 @@ canvas.addEventListener('wheel', e => {
   pan.x = mx - (mx - pan.x) * (zoom / oldZoom);
   pan.y = my - (my - pan.y) * (zoom / oldZoom);
   drawMindMap();
-  saveMindMap();
+  saveMindMap({ viewOnly: true });          // zoom = local view only
 }, { passive: false });
 
 function addMindNode() {

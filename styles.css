@@ -2132,23 +2132,9 @@ body[data-theme="ayu"] {
 /* ── Wide screens: constrain reading column ── */
 /* Title, meta, tags, body all share the same centered reading-column
    padding so they line up vertically (no jaggy left edge). */
-@media (min-width: 1200px) {
-  .memo-editor-header,
-  .memo-meta,
-  .memo-tags-row,
-  .memo-body-wrap:not(.split) .markdown-body,
-  .memo-body-wrap.edit-only textarea,
-  .memo-body-wrap.edit-only .bear-editor {
-    padding-left: max(26px, calc(50% - 380px));
-    padding-right: max(26px, calc(50% - 380px));
-  }
-  /* CM6 lives inside #memo-live-editor (id wins over class), so the rule
-     above doesn't reach .cm-content — duplicate the column padding here */
-  #memo-live-editor .cm-content {
-    padding-left: max(26px, calc(50% - 380px));
-    padding-right: max(26px, calc(50% - 380px));
-  }
-}
+/* Widescreen reading-column rule removed — kept everything at 26px sides
+   so title/meta/tags/body all share the exact same left edge regardless
+   of viewport width (no auto-centering that drifted out of alignment). */
 
 /* ── Desktop: unified 260 px list panels ── */
 @media (min-width: 769px) {
