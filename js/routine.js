@@ -153,8 +153,14 @@ function toggleRoutineItem(itemId) {
 
 // =================== EDIT MODE ===================
 function toggleRoutineEditMode() {
+  const wasEditing = routineEditMode;
   routineEditMode = !routineEditMode;
   renderRoutinePage();
+  // Exiting edit mode → push immediately so other devices see the changes now.
+  // (Without this, edits sit in the 2.5s debounce until the next save tick.)
+  if (wasEditing && typeof driveSyncNow === 'function' && typeof driveFolderId !== 'undefined' && driveFolderId) {
+    driveSyncNow();
+  }
 }
 
 function updateRoutineSectionField(sectionId, field, value) {
