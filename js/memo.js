@@ -526,7 +526,7 @@ function renderMemoList() {
 
   if (filtered.length === 0) {
     container.innerHTML = `<div class="memo-empty">
-      <div class="big-icon">📝</div>
+      <span class="mi big-icon">edit_note</span>
       ${allNotes.length === 0 ? '아직 노트가 없습니다<br>+ 버튼을 눌러 시작하세요' : '검색 결과가 없습니다'}
     </div>`;
     return;
@@ -563,11 +563,11 @@ function renderMemoList() {
       `<button class="memo-pin-btn ${n.pinned ? 'pinned' : ''}" onclick="togglePinNote('${n.type}', ${n.id}, event)" title="${n.pinned ? '고정 해제' : '고정'}" aria-label="고정">
         <span class="mi mi-sm${n.pinned ? ' mi-fill' : ''}">push_pin</span>
       </button>`;
-    const typeIcon = n.type === 'mindmap' ? '🗺' : '📝';
+    const typeIcon = n.type === 'mindmap' ? 'account_tree' : 'edit_note';
     return `<div class="swipe-row" data-id="${n.id}" data-note-type="${n.type}">
       <div class="memo-item swipe-content ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${n.pinned ? 'is-pinned' : ''}" onclick="${onClick}">
         ${checkbox}
-        <span class="note-type-badge" aria-hidden="true">${typeIcon}</span>
+        <span class="note-type-badge mi mi-sm" aria-hidden="true">${typeIcon}</span>
         <div class="memo-item-body">
           <div class="memo-item-title">${escapeHtml(n.title) || '제목 없음'}</div>
           <div class="memo-item-preview">${escapeHtml(preview)}</div>
@@ -606,7 +606,7 @@ function renderMemoEditor() {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) {
     editor.innerHTML = `<div class="memo-editor-empty">
-      <div class="big">📝</div>
+      <span class="mi big">edit_note</span>
       <div style="font-size:16px;font-weight:600;color:var(--text-dim);">메모를 선택하거나 새로 만드세요</div>
       <div class="hint">목록에서 메모를 선택하거나 + 버튼을 눌러 새 메모를 만드세요</div>
       <div class="shortcuts">

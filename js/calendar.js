@@ -156,13 +156,13 @@ function renderCalDetail() {
     const dayNotes = getAllNotes()
       .filter(n => dateKey(new Date(n.updatedAt || n.createdAt)) === key)
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-    notesHtml = `<div class="cal-sec-head"><span>📝 노트</span></div>`;
+    notesHtml = `<div class="cal-sec-head"><span><span class="mi mi-sm" style="vertical-align:-3px;margin-right:4px">edit_note</span>노트</span></div>`;
     if (dayNotes.length === 0) {
       notesHtml += `<div class="cal-empty-mini">이 날 작성한 노트가 없어요</div>`;
     } else {
       notesHtml += `<div class="cal-note-list">` + dayNotes.map(n =>
         `<div class="cal-note-item" onclick="calOpenNote('${n.type}', ${n.id})">
-          <span class="cal-note-icon">${n.type === 'mindmap' ? '🗺' : '📝'}</span>
+          <span class="cal-note-icon mi mi-sm">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
           <span class="cal-note-title">${escapeHtml(n.title) || '제목 없음'}</span>
         </div>`).join('') + `</div>`;
     }
