@@ -129,7 +129,7 @@ function buildTagTree(allNotes) {
   return root;
 }
 
-const _TAG_CHEVRON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>';
+const _TAG_CHEVRON = '<span class="mi mi-sm">expand_more</span>';
 
 function renderTagTree(node, depth) {
   const kids = [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -455,7 +455,7 @@ function renderMemoList() {
       <button class="${noteTypeFilter === 'mindmap' ? 'active' : ''}" onclick="setNoteTypeFilter('mindmap')">마인드맵</button>
     </div>`;
     sortBar.innerHTML = `<div class="memo-sort-row">${typeSeg}<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
-      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="13" y2="6"/><line x1="3" y1="12" x2="10" y2="12"/><line x1="3" y1="18" x2="7" y2="18"/><polyline points="16 8 19 5 22 8"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+      <span class="mi mi-sm">swap_vert</span>
       <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button></div>`;
   }
 
@@ -561,7 +561,7 @@ function renderMemoList() {
       : `selectNote('${n.type}', ${n.id})`;
     const pinBtn = memoSelectMode ? '' :
       `<button class="memo-pin-btn ${n.pinned ? 'pinned' : ''}" onclick="togglePinNote('${n.type}', ${n.id}, event)" title="${n.pinned ? '고정 해제' : '고정'}" aria-label="고정">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="${n.pinned ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14l-1.6-2.4a3 3 0 01-.5-1.66V8a2 2 0 00-2-2H9.1a2 2 0 00-2 2v4.94a3 3 0 01-.5 1.66L5 17z"/></svg>
+        <span class="mi mi-sm${n.pinned ? ' mi-fill' : ''}">push_pin</span>
       </button>`;
     const typeIcon = n.type === 'mindmap' ? '🗺' : '📝';
     return `<div class="swipe-row" data-id="${n.id}" data-note-type="${n.type}">
@@ -642,9 +642,9 @@ function renderMemoEditor() {
   }
 
   // 3-way segmented mode control icons
-  const viewIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
-  const liveIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/><circle cx="18" cy="5" r="0" fill="currentColor"/></svg>`;
-  const editIcon = `<svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`;
+  const viewIcon = `<span class="mi mi-sm">visibility</span>`;
+  const liveIcon = `<span class="mi mi-sm">edit</span>`;
+  const editIcon = `<span class="mi mi-sm">code</span>`;
 
   // Don't blow away the DOM if the user is actively typing in this editor
   if (document.activeElement && editor.contains(document.activeElement)) return;
@@ -652,7 +652,7 @@ function renderMemoEditor() {
   editor.innerHTML = `
     <div class="memo-editor-toolbar">
       <button class="panel-reopen-btn" onclick="togglePanel('memo-page')" title="목록 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        <span class="mi mi-sm">chevron_right</span>
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-toolbar-spacer"></div>
@@ -662,13 +662,13 @@ function renderMemoEditor() {
         <button class="${memoMode === 'edit' ? 'active' : ''}" onclick="setMemoMode('edit')" title="편집">${editIcon}</button>
       </div>
       <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+        <span class="mi mi-sm">brush</span>
       </button>
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <span class="mi mi-sm">image</span>
       </button>
       <button class="memo-icon-btn danger" onclick="deleteMemo(${memo.id})" title="메모 삭제">
-        <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 01-2 2H9a2 2 0 01-2-2L5 6"/></svg>
+        <span class="mi mi-sm">delete</span>
       </button>
     </div>
     <div class="memo-editor-header">
