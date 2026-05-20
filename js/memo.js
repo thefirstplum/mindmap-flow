@@ -475,7 +475,7 @@ function renderMemoList() {
         </div>`
       : '';
     const tagsLabel = tagTree.children.size > 0 ? `<div class="tag-tree-label">태그</div>` : '';
-    tagBar.innerHTML = `${allRow}${tagsLabel}<div class="tag-tree">${renderTagTree(tagTree, 0)}${untaggedRow}</div>`;
+    tagBar.innerHTML = `${allRow}${untaggedRow}${tagsLabel}<div class="tag-tree">${renderTagTree(tagTree, 0)}</div>`;
   }
 
   const filtered = allNotes.filter(n => {
