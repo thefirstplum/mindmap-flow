@@ -55,6 +55,8 @@ let nodes = [], edges = [], pan = { x: 0, y: 0 }, zoom = 1, nodeIdCounter = 1;
 let selectedNode = null;
 let selectedEdge = null; // index into edges array
 let draggingNode = null;
+let draggingNodeMoved = false; // true once an active drag actually moves the node
+                               // (so a plain tap doesn't bump updatedAt → no sync churn)
 let connectingFrom = null;
 let isConnecting = false;
 let isDraggingConnection = false;
@@ -109,8 +111,10 @@ function renderMindmapList() {
 }
 
 function createMindmap() {
-  // Save current map state first
-  if (activeMap()) saveMindMap();
+  // (Previously we re-saved the currently-active map "just in case", but every
+  // legitimate edit already calls saveMindMap on its own; this redundant save
+  // was bumping updatedAt with no real change → other device thought a new
+  // version arrived and forked a "(충돌)" copy when it tried to push.)
   const map = {
     id: Date.now(),
     name: '새 마인드맵',
@@ -163,7 +167,9 @@ function deleteMindmapById(id) {
 
 function switchMindmap(id) {
   if (id === activeMindmapId) { closeMindmapList(); return; }
-  saveMindMap();
+  // No save of the outgoing map — real edits already persisted themselves.
+  // (A switch-time save was bumping updatedAt on a map nobody had touched,
+  // which produced phantom diffs and conflict copies between devices.)
   activeMindmapId = id;
   save('mm_active', activeMindmapId);
   selectedNode = null;
@@ -618,6 +624,7 @@ function pointerDown(e) {
     selectedNode = node.id;
     selectedEdge = null;
     draggingNode = node;
+    draggingNodeMoved = false;
     lastMouse = { x: p.cx, y: p.cy };
     syncToolbarColor(node.color || currentNodeColor);
     updateToolbarState();
@@ -674,6 +681,7 @@ function pointerMove(e) {
   const dy = t.clientY - lastMouse.y;
 
   if (draggingNode) {
+    if (dx !== 0 || dy !== 0) draggingNodeMoved = true;
     draggingNode.x += dx / zoom;
     draggingNode.y += dy / zoom;
     lastMouse = { x: t.clientX, y: t.clientY };
@@ -715,9 +723,13 @@ function pointerUp(e) {
     drawMindMap();
     return;
   }
-  if (draggingNode) saveMindMap();          // node move = content change
+  // Only save (= bump updatedAt = trigger Drive push) if the node ACTUALLY moved.
+  // A plain tap-on-node lands here too, and a redundant save was forcing every
+  // node tap to race with the other device's mtime → "(충돌)" fork.
+  if (draggingNode && draggingNodeMoved) saveMindMap();
   if (isPanning) saveMindMap({ viewOnly: true }); // pan = local view only
   draggingNode = null;
+  draggingNodeMoved = false;
   isPanning = false;
   pinchStart = null;
 }
