@@ -1175,8 +1175,10 @@ function updateMemoContent(val) {
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) return;
   memo.content = val;
-  // Promote inline #hashtags into tag chips (additive — doesn't remove manual tags)
+  // Re-derive tags from content (adds new #tags AND removes deleted ones).
+  // Refresh the chip strip too so deleted hashtags vanish from the UI.
   syncMemoHashtags(memo);
+  _refreshMemoTagChips();
   touchMemo(memo);
   saveMemos();
   // Update char/word count in meta row without re-rendering the editor
