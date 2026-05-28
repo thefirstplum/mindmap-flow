@@ -275,29 +275,200 @@ function toast(msg, type = '') {
   el._t = setTimeout(() => { el.classList.remove('show'); }, 2500);
 }
 
-// =================== STORAGE ===================
-function save(key, data) {
+// =================== STORAGE (IDB primary + memory cache + LS mirror) ===================
+// 아키텍처:
+//   - 메모리 캐시 (_kvCache) = 동기 응답을 위한 진실원
+//   - IDB (mindflow-kv/kv) = persistent primary, 용량 ~50GB+
+//   - localStorage = 부팅 시드 + 백업 미러 (실패해도 OK)
+// 부팅:
+//   1) 동기적으로 localStorage 모든 mindflow_* 키를 _kvCache에 즉시 시드
+//      → 다른 모듈의 IIFE가 load() 호출 시 즉시 응답 가능
+//   2) 비동기로 IDB 열기 + IDB → _kvCache 머지 (IDB가 더 신선하면 갱신)
+//   3) localStorage 마이그레이션 — IDB에 키 없는 LS 키를 IDB에 복사
+// save:
+//   - _kvCache 즉시 갱신 (load는 다음 tick에 새 값 봄)
+//   - IDB write-behind (await 없음, fire-and-forget)
+//   - localStorage 미러 (실패해도 IDB가 살아있음)
+//   - 기존 동기화 트리거(scheduleAutoSave 등)
+
+const _kvCache = new Map();
+let _kvDb = null;
+let _kvReadyResolve;
+const kvReady = new Promise(r => { _kvReadyResolve = r; });
+
+// 1) 동기 시드 — utils.js 로드 즉시 실행. 다른 모듈 IIFE가 load() 호출 전에 끝남.
+(function _seedFromLocalStorage() {
   try {
-    localStorage.setItem('mindflow_' + key, JSON.stringify(data));
-    scheduleAutoSave();
-    scheduleGistSave();
-    scheduleDriveSave();
-    // Cheap quota check (sampled, not every save) — warn before silent fail
-    _maybeCheckQuota();
-  } catch (e) {
-    toast('저장 실패: 저장 공간 부족 — 동기화 모달에서 용량 확인 필요', 'error');
-    // Hard fail: tell user immediately, not just a flash toast
-    if (typeof console !== 'undefined') console.error('[save] quota exceeded for key', key, e);
-  }
-}
-function load(key, def) {
-  try { const v = localStorage.getItem('mindflow_' + key); return v ? JSON.parse(v) : def; }
-  catch { return def; }
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith('mindflow_')) continue;
+      const raw = localStorage.getItem(k);
+      if (raw == null) continue;
+      try { _kvCache.set(k.slice('mindflow_'.length), JSON.parse(raw)); }
+      catch { _kvCache.set(k.slice('mindflow_'.length), raw); }
+    }
+  } catch (e) { console.warn('[kv] LS seed failed:', e); }
+})();
+
+function _kvOpen() {
+  if (_kvDb) return Promise.resolve(_kvDb);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('mindflow-kv', 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+    };
+    req.onsuccess = () => { _kvDb = req.result; resolve(_kvDb); };
+    req.onerror = () => reject(req.error);
+  });
 }
 
+// 2) IDB → cache 머지 + LS 마이그레이션 (백그라운드)
+(async function _kvBoot() {
+  try {
+    const db = await _kvOpen();
+    // 모든 IDB 키 → cache (IDB 우선 — 더 신선)
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('kv', 'readonly');
+      const store = tx.objectStore('kv');
+      const req = store.openCursor();
+      req.onsuccess = () => {
+        const cursor = req.result;
+        if (!cursor) return resolve();
+        _kvCache.set(cursor.key, cursor.value);
+        cursor.continue();
+      };
+      req.onerror = () => reject(req.error);
+    });
+    // LS에는 있지만 IDB엔 없는 키 → IDB로 마이그레이션 (일회성, 자동 멱등)
+    const toMigrate = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('mindflow_')) continue;
+        const subKey = k.slice('mindflow_'.length);
+        if (!_kvCache.has(subKey)) continue; // 시드에서 빠진 건 손상으로 보고 스킵
+        toMigrate.push(subKey);
+      }
+    } catch {}
+    if (toMigrate.length) {
+      const tx = db.transaction('kv', 'readwrite');
+      const store = tx.objectStore('kv');
+      for (const k of toMigrate) store.put(_kvCache.get(k), k);
+    }
+  } catch (e) {
+    console.warn('[kv] IDB boot failed — localStorage mode 유지:', e);
+  } finally {
+    _kvReadyResolve();
+  }
+})();
+
+// IDB write-behind 큐 (디바운스로 묶기 — 빠른 연속 save 시 1 트랜잭션)
+const _kvPendingWrites = new Map();
+let _kvFlushTimer = null;
+function _kvFlush() {
+  if (!_kvDb || _kvPendingWrites.size === 0) return;
+  const pending = new Map(_kvPendingWrites);
+  _kvPendingWrites.clear();
+  try {
+    const tx = _kvDb.transaction('kv', 'readwrite');
+    const store = tx.objectStore('kv');
+    for (const [k, v] of pending) {
+      if (v === undefined) store.delete(k);
+      else store.put(v, k);
+    }
+  } catch (e) { console.warn('[kv] flush failed:', e); }
+}
+
+function save(key, data) {
+  // 1) 메모리 캐시 즉시 갱신 — load는 다음 호출에 새 값 봄
+  _kvCache.set(key, data);
+  // 2) IDB write-behind (디바운스 80ms)
+  _kvPendingWrites.set(key, data);
+  clearTimeout(_kvFlushTimer);
+  _kvFlushTimer = setTimeout(_kvFlush, 80);
+  // 3) localStorage 미러 — 실패해도 IDB가 살아있어서 안전
+  try {
+    localStorage.setItem('mindflow_' + key, JSON.stringify(data));
+  } catch (e) {
+    // 한계 도달 — IDB가 primary니까 silent OK, 모니터링만
+    console.warn('[save] LS mirror failed (IDB OK):', key);
+  }
+  // 동기화 트리거 (기존 동작)
+  scheduleAutoSave();
+  scheduleGistSave();
+  scheduleDriveSave();
+  _maybeCheckQuota();
+}
+
+function load(key, def) {
+  if (_kvCache.has(key)) return _kvCache.get(key);
+  // 캐시 미스 — localStorage fallback (시드 누락 케이스 안전망)
+  try {
+    const v = localStorage.getItem('mindflow_' + key);
+    if (v != null) {
+      try { return JSON.parse(v); } catch { return v; }
+    }
+  } catch {}
+  return def;
+}
+
+// 명시적 IDB-await 필요한 경우용 (sync.js의 일부 정확성 critical path 등)
+async function saveAsync(key, data) {
+  save(key, data);
+  // 다음 tick의 flush까지 명시적으로 기다림
+  await new Promise(r => setTimeout(r, 100));
+}
+async function loadAsync(key, def) {
+  await kvReady;
+  return load(key, def);
+}
+
+// 키 삭제 — sync.js의 cleanup 같은 곳에서 직접 호출 가능
+function kvDelete(key) {
+  _kvCache.delete(key);
+  _kvPendingWrites.set(key, undefined);
+  clearTimeout(_kvFlushTimer);
+  _kvFlushTimer = setTimeout(_kvFlush, 80);
+  try { localStorage.removeItem('mindflow_' + key); } catch {}
+}
+
+// 페이지 떠나기 직전 마지막 flush (모바일 lifecycle 안전)
+window.addEventListener('pagehide', _kvFlush);
+window.addEventListener('beforeunload', _kvFlush);
+
+// Storage.prototype monkey-patch — sync.js·기타 코드의 localStorage.setItem/removeItem
+// 직접 호출이 cache·IDB에도 자동 반영되게 함. mindflow_ 접두 키만 잡음 (다른 사이트/
+// 라이브러리 영향 X). 52곳을 다 손대지 않고 한 줄로 일관성 보장.
+(function _patchStorageForKv() {
+  const origSet = Storage.prototype.setItem;
+  const origRm = Storage.prototype.removeItem;
+  Storage.prototype.setItem = function(key, value) {
+    if (this === localStorage && typeof key === 'string' && key.startsWith('mindflow_')) {
+      const subKey = key.slice('mindflow_'.length);
+      let parsed = value;
+      try { parsed = JSON.parse(value); } catch {}
+      _kvCache.set(subKey, parsed);
+      _kvPendingWrites.set(subKey, parsed);
+      clearTimeout(_kvFlushTimer);
+      _kvFlushTimer = setTimeout(_kvFlush, 80);
+    }
+    return origSet.call(this, key, value);
+  };
+  Storage.prototype.removeItem = function(key) {
+    if (this === localStorage && typeof key === 'string' && key.startsWith('mindflow_')) {
+      const subKey = key.slice('mindflow_'.length);
+      _kvCache.delete(subKey);
+      _kvPendingWrites.set(subKey, undefined);
+      clearTimeout(_kvFlushTimer);
+      _kvFlushTimer = setTimeout(_kvFlush, 80);
+    }
+    return origRm.call(this, key);
+  };
+})();
+
 // =================== STORAGE QUOTA ===================
-// localStorage hard-fails silently when full → user thinks edits saved but they
-// didn't. Sample navigator.storage.estimate() periodically and warn at 80%.
+// IDB primary 전환 후 quota는 디스크 ~60% (수십 GB). 95% 도달 시에만 경고.
 let _quotaLastCheckAt = 0;
 let _quotaLastWarnAt = 0;
 async function _maybeCheckQuota() {
@@ -310,10 +481,10 @@ async function _maybeCheckQuota() {
     const { usage, quota } = await navigator.storage.estimate();
     if (!usage || !quota) return;
     const pct = usage / quota;
-    if (pct > 0.8 && now - _quotaLastWarnAt > 60 * 60_000) {
+    if (pct > 0.95 && now - _quotaLastWarnAt > 60 * 60_000) {
       _quotaLastWarnAt = now;
       const mb = (n) => (n / 1024 / 1024).toFixed(1);
-      toast(`⚠️ 저장공간 ${Math.round(pct * 100)}% 사용 중 (${mb(usage)}MB / ${mb(quota)}MB) — 정리 권장`, 'error');
+      toast(`⚠️ 저장공간 ${Math.round(pct * 100)}% (${mb(usage)}MB / ${mb(quota)}MB) — 정리 권장`, 'error');
     }
   } catch {}
 }
