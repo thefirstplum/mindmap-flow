@@ -873,8 +873,7 @@ function renderMemoEditor() {
       <div class="shortcuts">
         <div style="font-weight:600;color:var(--text);margin-bottom:6px;">단축키</div>
         <code>${mod}+K</code> 명령 팔레트 ·  <code>${mod}+N</code> 새 메모 ·  <code>${mod}+F</code> 검색<br>
-        <code>${mod}+⇧+T</code> 오늘 데일리노트 ·  <code>${mod}+P</code> 핀 ·  <code>${mod}+⌫</code> 삭제<br>
-        <code>↑/↓</code> 메모 이동<br>
+        <code>↑/↓</code> 메모 이동 ·  <code>${mod}+P</code> 핀 ·  <code>${mod}+⌫</code> 삭제<br>
         <div style="font-weight:600;color:var(--text);margin:10px 0 6px;">마크다운 단축 문법</div>
         <code># </code> 큰 제목 ·  <code>## </code> 중제목<br>
         <code>**굵게**</code> ·  <code>*기울임*</code> ·  <code>~~취소~~</code><br>
@@ -1827,123 +1826,6 @@ function markLoadedImages() {
   });
 }
 
-// =================== DAILY NOTES ===================
-// title이 `daily:YYYY-MM-DD`로 시작하는 메모를 그날 데일리노트로 인식.
-// 옵시디언/로그시크의 매일 페이지와 동일 컨셉. 캘린더 셀·사이드바 '오늘'·
-// keyboard shortcut으로 진입.
-function dailyDateKey(d) {
-  d = d || new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-function getDailyNote(dKey) {
-  if (typeof memos === 'undefined') return null;
-  return memos.find(m => (m.title || '') === `daily:${dKey}`);
-}
-
-function openDailyNote(dKey) {
-  dKey = dKey || dailyDateKey();
-  let m = getDailyNote(dKey);
-  if (!m) {
-    const now = new Date().toISOString();
-    m = {
-      id: memoIdCounter++,
-      title: `daily:${dKey}`,
-      content: buildDailyNoteTemplate(dKey),
-      date: now,
-      updatedAt: now,
-      tags: ['daily']
-    };
-    memos.unshift(m);
-    saveMemos();
-    toast(`데일리노트 ${dKey} 생성`, 'success');
-  }
-  if (typeof currentPage !== 'undefined' && currentPage !== 'memo' && typeof navigateTo === 'function') {
-    navigateTo('memo', { updateHash: false });
-  }
-  selectNote('memo', m.id);
-}
-
-// 데일리노트 기본 양식 — Obsidian Daily Notes + Bullet Journal + Five Minute Journal 혼합
-// (저장: 사장님이 수정한 사용자 템플릿이 localStorage에 있으면 그걸 우선)
-function buildDailyNoteTemplate(dKey) {
-  const userTpl = load('daily_template', null);
-  const [y, m, d] = dKey.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  const dayName = ['일','월','화','수','목','금','토'][date.getDay()];
-  // 어제·내일 키 계산 (시간대 안전)
-  const prev = new Date(date); prev.setDate(prev.getDate() - 1);
-  const next = new Date(date); next.setDate(next.getDate() + 1);
-  const prevKey = dailyDateKey(prev);
-  const nextKey = dailyDateKey(next);
-  // 치환 토큰
-  const tpl = userTpl || _DEFAULT_DAILY_TEMPLATE;
-  return tpl
-    .replace(/\{\{date\}\}/g, dKey)
-    .replace(/\{\{dayName\}\}/g, dayName)
-    .replace(/\{\{yesterday\}\}/g, prevKey)
-    .replace(/\{\{tomorrow\}\}/g, nextKey)
-    .replace(/\{\{time\}\}/g, `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`);
-}
-
-const _DEFAULT_DAILY_TEMPLATE = `# {{date}} ({{dayName}})
-
-← [[daily:{{yesterday}}]]  ·  [[daily:{{tomorrow}}]] →
-
-## 🎯 오늘의 목표
--
-
-## ✅ 할 일
-- [ ]
-- [ ]
-- [ ]
-
-## 📝 메모·아이디어
--
-
-## 🙏 감사한 것
-1.
-2.
-3.
-
-## 🌙 회고
-- 잘된 것:
-- 아쉬운 것:
-- 내일은:
-`;
-
-// 사용자가 자기 템플릿으로 바꾸고 싶을 때 — 현재 데일리노트를 템플릿으로 저장
-async function saveDailyTemplateFromCurrent() {
-  const m = memos.find(x => x.id === activeMemoId);
-  if (!m || !(m.title || '').startsWith('daily:')) {
-    toast('데일리노트를 연 상태에서 실행하세요'); return;
-  }
-  if (!(await confirmDialog('현재 데일리노트 본문을 기본 템플릿으로 저장할까요?\n(다음에 새 데일리노트 만들 때 이 양식이 적용됩니다)', { okText: '저장' }))) return;
-  // 토큰 역치환 — 사장님이 적은 날짜·요일을 다시 {{}}로
-  const m_dKey = m.title.slice('daily:'.length);
-  const [yy, mm, dd] = m_dKey.split('-').map(Number);
-  const dt = new Date(yy, mm - 1, dd);
-  const dn = ['일','월','화','수','목','금','토'][dt.getDay()];
-  const prev = new Date(dt); prev.setDate(prev.getDate() - 1);
-  const next = new Date(dt); next.setDate(next.getDate() + 1);
-  let tpl = m.content
-    .split(m_dKey).join('{{date}}')
-    .split(`(${dn})`).join('({{dayName}})')
-    .split(dailyDateKey(prev)).join('{{yesterday}}')
-    .split(dailyDateKey(next)).join('{{tomorrow}}');
-  save('daily_template', tpl);
-  toast('데일리노트 템플릿 저장됨', 'success');
-}
-
-// 사용자 템플릿 초기화 (기본으로 되돌리기)
-async function resetDailyTemplate() {
-  if (!(await confirmDialog('데일리노트 템플릿을 기본 양식으로 되돌릴까요?', { danger: false, okText: '초기화' }))) return;
-  try { localStorage.removeItem('mindflow_daily_template'); } catch {}
-  toast('기본 양식으로 초기화됨', 'success');
-}
-
-function openTodayDailyNote() { openDailyNote(dailyDateKey()); }
-
 // =================== PER-NOTE VERSION HISTORY (IndexedDB) ===================
 // BackupService는 '전체 상태' 단위. per-note history는 다른 메모를 안 건드리고
 // 한 메모의 직전 버전들만 복원. 5분 throttle + selectNote 시 flush.
@@ -2260,15 +2142,12 @@ function closeCmdPalette() {
 }
 function _cmdActions() {
   return [
-    { key: 'today-daily',  label: '오늘 데일리노트', icon: 'today',        fn: () => { closeCmdPalette(); openTodayDailyNote(); } },
     { key: 'new-memo',     label: '새 메모',        icon: 'edit_note',    fn: () => { closeCmdPalette(); createMemo(); } },
     { key: 'new-mindmap',  label: '새 마인드맵',    icon: 'account_tree', fn: () => { closeCmdPalette(); createMindmap(); } },
     { key: 'go-calendar',  label: '캘린더로 이동',  icon: 'calendar_month', fn: () => { closeCmdPalette(); navigateTo('calendar'); } },
     { key: 'go-routine',   label: '루틴으로 이동',  icon: 'fitness_center', fn: () => { closeCmdPalette(); navigateTo('routine'); } },
     { key: 'sync-now',     label: '지금 동기화',    icon: 'sync',         fn: () => { closeCmdPalette(); if (typeof openSyncModal === 'function') openSyncModal(); } },
     { key: 'theme',        label: '테마 선택',      icon: 'palette',      fn: () => { closeCmdPalette(); if (typeof openThemePicker === 'function') openThemePicker(); } },
-    { key: 'save-daily-tpl',  label: '현재 데일리노트를 템플릿으로 저장', icon: 'bookmark_add', fn: () => { closeCmdPalette(); saveDailyTemplateFromCurrent(); } },
-    { key: 'reset-daily-tpl', label: '데일리노트 템플릿 초기화', icon: 'restart_alt', fn: () => { closeCmdPalette(); resetDailyTemplate(); } },
     { key: 'cleanup-conflicts', label: '충돌 사본 정리', icon: 'cleaning_services', fn: () => { closeCmdPalette(); if (typeof cleanupSyncConflicts === 'function') cleanupSyncConflicts(); } },
   ];
 }

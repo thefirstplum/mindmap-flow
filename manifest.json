@@ -47,13 +47,6 @@
   ],
   "shortcuts": [
     {
-      "name": "오늘 데일리노트",
-      "short_name": "오늘",
-      "description": "오늘 날짜의 데일리노트 열기",
-      "url": "./?action=daily",
-      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
       "name": "새 메모",
       "short_name": "메모",
       "description": "빈 메모를 바로 작성",
