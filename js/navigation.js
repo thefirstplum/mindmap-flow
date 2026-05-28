@@ -138,12 +138,6 @@ document.addEventListener('keydown', (e) => {
     if (typeof createMemo === 'function') createMemo();
     return;
   }
-  // ⌘⇧T — 오늘 데일리노트
-  if (meta && e.shiftKey && (e.key === 't' || e.key === 'T')) {
-    e.preventDefault();
-    if (typeof openTodayDailyNote === 'function') openTodayDailyNote();
-    return;
-  }
   // ⌘F — 메모 검색 포커스
   if (meta && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
     const search = document.getElementById('memo-search');
