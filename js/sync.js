@@ -785,21 +785,74 @@ function mergeMemos(remoteMemos, localMemos, opts) {
   return out;
 }
 
-// Merge remote mindmaps into local mindmaps. Mirrors mergeMemos' protections:
-// tombstones (no resurrection), 3-way deletion via pullSnap, and tag preservation
-// when remote lacks the field.
+// CRDT-lite node-level merge of two mindmap snapshots.
+// Both sides alive → union nodes/edges by id, per-node mtime wins on conflicts,
+// node tombstones (mm.deletedNodes) prevent resurrection of explicit deletions.
+// pan/zoom = local view state (not synced). idCounter = max.
+function _mergeMindmapPair(remote, local) {
+  const remoteAt = new Date(remote.updatedAt || 0).getTime();
+  const localAt = new Date(local.updatedAt || 0).getTime();
+  // Mindmap-level metadata (name/tags/pinned) → newer wins
+  const winner = remoteAt >= localAt ? remote : local;
+  const result = {
+    ...winner,
+    // Preserve local view state — pan/zoom is per-device
+    pan: local.pan || winner.pan,
+    zoom: local.zoom != null ? local.zoom : winner.zoom,
+    idCounter: Math.max(remote.idCounter || 1, local.idCounter || 1, 1),
+    // Tombstones: union, keep newest timestamp per id
+    deletedNodes: _unionTombstones(remote.deletedNodes, local.deletedNodes),
+  };
+  // Preserve tags from loser if winner doesn't carry them at all
+  const loser = winner === remote ? local : remote;
+  if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
+    result.tags = loser.tags;
+  }
+  // Nodes: id-keyed union with mtime tiebreak + tombstone filter
+  const tombs = result.deletedNodes;
+  const nodeMtime = n => new Date(n.updatedAt || 0).getTime() || (n === remote ? remoteAt : localAt);
+  const nodeMap = new Map();
+  const consider = (n, fallbackAt) => {
+    if (!n || n.id == null) return;
+    const tombAt = tombs[n.id] ? new Date(tombs[n.id]).getTime() : 0;
+    const nAt = new Date(n.updatedAt || 0).getTime() || fallbackAt;
+    if (tombAt && tombAt >= nAt) return; // tombstone wins → node stays deleted
+    const prev = nodeMap.get(n.id);
+    if (!prev) { nodeMap.set(n.id, n); return; }
+    const prevAt = new Date(prev.updatedAt || 0).getTime() || (prev._side === 'r' ? remoteAt : localAt);
+    if (nAt >= prevAt) nodeMap.set(n.id, n);
+  };
+  for (const n of (local.nodes || [])) { n._side = 'l'; consider(n, localAt); }
+  for (const n of (remote.nodes || [])) { n._side = 'r'; consider(n, remoteAt); }
+  // Strip the _side tag we added for tiebreak (don't leak into Drive)
+  result.nodes = [...nodeMap.values()].map(n => { const { _side, ...rest } = n; return rest; });
+  // Edges: union by directed key "from-to". If both endpoints survived, keep edge.
+  const liveIds = new Set(result.nodes.map(n => n.id));
+  const edgeKey = e => `${e.from}-${e.to}`;
+  const edgeMap = new Map();
+  for (const e of (local.edges || [])) if (liveIds.has(e.from) && liveIds.has(e.to)) edgeMap.set(edgeKey(e), e);
+  for (const e of (remote.edges || [])) if (liveIds.has(e.from) && liveIds.has(e.to)) edgeMap.set(edgeKey(e), e);
+  result.edges = [...edgeMap.values()];
+  return result;
+}
+
+function _unionTombstones(a, b) {
+  const out = { ...(a || {}) };
+  for (const [k, v] of Object.entries(b || {})) {
+    if (!out[k] || new Date(v).getTime() > new Date(out[k]).getTime()) out[k] = v;
+  }
+  return out;
+}
+
+// Merge remote mindmaps into local mindmaps. Mirrors mergeMemos' protections
+// PLUS node-level CRDT-lite merge (above) so concurrent edits on the SAME
+// mindmap no longer fork conflict copies — both edits survive.
 function mergeMindmaps(remoteMms, localMms, opts) {
   opts = opts || {};
   const pullSnapMm = opts.pullSnapMm || {};
   const tombstones = opts.tombstones || {};
   const remoteIdSet = new Set(remoteMms.map(m => m && m.id).filter(Boolean));
   const mtime = mm => new Date(mm.updatedAt || 0).getTime();
-  const mergeWithTags = (winner, loser) => {
-    if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
-      return { ...winner, tags: loser.tags };
-    }
-    return winner;
-  };
   const map = new Map();
   for (const m of localMms) {
     if (!remoteIdSet.has(m.id) && (m.id in pullSnapMm)) {
@@ -818,8 +871,11 @@ function mergeMindmaps(remoteMms, localMms, opts) {
       continue;
     }
     const local = map.get(remote.id);
-    if (!local || mtime(remote) >= mtime(local)) {
-      map.set(remote.id, mergeWithTags(remote, local));
+    if (!local) {
+      map.set(remote.id, remote);
+    } else {
+      // Both sides alive → node-level merge (no more whole-mindmap last-write-wins)
+      map.set(remote.id, _mergeMindmapPair(remote, local));
     }
   }
   return [...map.values()];

@@ -748,7 +748,10 @@ function pointerUp(e) {
   // Only save (= bump updatedAt = trigger Drive push) if the node ACTUALLY moved.
   // A plain tap-on-node lands here too, and a redundant save was forcing every
   // node tap to race with the other device's mtime → "(충돌)" fork.
-  if (draggingNode && draggingNodeMoved) saveMindMap();
+  if (draggingNode && draggingNodeMoved) {
+    draggingNode.updatedAt = new Date().toISOString();  // CRDT-lite node mtime
+    saveMindMap();
+  }
   if (isPanning) saveMindMap({ viewOnly: true }); // pan = local view only
   draggingNode = null;
   draggingNodeMoved = false;
@@ -837,7 +840,8 @@ function addMindNode() {
     text: '새 노드',
     x: cx + (Math.random() - 0.5) * 100,
     y: cy + (Math.random() - 0.5) * 100,
-    color: currentNodeColor
+    color: currentNodeColor,
+    updatedAt: new Date().toISOString()        // node-level mtime for CRDT-lite merge
   };
   nodes.push(node);
   selectedNode = node.id;
@@ -870,6 +874,12 @@ async function deleteSelected() {
   }
   if (!selectedNode) return;
   if (!(await confirmDialog('이 노드를 삭제하시겠습니까?', { danger: true, okText: '삭제' }))) return;
+  // Node tombstone — node-level CRDT 머지가 부활시키지 않도록 기록
+  const m = activeMap();
+  if (m) {
+    m.deletedNodes = m.deletedNodes || {};
+    m.deletedNodes[selectedNode] = new Date().toISOString();
+  }
   nodes = nodes.filter(n => n.id !== selectedNode);
   edges = edges.filter(e => e.from !== selectedNode && e.to !== selectedNode);
   selectedNode = null;
@@ -883,7 +893,12 @@ function setNodeColor(el) {
   syncToolbarColor(currentNodeColor);
   if (selectedNode) {
     const node = nodes.find(n => n.id === selectedNode);
-    if (node) { node.color = currentNodeColor; saveMindMap(); drawMindMap(); }
+    if (node) {
+      node.color = currentNodeColor;
+      node.updatedAt = new Date().toISOString();  // CRDT-lite node mtime
+      saveMindMap();
+      drawMindMap();
+    }
   }
 }
 
@@ -1040,6 +1055,7 @@ function closeNodeEdit(cancel) {
       const text = popupInput.value.trim();
       if (text) {
         node.text = text;
+        node.updatedAt = new Date().toISOString();  // CRDT-lite node mtime
         saveMindMap();
         drawMindMap();
       } else if (!editOriginalText) {
