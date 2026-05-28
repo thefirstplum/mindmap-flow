@@ -911,6 +911,9 @@ function renderMemoEditor() {
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
         <span class="mi mi-sm">image</span>
       </button>
+      <button class="memo-icon-btn" onclick="triggerFileUpload()" title="파일 첨부 (Google Drive에 업로드)">
+        <span class="mi mi-sm">attach_file</span>
+      </button>
       <button class="memo-icon-btn" onclick="openVersionHistory()" title="버전 히스토리">
         <span class="mi mi-sm">history</span>
       </button>
@@ -1720,6 +1723,91 @@ document.addEventListener('drop', (e) => {
     handleImageInsert(img);
   }
 });
+
+// =================== FILE UPLOAD (any file → Drive, link in memo) ===================
+// 이미지 업로드와 동일한 인프라 사용. 단, 본문엔 이미지 ![]() 가 아닌 [📎 이름](url)
+// 형태로 마크다운 링크 삽입. 공개 공유 링크 (URL 아는 사람만 접근) — 이미지와 동일.
+async function uploadFileToDrive(file) {
+  if (!driveAssetsFolderId) {
+    toast('파일 업로드는 Drive 연결이 필요합니다 (동기화 모달에서 연결)', 'error');
+    return null;
+  }
+  // 50MB 이상이면 한 번 더 확인 (모바일 데이터·시간 소모)
+  if (file.size > 50 * 1024 * 1024) {
+    const ok = await confirmDialog(
+      `"${file.name}"\n파일 크기: ${_fmtFileSize(file.size)}\n\n업로드에 시간이 걸려요. 계속할까요?`,
+      { okText: '업로드' }
+    );
+    if (!ok) return null;
+  }
+  try {
+    toast(`파일 업로드 중... (${_fmtFileSize(file.size)})`);
+    // 원본 이름 보존 + 충돌 방지를 위해 prefix 추가 (파일 본체는 원본명)
+    const safeName = (file.name || 'file').replace(/[/\\?%*:|"<>]/g, '_');
+    const driveName = `file-${Date.now()}-${safeName}`;
+    const uploaded = await driveUploadFile(
+      driveName, file, file.type || 'application/octet-stream', driveAssetsFolderId
+    );
+    await driveMakePublic(uploaded.id);
+    // Drive 표준 공유 링크 (브라우저에서 미리보기/다운로드 가능)
+    const url = `https://drive.google.com/file/d/${uploaded.id}/view`;
+    toast('파일 업로드 완료', 'success');
+    return { url, id: uploaded.id, name: file.name, size: file.size };
+  } catch (e) {
+    toast('업로드 실패: ' + e.message, 'error');
+    return null;
+  }
+}
+
+function _fileIcon(name) {
+  const ext = (name || '').split('.').pop()?.toLowerCase();
+  const map = {
+    pdf: '📄',
+    doc: '📝', docx: '📝', odt: '📝', hwp: '📝', hwpx: '📝',
+    xls: '📊', xlsx: '📊', csv: '📊', ods: '📊',
+    ppt: '📊', pptx: '📊', key: '📊',
+    zip: '🗜️', rar: '🗜️', '7z': '🗜️', tar: '🗜️', gz: '🗜️',
+    mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬',
+    mp3: '🎵', wav: '🎵', m4a: '🎵', flac: '🎵', ogg: '🎵',
+    txt: '📃', md: '📃', log: '📃',
+    json: '⚙️', xml: '⚙️', yaml: '⚙️', yml: '⚙️',
+    html: '🌐', htm: '🌐',
+    js: '📜', ts: '📜', py: '📜', java: '📜', c: '📜', cpp: '📜', go: '📜', rs: '📜', swift: '📜'
+  };
+  return map[ext] || '📎';
+}
+
+function _fmtFileSize(n) {
+  if (!Number.isFinite(n)) return '?';
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
+  if (n < 1024 * 1024 * 1024) return `${(n / 1024 / 1024).toFixed(1)} MB`;
+  return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+async function triggerFileUpload() {
+  if (!activeMemoId) { toast('먼저 메모를 선택하세요', 'error'); return; }
+  const input = document.createElement('input');
+  input.type = 'file';
+  // 모든 파일 허용 (이미지는 별도 버튼이 더 친절 — paste/drag도 지원)
+  input.multiple = true;
+  input.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0';
+  input.onchange = async (e) => {
+    const files = Array.from(e.target.files || []);
+    // 순차 업로드 (Drive API rate-limit 안전)
+    for (const f of files) {
+      const result = await uploadFileToDrive(f);
+      if (!result) continue;
+      const icon = _fileIcon(result.name);
+      const size = _fmtFileSize(result.size);
+      const link = `[${icon} ${result.name} (${size})](${result.url})\n`;
+      insertIntoActiveMemo(link);
+    }
+    setTimeout(() => { try { input.remove(); } catch {} }, 200);
+  };
+  document.body.appendChild(input);
+  input.click();
+}
 
 function triggerImageUpload() {
   // iOS / iPadOS won't open the photo picker reliably for a detached input
