@@ -48,32 +48,54 @@ if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});
 }
 
-// =================== SERVICE WORKER (PWA fresh-update) ===================
-// Registers a network-first SW so installed PWAs always pick up new deploys
-// the next time they're opened — no more "stuck on old version" on iOS/Android.
+// =================== SERVICE WORKER (PWA instant-update) ===================
+// Network-first SW + auto skipWaiting + auto reload → 새 배포가 즉시 적용됨.
+// 이전엔 새 SW가 waiting 상태로 머물러 다음 새로고침까지 옛 버전을 보여줬음.
 if ('serviceWorker' in navigator) {
   // Use ./service-worker.js so it works on GitHub Pages subpath
   navigator.serviceWorker.register('./service-worker.js').then((reg) => {
-    // Detect when a new SW is waiting (new deploy arrived)
+    // 페이지 로드 직후 이미 waiting 중인 SW가 있으면 즉시 활성화
+    if (reg.waiting && navigator.serviceWorker.controller) {
+      reg.waiting.postMessage('SKIP_WAITING');
+    }
+
+    // 새 SW 설치되는 순간 → 즉시 활성화 요청 (사용자 액션 대기 X)
     reg.addEventListener('updatefound', () => {
       const sw = reg.installing;
       if (!sw) return;
       sw.addEventListener('statechange', () => {
         if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-          // A new version is ready — non-blocking toast offering reload
-          if (typeof toast === 'function') {
-            toast('새 버전이 설치됐어요. 새로고침하면 적용돼요', 'success');
-          }
+          sw.postMessage('SKIP_WAITING');
         }
       });
     });
-    // When the new SW takes control, reload once so the page actually uses it
+
+    // 컨트롤러 교체 = 새 SW가 페이지를 잡음 → 1회 자동 reload
     let _reloaded = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (_reloaded) return;
       _reloaded = true;
-      location.reload();
+      // 입력 중이면 blur까지 잠깐 미룸 — 커서 위치 잃지 않게.
+      // (메모 본문은 입력 즉시 localStorage에 저장되므로 데이터 손실은 없음)
+      const el = document.activeElement;
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      if (typing) {
+        if (typeof toast === 'function') toast('새 버전 대기 중 — 입력 끝나면 자동 적용', 'success');
+        const reload = () => location.reload();
+        el.addEventListener('blur', reload, { once: true });
+        setTimeout(reload, 30000); // 안전망: 30초 후엔 무조건 reload
+      } else {
+        location.reload();
+      }
     });
+
+    // 적극적 업데이트 체크 — 브라우저 기본은 24h 주기라 standalone PWA에선 너무 늦음.
+    // 탭이 다시 보일 때/포커스 잡힐 때마다 서버에 새 버전 확인 → install→activate→reload 자동
+    const checkUpdate = () => { try { reg.update(); } catch {} };
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) checkUpdate();
+    });
+    window.addEventListener('focus', checkUpdate);
   }).catch((e) => console.warn('SW register failed:', e));
 }
 
