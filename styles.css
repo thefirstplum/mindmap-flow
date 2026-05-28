@@ -669,6 +669,57 @@ body[data-theme="leather"] {
   padding-top: 14px;
 }
 
+/* ── App dialog (인앱 confirm/prompt, native prompt 대체) ── */
+.app-dialog-overlay { z-index: 10001; }
+.app-dialog {
+  max-width: 380px; width: calc(100% - 32px);
+  padding: 22px 22px 18px;
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+}
+.app-dialog-label {
+  font-size: 13px; font-weight: 600;
+  color: var(--text-dim); margin-bottom: 10px;
+  letter-spacing: -0.01em;
+}
+.app-dialog-body {
+  font-size: 15px; line-height: 1.55;
+  margin-bottom: 18px;
+  white-space: pre-wrap; word-break: keep-all;
+}
+.app-dialog-input {
+  width: 100%; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg); color: var(--text);
+  font-size: 15px; font-family: inherit;
+  margin-bottom: 18px;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.app-dialog-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.app-dialog-actions {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+.app-dialog-btn {
+  padding: 9px 18px; border-radius: 8px;
+  font-weight: 600; font-size: 14px;
+  border: none; cursor: pointer;
+  transition: filter 0.12s, transform 0.05s;
+  font-family: inherit;
+}
+.app-dialog-btn:active { transform: scale(0.97); }
+.app-dialog-btn.cancel { background: var(--surface2); color: var(--text-dim); }
+.app-dialog-btn.cancel:hover { background: var(--surface3); color: var(--text); }
+.app-dialog-btn.primary { background: var(--accent); color: #fff; }
+.app-dialog-btn.primary:hover { filter: brightness(1.08); }
+.app-dialog-btn.danger { background: var(--red, #dc3545); color: #fff; }
+.app-dialog-btn.danger:hover { filter: brightness(1.08); }
+
 /* ── Image lightbox ── */
 .image-lightbox {
   position: fixed; inset: 0;

@@ -139,10 +139,10 @@ function createMindmap() {
 }
 
 // Delete a mindmap by id — used by the unified list (swipe / action sheet).
-function deleteMindmapById(id) {
+async function deleteMindmapById(id) {
   const m = mindmaps.find(x => x.id === id);
   if (!m) return;
-  if (!confirm(`마인드맵 "${m.name}"을(를) 삭제하시겠습니까?`)) return;
+  if (!(await confirmDialog(`마인드맵 "${m.name}"을(를) 삭제하시겠습니까?`, { danger: true, okText: '삭제' }))) return;
   // Record tombstone so Drive sync can't resurrect this mindmap on the next pull
   // (parallels memo_tombstones in js/memo.js — snapshot-only deletion was unsafe
   //  when snapshot was empty after schema bump / fresh device / ITP eviction).
@@ -204,12 +204,12 @@ function closeMmMenu() {
   mmMenuTargetId = null;
 }
 
-function renameMindmapActive() {
+async function renameMindmapActive() {
   const id = mmMenuTargetId;
   closeMmMenu();
   const m = mindmaps.find(x => x.id === id);
   if (!m) return;
-  const name = prompt('새 이름:', m.name);
+  const name = await promptDialog('새 이름', m.name, { placeholder: '마인드맵 제목' });
   if (name && name.trim()) {
     m.name = name.trim();
     m.updatedAt = new Date().toISOString();
@@ -843,7 +843,7 @@ function startConnecting() {
   toast('연결할 노드를 탭하세요');
 }
 
-function deleteSelected() {
+async function deleteSelected() {
   if (selectedEdge !== null) {
     edges.splice(selectedEdge, 1);
     selectedEdge = null;
@@ -853,7 +853,7 @@ function deleteSelected() {
     return;
   }
   if (!selectedNode) return;
-  if (!confirm('이 노드를 삭제하시겠습니까?')) return;
+  if (!(await confirmDialog('이 노드를 삭제하시겠습니까?', { danger: true, okText: '삭제' }))) return;
   nodes = nodes.filter(n => n.id !== selectedNode);
   edges = edges.filter(e => e.from !== selectedNode && e.to !== selectedNode);
   selectedNode = null;

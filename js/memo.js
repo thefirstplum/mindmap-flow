@@ -227,12 +227,12 @@ function togglePinMemoActive() {
   togglePinNote('memo', id);
 }
 
-function renameMemoActive() {
+async function renameMemoActive() {
   const id = memoMenuTargetId;
   closeMemoMenu();
   const m = memos.find(x => x.id === id);
   if (!m) return;
-  const name = prompt('새 이름:', m.title || '');
+  const name = await promptDialog('새 이름', m.title || '', { placeholder: '메모 제목' });
   if (name === null) return;
   const trimmed = name.trim();
   if (!trimmed) return;
@@ -307,10 +307,10 @@ function selectAllMemosInView() {
   renderMemoList();
 }
 
-function bulkDeleteSelectedMemos() {
+async function bulkDeleteSelectedMemos() {
   if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
   const n = memoSelectedIds.size;
-  if (!confirm(`선택한 ${n}개 메모를 삭제할까요? (백업이 자동 생성됩니다)`)) return;
+  if (!(await confirmDialog(`선택한 ${n}개 메모를 삭제할까요?\n(백업이 자동 생성됩니다)`, { danger: true, okText: '삭제' }))) return;
   // Pre-bulk backup
   if (typeof BackupService !== 'undefined') {
     BackupService.safeSnapshot('pre-bulk-delete').catch(() => {});
@@ -328,9 +328,9 @@ function bulkDeleteSelectedMemos() {
   toast(`${n}개 메모 삭제됨`, 'success');
 }
 
-function bulkAddTagToSelectedMemos() {
+async function bulkAddTagToSelectedMemos() {
   if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
-  const tag = prompt('추가할 태그 (쉼표로 여러 개 가능)');
+  const tag = await promptDialog('추가할 태그 (쉼표로 여러 개 가능)', '', { placeholder: '예: work, idea' });
   if (!tag) return;
   const tags = tag.split(',').map(t => t.trim()).filter(Boolean);
   if (tags.length === 0) return;
@@ -349,13 +349,13 @@ function bulkAddTagToSelectedMemos() {
   toast(`${count}개 메모에 태그 추가됨`, 'success');
 }
 
-function bulkRemoveTagFromSelectedMemos() {
+async function bulkRemoveTagFromSelectedMemos() {
   if (memoSelectedIds.size === 0) { toast('선택된 메모가 없어요'); return; }
   // Build the union of tags across selected memos for a picker
   const sel = memos.filter(m => memoSelectedIds.has(m.id));
   const allTags = [...new Set(sel.flatMap(m => m.tags || []))].sort();
   if (allTags.length === 0) { toast('선택된 메모에 태그가 없어요'); return; }
-  const tag = prompt(`삭제할 태그 (현재 태그: ${allTags.join(', ')})`);
+  const tag = await promptDialog(`삭제할 태그`, '', { placeholder: `예: ${allTags.slice(0, 3).join(', ')}` });
   if (!tag) return;
   const t = tag.trim();
   let count = 0;
@@ -499,8 +499,8 @@ function backToList() {
   document.getElementById('memo-page').classList.remove('show-editor');
 }
 
-function deleteMemo(id) {
-  if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+async function deleteMemo(id) {
+  if (!(await confirmDialog('이 메모를 삭제하시겠습니까?', { danger: true, okText: '삭제' }))) return;
   // Record deletion so Drive pull can't resurrect it
   const tombs = load('memo_tombstones', {});
   tombs[id] = new Date().toISOString();
@@ -662,6 +662,9 @@ function renderMemoList() {
       <button class="swipe-action" aria-label="삭제"><span class="mi mi-sm">delete</span> 삭제</button>
     </div>`;
   }).join('');
+  // (이전 호출 위치) ↓/↑ 단축키가 사용하는 리스트 — DOM에서 읽음
+  // 별도 캐시 안 두는 이유: filter/정렬/검색이 바뀔 때 무효화 부담 없음
+
   // Wire swipe-to-delete + long-press → context menu (only when not in select mode)
   if (!container.dataset.swipeReady) {
     attachSwipeToDelete(container, {
@@ -679,6 +682,27 @@ function renderMemoList() {
   }
 }
 
+// ↑/↓ 단축키용 — 현재 보이는 메모 리스트 안에서 활성 항목 ±1 이동
+function navigateMemoList(delta) {
+  const items = document.querySelectorAll('#memo-items .swipe-row');
+  if (!items.length) return;
+  const arr = Array.from(items).map(r => ({
+    el: r,
+    id: parseInt(r.dataset.id),
+    type: r.dataset.noteType
+  }));
+  const curIdx = arr.findIndex(x => isActiveNote(x.type, x.id));
+  let next = curIdx + delta;
+  if (curIdx === -1) next = delta > 0 ? 0 : arr.length - 1;
+  if (next < 0) next = 0;
+  if (next >= arr.length) next = arr.length - 1;
+  const t = arr[next];
+  if (!t) return;
+  selectNote(t.type, t.id);
+  // 스크롤 맞춤 (목록 안에서만)
+  t.el.scrollIntoView({ block: 'nearest' });
+}
+
 function renderMemoEditor() {
   const editor = document.getElementById('memo-editor');
   // Capture decoded images before the DOM is replaced so we can
@@ -689,12 +713,16 @@ function renderMemoEditor() {
   });
   const memo = memos.find(m => m.id === activeMemoId);
   if (!memo) {
+    const mod = (navigator.platform || '').toLowerCase().includes('mac') ? '⌘' : 'Ctrl';
     editor.innerHTML = `<div class="memo-editor-empty">
       <span class="mi big">edit_note</span>
       <div style="font-size:16px;font-weight:600;color:var(--text-dim);">메모를 선택하거나 새로 만드세요</div>
       <div class="hint">목록에서 메모를 선택하거나 + 버튼을 눌러 새 메모를 만드세요</div>
       <div class="shortcuts">
-        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">마크다운 단축 문법</div>
+        <div style="font-weight:600;color:var(--text);margin-bottom:6px;">단축키</div>
+        <code>${mod}+N</code> 새 메모 ·  <code>${mod}+F</code> 검색 ·  <code>${mod}+P</code> 핀<br>
+        <code>↑/↓</code> 메모 이동 ·  <code>${mod}+⌫</code> 삭제<br>
+        <div style="font-weight:600;color:var(--text);margin:10px 0 6px;">마크다운 단축 문법</div>
         <code># </code> 큰 제목 ·  <code>## </code> 중제목<br>
         <code>**굵게**</code> ·  <code>*기울임*</code> ·  <code>~~취소~~</code><br>
         <code>- </code> 목록 ·  <code>- [ ] </code> 체크박스<br>

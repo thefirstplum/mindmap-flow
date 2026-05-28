@@ -232,7 +232,8 @@ function renderTimeBlocks() {
       if (e.target.closest('[data-del]')) {
         e.stopPropagation();
         const idx = parseInt(e.target.dataset.del);
-        if (confirm('이 블록을 삭제하시겠습니까?')) deleteTbBlock(key, idx);
+        confirmDialog('이 블록을 삭제하시겠습니까?', { danger: true, okText: '삭제' })
+          .then(ok => { if (ok) deleteTbBlock(key, idx); });
         return;
       }
       if (e.target.closest('[data-dup]')) {
@@ -488,8 +489,8 @@ function renderTimeblockList() {
   if (!container.dataset.swipeReady) {
     attachSwipeToDelete(container, {
       resolveId: (row) => row.dataset.id,
-      onDelete: (key) => {
-        if (!confirm(`${key} 의 모든 일정을 삭제하시겠습니까?`)) return;
+      onDelete: async (key) => {
+        if (!(await confirmDialog(`${key} 의 모든 일정을 삭제하시겠습니까?`, { danger: true, okText: '삭제' }))) return;
         delete timeBlocks[key];
         save('tb_blocks', timeBlocks);
         renderTimeBlocks();
