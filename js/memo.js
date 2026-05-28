@@ -189,6 +189,82 @@ function togglePinNote(type, id, ev) {
 // Back-compat alias for text memos
 function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
+// =================== NOTE CONTEXT MENU (우클릭/long-press) ===================
+// 메모/마인드맵 목록 항목 우클릭 시 액션 시트를 띄운다.
+// 마인드맵은 기존 showMindmapMenu 재사용, 메모는 자체 시트.
+let memoMenuTargetId = null;
+
+function showNoteMenu(type, id, ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  if (memoSelectMode) return; // 선택 모드에선 무시
+  if (type === 'mindmap') {
+    if (typeof showMindmapMenu === 'function') showMindmapMenu(id);
+    return;
+  }
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  memoMenuTargetId = id;
+  document.getElementById('memo-action-title').textContent = m.title || '제목 없음';
+  const pinBtn = document.getElementById('memo-action-pin');
+  if (pinBtn) pinBtn.textContent = m.pinned ? '📌 고정 해제' : '📌 고정';
+  document.getElementById('memo-action-overlay').classList.add('show');
+  document.getElementById('memo-action-sheet').classList.add('show');
+}
+
+function closeMemoMenu() {
+  document.getElementById('memo-action-overlay').classList.remove('show');
+  document.getElementById('memo-action-sheet').classList.remove('show');
+  memoMenuTargetId = null;
+}
+
+function togglePinMemoActive() {
+  const id = memoMenuTargetId;
+  closeMemoMenu();
+  togglePinNote('memo', id);
+}
+
+function renameMemoActive() {
+  const id = memoMenuTargetId;
+  closeMemoMenu();
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  const name = prompt('새 이름:', m.title || '');
+  if (name === null) return;
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  m.title = trimmed;
+  m.updatedAt = new Date().toISOString();
+  saveMemos();
+  renderMemoList();
+  if (activeMemoId === id) renderMemoEditor();
+}
+
+function duplicateMemoActive() {
+  const id = memoMenuTargetId;
+  closeMemoMenu();
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  const copy = JSON.parse(JSON.stringify(m));
+  copy.id = memoIdCounter++;
+  copy.title = (m.title || '제목 없음') + ' (복사)';
+  const now = new Date().toISOString();
+  copy.createdAt = now;
+  copy.updatedAt = now;
+  copy.date = now;
+  copy.pinned = false;
+  const insertIdx = memos.findIndex(x => x.id === id);
+  memos.splice(insertIdx + 1, 0, copy);
+  saveMemos();
+  renderMemoList();
+  toast(`"${copy.title}" 복제됨`, 'success');
+}
+
+function deleteMemoActive() {
+  const id = memoMenuTargetId;
+  closeMemoMenu();
+  deleteMemo(id);
+}
+
 function saveMemos() {
   save('memos', memos);
   save('memo_idcounter', memoIdCounter);
@@ -565,7 +641,7 @@ function renderMemoList() {
       </button>`;
     const typeIcon = n.type === 'mindmap' ? 'account_tree' : 'edit_note';
     return `<div class="swipe-row" data-id="${n.id}" data-note-type="${n.type}">
-      <div class="memo-item swipe-content ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${n.pinned ? 'is-pinned' : ''}" onclick="${onClick}">
+      <div class="memo-item swipe-content ${isActive ? 'active' : ''} ${isSelected ? 'selected' : ''} ${n.pinned ? 'is-pinned' : ''}" onclick="${onClick}" oncontextmenu="showNoteMenu('${n.type}', ${n.id}, event); return false;">
         ${checkbox}
         <span class="note-type-badge mi mi-sm" aria-hidden="true">${typeIcon}</span>
         <div class="memo-item-body">
