@@ -1426,6 +1426,10 @@ body[data-theme="leather"] {
   border-left: 3px solid transparent;
   border-bottom: 1px solid var(--border);
   position: relative;
+  /* iOS: long-press triggers our context menu, not the system "Copy/Look up" callout */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 .memo-item:hover { background: var(--surface2); }
 .memo-item.active {

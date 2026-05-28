@@ -290,6 +290,16 @@ async function getStorageEstimate() {
   try { return await navigator.storage.estimate(); } catch { return null; }
 }
 
+// =================== HAPTICS ===================
+// Centralized vibration helper. Web Vibration API is supported on Android
+// (Chrome, Edge, Brave, Samsung) and silently no-ops on iOS Safari.
+// kind: 'light' (selection), 'medium' (action confirm), 'heavy' (warning/delete)
+function haptic(kind) {
+  if (!navigator.vibrate) return;
+  const patterns = { light: 8, medium: 15, heavy: [10, 30, 10] };
+  try { navigator.vibrate(patterns[kind] || patterns.light); } catch {}
+}
+
 // =================== INDEXEDDB (folder handle persistence) ===================
 const IDB_NAME = 'mindflow-fs';
 const IDB_STORE = 'handles';

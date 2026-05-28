@@ -53,6 +53,60 @@ if (typeof requestPersistentStorage === 'function') {
   requestPersistentStorage().catch(() => {});
 }
 
+// =================== URL PARAMS — PWA shortcuts & share target ===================
+// manifest.json declares shortcuts (?action=new-memo, ?page=calendar) and a
+// share_target (?share_title=…&share_text=…). Resolve them on cold boot.
+(function handleLaunchParams() {
+  try {
+    const u = new URL(location.href);
+    const action = u.searchParams.get('action');
+    const page = u.searchParams.get('page');
+    const shareTitle = u.searchParams.get('share_title');
+    const shareText = u.searchParams.get('share_text');
+    const shareUrl = u.searchParams.get('share_url');
+    let handled = false;
+    if (action === 'new-memo' || shareText || shareTitle || shareUrl) {
+      // Defer a tick so memo.js is fully wired (createMemo + active memo edit)
+      setTimeout(() => {
+        if (typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+        if (typeof createMemo === 'function') {
+          createMemo();
+          if (shareText || shareTitle || shareUrl) {
+            const m = memos.find(x => x.id === activeMemoId);
+            if (m) {
+              if (shareTitle) m.title = shareTitle;
+              const bodyParts = [];
+              if (shareText) bodyParts.push(shareText);
+              if (shareUrl) bodyParts.push(shareUrl);
+              if (bodyParts.length) m.content = bodyParts.join('\n\n');
+              saveMemos();
+              renderMemoEditor();
+              renderMemoList();
+            }
+          }
+        }
+      }, 30);
+      handled = true;
+    } else if (action === 'new-mindmap') {
+      setTimeout(() => {
+        if (typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+        if (typeof createMindmap === 'function') createMindmap();
+      }, 30);
+      handled = true;
+    } else if (page) {
+      setTimeout(() => {
+        if (typeof navigateTo === 'function') navigateTo(page, { updateHash: false });
+      }, 30);
+      handled = true;
+    }
+    if (handled) {
+      // Clean the URL so a refresh doesn't re-trigger the action
+      const clean = location.pathname + location.hash;
+      history.replaceState(null, '', clean);
+    }
+  } catch (e) { console.warn('launch param handler:', e); }
+})();
+
 // =================== SERVICE WORKER (PWA instant-update) ===================
 // Network-first SW + auto skipWaiting + auto reload → 새 배포가 즉시 적용됨.
 // 이전엔 새 SW가 waiting 상태로 머물러 다음 새로고침까지 옛 버전을 보여줬음.

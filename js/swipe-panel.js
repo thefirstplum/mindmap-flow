@@ -18,12 +18,23 @@ function togglePanel(pageId) {
 // Generic touch swipe handler — apply to any container with .swipe-row children.
 // JS owns transform throughout (no class-vs-inline conflict), supports
 // rubber-band, velocity-aware flick, and tap-on-swiped-row to close.
+// Optional: onLongPress(id, rowEl) fires after 500ms hold with <8px movement
+// — the canonical mobile entry point for context menus (iOS Safari touch never
+// fires `contextmenu`).
 function attachSwipeToDelete(rootEl, options) {
-  const { resolveId, onDelete, max = 88 } = options;
+  const { resolveId, onDelete, onLongPress, max = 88 } = options;
   const threshold = max * 0.4;
   let row = null, content = null;
   let startX = 0, startY = 0, startTime = 0;
   let dragLocked = false, isHorizontal = false, startedOpen = false;
+  // Long-press state
+  let lpTimer = null;
+  let lpFired = false;
+  const LP_DELAY = 500;     // ms
+  const LP_MOVE_MAX = 8;    // px — anything more is intent to scroll/swipe
+  function cancelLongPress() {
+    if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; }
+  }
 
   function setState(r, isOpen) {
     const c = r.querySelector('.swipe-content');
@@ -55,6 +66,22 @@ function attachSwipeToDelete(rootEl, options) {
     startTime = Date.now();
     dragLocked = false;
     isHorizontal = false;
+    // Arm long-press (only for touch — desktop uses contextmenu)
+    cancelLongPress();
+    lpFired = false;
+    if (onLongPress && e.touches && !startedOpen) {
+      const lpRow = r;
+      lpTimer = setTimeout(() => {
+        lpTimer = null;
+        lpFired = true;
+        // Cancel any in-flight swipe so the menu opens cleanly
+        if (content) content.style.transform = 'translateX(0)';
+        row = null; content = null;
+        const id = resolveId(lpRow);
+        if (typeof haptic === 'function') haptic('medium');
+        if (id != null) onLongPress(id, lpRow);
+      }, LP_DELAY);
+    }
   }
 
   function onMove(e) {
@@ -62,6 +89,8 @@ function attachSwipeToDelete(rootEl, options) {
     const t = e.touches ? e.touches[0] : e;
     const dx = t.clientX - startX;
     const dy = t.clientY - startY;
+    // Cancel long-press once finger moves beyond tolerance — user intends to scroll/swipe
+    if (Math.abs(dx) > LP_MOVE_MAX || Math.abs(dy) > LP_MOVE_MAX) cancelLongPress();
     if (!dragLocked) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       dragLocked = true;
@@ -87,6 +116,9 @@ function attachSwipeToDelete(rootEl, options) {
   }
 
   function onEnd(e) {
+    cancelLongPress();
+    // Long-press already opened the menu — swallow the touchend so click doesn't also fire
+    if (lpFired) { lpFired = false; return; }
     if (!row || !content) { row = null; content = null; return; }
     if (!isHorizontal) {
       content.style.transition = '';

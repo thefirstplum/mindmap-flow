@@ -184,6 +184,7 @@ function togglePinNote(type, id, ev) {
     m.pinned = !m.pinned;
     saveMemos();
   }
+  if (typeof haptic === 'function') haptic('light');
   renderMemoList();
 }
 // Back-compat alias for text memos
@@ -661,13 +662,17 @@ function renderMemoList() {
       <button class="swipe-action" aria-label="삭제"><span class="mi mi-sm">delete</span> 삭제</button>
     </div>`;
   }).join('');
-  // Wire swipe-to-delete (only when not in select mode)
+  // Wire swipe-to-delete + long-press → context menu (only when not in select mode)
   if (!container.dataset.swipeReady) {
     attachSwipeToDelete(container, {
       resolveId: (row) => parseInt(row.dataset.id),
       onDelete: (id, row) => {
         if (memoSelectMode) return;
         deleteNote(row.dataset.noteType, id);
+      },
+      onLongPress: (id, row) => {
+        if (memoSelectMode) return;
+        showNoteMenu(row.dataset.noteType, id, null);
       }
     });
     container.dataset.swipeReady = '1';
