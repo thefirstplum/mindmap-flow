@@ -93,6 +93,11 @@ if (typeof requestPersistentStorage === 'function') {
         if (typeof createMindmap === 'function') createMindmap();
       }, 30);
       handled = true;
+    } else if (action === 'daily' || action === 'today') {
+      setTimeout(() => {
+        if (typeof openTodayDailyNote === 'function') openTodayDailyNote();
+      }, 30);
+      handled = true;
     } else if (page) {
       setTimeout(() => {
         if (typeof navigateTo === 'function') navigateTo(page, { updateHash: false });

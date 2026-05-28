@@ -150,15 +150,38 @@ function renderCalDetail() {
   ).join('') + `</div>`;
   jHtml += `<textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${escapeHtml(journal.content || '')}</textarea>`;
 
-  // ── 그날의 노트 ──
+  // ── 데일리노트 (Obsidian/Logseq 스타일 매일 페이지) ──
+  let dailyHtml = '';
+  if (typeof getDailyNote === 'function') {
+    const dailyMemo = getDailyNote(key);
+    dailyHtml = `<div class="cal-sec-head"><span><span class="mi mi-sm" style="vertical-align:-3px;margin-right:4px">today</span>데일리노트</span></div>`;
+    if (dailyMemo) {
+      const snip = (dailyMemo.content || '').replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '(내용 없음)';
+      dailyHtml += `<div class="cal-daily-card" onclick="openDailyNote('${key}')">
+        <div class="cal-daily-row">
+          <span class="cal-daily-label">daily:${key}</span>
+          <span class="cal-daily-arrow mi mi-sm">arrow_forward</span>
+        </div>
+        <div class="cal-daily-snip">${escapeHtml(snip)}</div>
+      </div>`;
+    } else {
+      dailyHtml += `<button class="cal-daily-create" onclick="openDailyNote('${key}')">
+        <span class="mi mi-sm">add</span>
+        <span>이 날 데일리노트 만들기</span>
+      </button>`;
+    }
+  }
+
+  // ── 그날의 노트 — daily:가 아닌 일반 노트들만 ──
   let notesHtml = '';
   if (typeof getAllNotes === 'function') {
     const dayNotes = getAllNotes()
       .filter(n => dateKey(new Date(n.updatedAt || n.createdAt)) === key)
+      .filter(n => !(n.title || '').startsWith('daily:'))  // 데일리노트는 위 섹션에서 따로
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-    notesHtml = `<div class="cal-sec-head"><span><span class="mi mi-sm" style="vertical-align:-3px;margin-right:4px">edit_note</span>노트</span></div>`;
+    notesHtml = `<div class="cal-sec-head"><span><span class="mi mi-sm" style="vertical-align:-3px;margin-right:4px">edit_note</span>이 날 수정한 노트</span></div>`;
     if (dayNotes.length === 0) {
-      notesHtml += `<div class="cal-empty-mini">이 날 작성한 노트가 없어요</div>`;
+      notesHtml += `<div class="cal-empty-mini">이 날 작성·수정한 노트가 없어요</div>`;
     } else {
       notesHtml += `<div class="cal-note-list">` + dayNotes.map(n =>
         `<div class="cal-note-item" onclick="calOpenNote('${n.type}', ${n.id})">
@@ -169,6 +192,7 @@ function renderCalDetail() {
   }
 
   el.innerHTML = summaryHtml
+    + (dailyHtml ? `<div class="cal-sec">${dailyHtml}</div>` : '')
     + `<div class="cal-sec">${tbHtml}</div>`
     + `<div class="cal-sec">${jHtml}</div>`
     + (notesHtml ? `<div class="cal-sec">${notesHtml}</div>` : '');
