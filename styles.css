@@ -669,6 +669,97 @@ body[data-theme="leather"] {
   padding-top: 14px;
 }
 
+/* ── Search highlight (메모 리스트 검색어 매칭) ── */
+.memo-item mark,
+.cmd-palette mark {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 700;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* ── Command palette (⌘K) ── */
+.cmd-palette-overlay { z-index: 10002; }
+.cmd-palette {
+  max-width: 580px; width: calc(100% - 32px);
+  max-height: 70vh;
+  padding: 0;
+  border-radius: 14px;
+  background: var(--surface);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 22px 60px rgba(0,0,0,0.4);
+}
+.cmd-palette-input {
+  width: 100%;
+  padding: 16px 18px;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+}
+.cmd-palette-results {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 50vh;
+}
+.cmd-palette-section {
+  padding: 6px 18px 4px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-mute);
+}
+.cmd-palette-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  border-left: 3px solid transparent;
+}
+.cmd-palette-item:hover,
+.cmd-palette-item.active {
+  background: var(--surface2);
+  border-left-color: var(--accent);
+}
+.cmd-palette-item .mi { color: var(--text-dim); font-size: 18px; }
+.cmd-palette-item-main {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.cmd-palette-item-title {
+  color: var(--text); font-weight: 500;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cmd-palette-item-sub {
+  color: var(--text-mute); font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cmd-palette-empty {
+  padding: 30px 18px;
+  text-align: center;
+  color: var(--text-mute);
+  font-size: 13px;
+}
+.cmd-palette-hint {
+  padding: 8px 18px 10px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-mute);
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.cmd-palette-hint code {
+  background: var(--surface2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--text-dim);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10.5px;
+}
+
 /* ── App dialog (인앱 confirm/prompt, native prompt 대체) ── */
 .app-dialog-overlay { z-index: 10001; }
 .app-dialog {

@@ -514,8 +514,87 @@ async function deleteMemo(id) {
   toast('삭제되었습니다');
 }
 
+// =================== SEARCH QUERY PARSER ===================
+// Bear-style search operators on top of substring matching:
+//   tag:work        — has tag (or descendant of, slash-hierarchy)
+//   type:memo|mindmap
+//   is:pinned|untagged|conflict
+//   "exact phrase"  — substring with spaces
+//   -foo            — must NOT contain
+//   bare word       — substring
+function parseSearchQuery(raw) {
+  const tokens = [];
+  if (!raw) return tokens;
+  // Split respecting "quoted" segments and -negation prefix and key:value
+  const re = /(-?)((?:tag|type|is):)?(?:"([^"]*)"|(\S+))/gi;
+  let m;
+  while ((m = re.exec(raw)) !== null) {
+    const neg = m[1] === '-';
+    const key = m[2] ? m[2].slice(0, -1).toLowerCase() : null; // strip ':'
+    const val = (m[3] !== undefined ? m[3] : m[4] || '').toLowerCase();
+    if (!val && !key) continue;
+    tokens.push({ neg, key, val });
+  }
+  return tokens;
+}
+
+function evalSearchQuery(note, tokens) {
+  if (!tokens.length) return true;
+  const text = (note.searchText || ((note.title || '') + ' ' + (note.content || '')).toLowerCase());
+  for (const t of tokens) {
+    let pass;
+    if (t.key === 'tag') {
+      const tag = t.val.replace(/^#/, '');
+      pass = (note.tags || []).some(x => {
+        const lx = (x || '').toLowerCase();
+        return lx === tag || lx.startsWith(tag + '/');
+      });
+    } else if (t.key === 'type') {
+      pass = note.type === t.val;
+    } else if (t.key === 'is') {
+      if (t.val === 'pinned') pass = !!note.pinned;
+      else if (t.val === 'untagged') pass = (note.tags || []).length === 0;
+      else if (t.val === 'conflict') {
+        pass = (note.tags || []).includes('conflict') ||
+               ((note.title || note.name || '').includes('(충돌'));
+      } else pass = false;
+    } else {
+      pass = text.includes(t.val);
+    }
+    if (t.neg) pass = !pass;
+    if (!pass) return false;
+  }
+  return true;
+}
+
+function _escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+// Build a preview snippet centered around the first matched bare token
+function previewSnippetWithMatch(content, tokens) {
+  const text = content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ');
+  const word = tokens.find(t => !t.key && !t.neg && t.val)?.val;
+  if (!word) return text.trim().slice(0, 90);
+  const idx = text.toLowerCase().indexOf(word);
+  if (idx < 0) return text.trim().slice(0, 90);
+  const start = Math.max(0, idx - 25);
+  const end = Math.min(text.length, idx + word.length + 65);
+  return (start > 0 ? '… ' : '') + text.slice(start, end).trim() + (end < text.length ? ' …' : '');
+}
+
+function highlightSearchMatch(html, tokens) {
+  if (!tokens.length) return html;
+  let out = html;
+  for (const t of tokens) {
+    if (t.key || t.neg || !t.val) continue;
+    out = out.replace(new RegExp(`(${_escapeRegex(t.val)})`, 'gi'), '<mark>$1</mark>');
+  }
+  return out;
+}
+
 function renderMemoList() {
-  const search = document.getElementById('memo-search').value.toLowerCase();
+  const searchRaw = document.getElementById('memo-search').value;
+  const search = searchRaw.toLowerCase();
+  const searchTokens = parseSearchQuery(searchRaw);
   const allNotes = getAllNotes();
 
   // Tag filter — hierarchical tree (Bear-style). Mindmaps carry no tags so
@@ -560,7 +639,7 @@ function renderMemoList() {
 
   const filtered = allNotes.filter(n => {
     if (noteTypeFilter !== 'all' && n.type !== noteTypeFilter) return false;
-    if (search && !n.searchText.includes(search)) return false;
+    if (searchTokens.length && !evalSearchQuery(n, searchTokens)) return false;
     if (!activeTagFilter) return true;
     if (activeTagFilter === '__untagged__') return (n.tags || []).length === 0;
     // Selecting a parent tag also matches all of its child tags
@@ -627,9 +706,12 @@ function renderMemoList() {
       preview = `노드 ${n.nodeCount}개 · 연결 ${n.edgeCount}개`;
       metaRight = '마인드맵';
     } else {
-      preview = n.content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ').trim().slice(0, 90) || '내용 없음';
+      preview = previewSnippetWithMatch(n.content, searchTokens) || '내용 없음';
       metaRight = `${n.content.length}자`;
     }
+    // Escape, then apply <mark> highlight — safe because highlight only wraps user-supplied tokens.
+    const titleHtml = highlightSearchMatch(escapeHtml(n.title) || '제목 없음', searchTokens);
+    const previewHtml = highlightSearchMatch(escapeHtml(preview), searchTokens);
     const isActive = isActiveNote(n.type, n.id) && !memoSelectMode;
     const selectable = n.type === 'memo';
     const isSelected = selectable && memoSelectedIds.has(n.id);
@@ -649,8 +731,8 @@ function renderMemoList() {
         ${checkbox}
         <span class="note-type-badge mi mi-sm" aria-hidden="true">${typeIcon}</span>
         <div class="memo-item-body">
-          <div class="memo-item-title">${escapeHtml(n.title) || '제목 없음'}</div>
-          <div class="memo-item-preview">${escapeHtml(preview)}</div>
+          <div class="memo-item-title">${titleHtml}</div>
+          <div class="memo-item-preview">${previewHtml}</div>
           <div class="memo-item-meta">
             <span>${dateStr}</span>
             <span class="dot"></span>
@@ -1665,4 +1747,147 @@ function markLoadedImages() {
     if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
   });
 }
+
+// =================== COMMAND PALETTE (⌘K) ===================
+// Notes + tags + quick actions in one fuzzy search.
+let _cmdActiveIdx = 0;
+let _cmdResults = [];
+
+function openCmdPalette() {
+  const o = document.getElementById('cmd-palette-overlay');
+  if (!o) return;
+  o.classList.add('show');
+  const inp = document.getElementById('cmd-palette-input');
+  inp.value = '';
+  _cmdActiveIdx = 0;
+  renderCmdPaletteResults('');
+  setTimeout(() => inp.focus(), 30);
+}
+function closeCmdPalette() {
+  const o = document.getElementById('cmd-palette-overlay');
+  if (o) o.classList.remove('show');
+}
+function _cmdActions() {
+  return [
+    { key: 'new-memo',     label: '새 메모',        icon: 'edit_note',    fn: () => { closeCmdPalette(); createMemo(); } },
+    { key: 'new-mindmap',  label: '새 마인드맵',    icon: 'account_tree', fn: () => { closeCmdPalette(); createMindmap(); } },
+    { key: 'go-calendar',  label: '캘린더로 이동',  icon: 'calendar_month', fn: () => { closeCmdPalette(); navigateTo('calendar'); } },
+    { key: 'go-routine',   label: '루틴으로 이동',  icon: 'fitness_center', fn: () => { closeCmdPalette(); navigateTo('routine'); } },
+    { key: 'sync-now',     label: '지금 동기화',    icon: 'sync',         fn: () => { closeCmdPalette(); if (typeof openSyncModal === 'function') openSyncModal(); } },
+    { key: 'theme',        label: '테마 선택',      icon: 'palette',      fn: () => { closeCmdPalette(); if (typeof openThemePicker === 'function') openThemePicker(); } },
+  ];
+}
+function renderCmdPaletteResults(q) {
+  const cont = document.getElementById('cmd-palette-results');
+  if (!cont) return;
+  const ql = (q || '').toLowerCase().trim();
+  const tokens = parseSearchQuery(q);
+  // 1) Notes (memos + mindmaps), filtered by tokens, max 15
+  const notes = getAllNotes()
+    .filter(n => !tokens.length || evalSearchQuery(n, tokens))
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 15);
+  // 2) Tags matching
+  const allTags = new Set();
+  for (const n of memos) for (const t of (n.tags || [])) allTags.add(t);
+  const tags = [...allTags]
+    .filter(t => !ql || t.toLowerCase().includes(ql.replace(/^#/, '')) || ('#' + t).toLowerCase().includes(ql))
+    .slice(0, 8);
+  // 3) Actions matching label
+  const acts = _cmdActions().filter(a => !ql || a.label.toLowerCase().includes(ql));
+
+  _cmdResults = [];
+  let html = '';
+  if (notes.length) {
+    html += `<div class="cmd-palette-section">노트 (${notes.length})</div>`;
+    for (const n of notes) {
+      _cmdResults.push({ kind: 'note', noteType: n.type, id: n.id });
+      const titleHl = highlightSearchMatch(escapeHtml(n.title || '제목 없음'), tokens);
+      const subText = n.type === 'mindmap'
+        ? `마인드맵 · 노드 ${n.nodeCount}개`
+        : (previewSnippetWithMatch(n.content || '', tokens) || '내용 없음');
+      const subHl = highlightSearchMatch(escapeHtml(subText), tokens);
+      const icon = n.type === 'mindmap' ? 'account_tree' : 'edit_note';
+      html += `<div class="cmd-palette-item" data-cmd-idx="${_cmdResults.length - 1}">
+        <span class="mi mi-sm">${icon}</span>
+        <div class="cmd-palette-item-main">
+          <div class="cmd-palette-item-title">${titleHl}</div>
+          <div class="cmd-palette-item-sub">${subHl}</div>
+        </div>
+      </div>`;
+    }
+  }
+  if (tags.length) {
+    html += `<div class="cmd-palette-section">태그 (${tags.length})</div>`;
+    for (const t of tags) {
+      _cmdResults.push({ kind: 'tag', tag: t });
+      html += `<div class="cmd-palette-item" data-cmd-idx="${_cmdResults.length - 1}">
+        <span class="mi mi-sm">label</span>
+        <div class="cmd-palette-item-main">
+          <div class="cmd-palette-item-title">#${escapeHtml(t)}</div>
+          <div class="cmd-palette-item-sub">이 태그로 필터링</div>
+        </div>
+      </div>`;
+    }
+  }
+  if (acts.length) {
+    html += `<div class="cmd-palette-section">액션 (${acts.length})</div>`;
+    for (const a of acts) {
+      _cmdResults.push({ kind: 'action', action: a });
+      html += `<div class="cmd-palette-item" data-cmd-idx="${_cmdResults.length - 1}">
+        <span class="mi mi-sm">${a.icon}</span>
+        <div class="cmd-palette-item-main">
+          <div class="cmd-palette-item-title">${escapeHtml(a.label)}</div>
+        </div>
+      </div>`;
+    }
+  }
+  if (!_cmdResults.length) html = '<div class="cmd-palette-empty">검색 결과 없음</div>';
+  cont.innerHTML = html;
+  _cmdActiveIdx = 0;
+  _highlightCmdActive();
+  cont.querySelectorAll('.cmd-palette-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      _cmdActiveIdx = parseInt(el.dataset.cmdIdx);
+      _runActiveCmd();
+    });
+  });
+}
+function _highlightCmdActive() {
+  const cont = document.getElementById('cmd-palette-results');
+  if (!cont) return;
+  cont.querySelectorAll('.cmd-palette-item').forEach((el, i) => {
+    el.classList.toggle('active', i === _cmdActiveIdx);
+  });
+  const active = cont.querySelector('.cmd-palette-item.active');
+  if (active) active.scrollIntoView({ block: 'nearest' });
+}
+function _runActiveCmd() {
+  const r = _cmdResults[_cmdActiveIdx];
+  if (!r) return;
+  if (r.kind === 'note') {
+    closeCmdPalette();
+    if (currentPage !== 'memo' && typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+    selectNote(r.noteType, r.id);
+  } else if (r.kind === 'tag') {
+    closeCmdPalette();
+    if (currentPage !== 'memo' && typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+    setTagFilter(r.tag);
+  } else if (r.kind === 'action') {
+    r.action.fn();
+  }
+}
+// Wire palette input
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('cmd-palette-input');
+  if (!inp) return;
+  inp.addEventListener('input', (e) => renderCmdPaletteResults(e.target.value));
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _cmdActiveIdx = Math.min(_cmdResults.length - 1, _cmdActiveIdx + 1); _highlightCmdActive(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _cmdActiveIdx = Math.max(0, _cmdActiveIdx - 1); _highlightCmdActive(); }
+    else if (e.key === 'Enter') { e.preventDefault(); _runActiveCmd(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeCmdPalette(); }
+  });
+});
+
 

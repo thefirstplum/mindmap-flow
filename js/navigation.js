@@ -125,6 +125,12 @@ document.addEventListener('keydown', (e) => {
     (ae.closest && ae.closest('.cm-editor'))
   );
 
+  // ⌘K — 명령 팔레트 (어디서든)
+  if (meta && !e.shiftKey && (e.key === 'k' || e.key === 'K')) {
+    e.preventDefault();
+    if (typeof openCmdPalette === 'function') openCmdPalette();
+    return;
+  }
   // ⌘N — 새 메모 (어디서든)
   if (meta && !e.shiftKey && (e.key === 'n' || e.key === 'N')) {
     e.preventDefault();
