@@ -872,8 +872,9 @@ function renderMemoEditor() {
       <div class="hint">목록에서 메모를 선택하거나 + 버튼을 눌러 새 메모를 만드세요</div>
       <div class="shortcuts">
         <div style="font-weight:600;color:var(--text);margin-bottom:6px;">단축키</div>
-        <code>${mod}+N</code> 새 메모 ·  <code>${mod}+F</code> 검색 ·  <code>${mod}+P</code> 핀<br>
-        <code>↑/↓</code> 메모 이동 ·  <code>${mod}+⌫</code> 삭제<br>
+        <code>${mod}+K</code> 명령 팔레트 ·  <code>${mod}+N</code> 새 메모 ·  <code>${mod}+F</code> 검색<br>
+        <code>${mod}+⇧+T</code> 오늘 데일리노트 ·  <code>${mod}+P</code> 핀 ·  <code>${mod}+⌫</code> 삭제<br>
+        <code>↑/↓</code> 메모 이동<br>
         <div style="font-weight:600;color:var(--text);margin:10px 0 6px;">마크다운 단축 문법</div>
         <code># </code> 큰 제목 ·  <code>## </code> 중제목<br>
         <code>**굵게**</code> ·  <code>*기울임*</code> ·  <code>~~취소~~</code><br>
@@ -1826,6 +1827,45 @@ function markLoadedImages() {
   });
 }
 
+// =================== DAILY NOTES ===================
+// title이 `daily:YYYY-MM-DD`로 시작하는 메모를 그날 데일리노트로 인식.
+// 옵시디언/로그시크의 매일 페이지와 동일 컨셉. 캘린더 셀·사이드바 '오늘'·
+// keyboard shortcut으로 진입.
+function dailyDateKey(d) {
+  d = d || new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function getDailyNote(dKey) {
+  if (typeof memos === 'undefined') return null;
+  return memos.find(m => (m.title || '') === `daily:${dKey}`);
+}
+
+function openDailyNote(dKey) {
+  dKey = dKey || dailyDateKey();
+  let m = getDailyNote(dKey);
+  if (!m) {
+    const now = new Date().toISOString();
+    m = {
+      id: memoIdCounter++,
+      title: `daily:${dKey}`,
+      content: `# ${dKey}\n\n`,
+      date: now,
+      updatedAt: now,
+      tags: ['daily']
+    };
+    memos.unshift(m);
+    saveMemos();
+    toast(`데일리노트 ${dKey} 생성`, 'success');
+  }
+  if (typeof currentPage !== 'undefined' && currentPage !== 'memo' && typeof navigateTo === 'function') {
+    navigateTo('memo', { updateHash: false });
+  }
+  selectNote('memo', m.id);
+}
+
+function openTodayDailyNote() { openDailyNote(dailyDateKey()); }
+
 // =================== PER-NOTE VERSION HISTORY (IndexedDB) ===================
 // BackupService는 '전체 상태' 단위. per-note history는 다른 메모를 안 건드리고
 // 한 메모의 직전 버전들만 복원. 5분 throttle + selectNote 시 flush.
@@ -2116,12 +2156,14 @@ function closeCmdPalette() {
 }
 function _cmdActions() {
   return [
+    { key: 'today-daily',  label: '오늘 데일리노트', icon: 'today',        fn: () => { closeCmdPalette(); openTodayDailyNote(); } },
     { key: 'new-memo',     label: '새 메모',        icon: 'edit_note',    fn: () => { closeCmdPalette(); createMemo(); } },
     { key: 'new-mindmap',  label: '새 마인드맵',    icon: 'account_tree', fn: () => { closeCmdPalette(); createMindmap(); } },
     { key: 'go-calendar',  label: '캘린더로 이동',  icon: 'calendar_month', fn: () => { closeCmdPalette(); navigateTo('calendar'); } },
     { key: 'go-routine',   label: '루틴으로 이동',  icon: 'fitness_center', fn: () => { closeCmdPalette(); navigateTo('routine'); } },
     { key: 'sync-now',     label: '지금 동기화',    icon: 'sync',         fn: () => { closeCmdPalette(); if (typeof openSyncModal === 'function') openSyncModal(); } },
     { key: 'theme',        label: '테마 선택',      icon: 'palette',      fn: () => { closeCmdPalette(); if (typeof openThemePicker === 'function') openThemePicker(); } },
+    { key: 'cleanup-conflicts', label: '충돌 사본 정리', icon: 'cleaning_services', fn: () => { closeCmdPalette(); if (typeof cleanupSyncConflicts === 'function') cleanupSyncConflicts(); } },
   ];
 }
 function renderCmdPaletteResults(q) {
