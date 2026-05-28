@@ -825,6 +825,27 @@ body[data-theme="leather"] {
   overflow: hidden; text-overflow: ellipsis;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
+.backlink-item-mm {
+  display: flex; align-items: center; gap: 8px;
+}
+.backlink-item-mm .backlink-item-main { flex: 1; min-width: 0; }
+.backlink-unlink {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-mute);
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s, color 0.12s;
+}
+.backlink-item-mm:hover .backlink-unlink { opacity: 1; }
+.backlink-unlink:hover { background: var(--surface3); color: var(--red, #dc3545); border-color: var(--border); }
+/* 모바일: 호버 없으니 항상 표시 */
+@media (max-width: 768px) {
+  .backlink-unlink { opacity: 0.6; }
+}
 @media (max-width: 768px) {
   .backlink-panel { margin: 18px 15px 40px; padding: 12px 14px; }
 }
@@ -1174,6 +1195,8 @@ body[data-theme="leather"] {
 .nab-btn span { font-size: 10px; line-height: 1; }
 .nab-btn:hover { background: var(--surface2); color: var(--text); }
 .nab-btn.danger:hover { background: rgba(220,50,50,0.12); color: var(--red); }
+.nab-btn.nab-icon-only { padding: 6px 7px; }
+.nab-btn.nab-icon-only:hover { color: var(--red, #dc3545); background: rgba(220,50,50,0.12); }
 
 /* Node edit popup */
 .node-edit-popup {
