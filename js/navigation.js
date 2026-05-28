@@ -112,6 +112,66 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeMobileSidebar();
 });
 
+// =================== KEYBOARD SHORTCUTS ===================
+// Power-user shortcuts. Standardize on Cmd (macOS) / Ctrl (others) via metaKey||ctrlKey.
+// Input-context guards prevent shortcuts from breaking text input.
+document.addEventListener('keydown', (e) => {
+  const meta = e.metaKey || e.ctrlKey;
+  const ae = document.activeElement;
+  const inInput = ae && (
+    ae.tagName === 'INPUT' ||
+    ae.tagName === 'TEXTAREA' ||
+    ae.isContentEditable ||
+    (ae.closest && ae.closest('.cm-editor'))
+  );
+
+  // ⌘N — 새 메모 (어디서든)
+  if (meta && !e.shiftKey && (e.key === 'n' || e.key === 'N')) {
+    e.preventDefault();
+    if (typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+    if (typeof createMemo === 'function') createMemo();
+    return;
+  }
+  // ⌘F — 메모 검색 포커스
+  if (meta && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
+    const search = document.getElementById('memo-search');
+    if (search) {
+      e.preventDefault();
+      if (typeof navigateTo === 'function') navigateTo('memo', { updateHash: false });
+      search.focus();
+      search.select();
+      return;
+    }
+  }
+  // 아래는 입력 중이 아닐 때만
+  if (inInput) return;
+
+  // ↑/↓ — 메모 목록 순회 (메모 페이지에서만)
+  if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && currentPage === 'memo') {
+    if (typeof navigateMemoList === 'function') {
+      e.preventDefault();
+      navigateMemoList(e.key === 'ArrowDown' ? 1 : -1);
+      return;
+    }
+  }
+  // ⌘P — 현재 메모 핀 토글
+  if (meta && (e.key === 'p' || e.key === 'P')) {
+    if (typeof activeMemoId !== 'undefined' && activeMemoId != null && currentPage === 'memo') {
+      e.preventDefault();
+      togglePinNote('memo', activeMemoId);
+      return;
+    }
+  }
+  // ⌘⌫ — 현재 메모 삭제
+  if (meta && (e.key === 'Backspace' || e.key === 'Delete')) {
+    if (typeof activeMemoId !== 'undefined' && activeMemoId != null && currentPage === 'memo') {
+      e.preventDefault();
+      deleteMemo(activeMemoId);
+      return;
+    }
+  }
+});
+
 // The sidebar is always the expanded panel now (it hosts the calendar link +
 // tag tree, Bear-style) — the `expanded` class is hardcoded in the HTML.
 

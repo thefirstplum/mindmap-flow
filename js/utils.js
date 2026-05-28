@@ -290,6 +290,81 @@ async function getStorageEstimate() {
   try { return await navigator.storage.estimate(); } catch { return null; }
 }
 
+// =================== IN-APP DIALOGS (prompt/confirm 대체) ===================
+// Native confirm()/prompt()는 standalone PWA(iOS)에서 도메인 헤더가 붙어 톤이
+// 깨지고, IME/단축키도 잘 안 먹어서 인앱 모달로 통일.
+function confirmDialog(message, opts) {
+  opts = opts || {};
+  const okText = opts.okText || '확인';
+  const cancelText = opts.cancelText || '취소';
+  const danger = !!opts.danger;
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show app-dialog-overlay';
+    overlay.innerHTML = `<div class="modal app-dialog">
+      <div class="app-dialog-body"></div>
+      <div class="app-dialog-actions">
+        <button class="app-dialog-btn cancel" type="button"></button>
+        <button class="app-dialog-btn ${danger ? 'danger' : 'primary'}" type="button"></button>
+      </div>
+    </div>`;
+    overlay.querySelector('.app-dialog-body').textContent = message;
+    overlay.querySelector('.app-dialog-btn.cancel').textContent = cancelText;
+    overlay.querySelector('.app-dialog-btn.primary,.app-dialog-btn.danger').textContent = okText;
+    document.body.appendChild(overlay);
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(false);
+      else if (e.key === 'Enter') close(true);
+    };
+    function close(v) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(v);
+    }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(false); });
+    overlay.querySelector('.app-dialog-btn.cancel').addEventListener('click', () => close(false));
+    overlay.querySelector('.app-dialog-btn.primary,.app-dialog-btn.danger').addEventListener('click', () => close(true));
+    document.addEventListener('keydown', onKey);
+  });
+}
+
+function promptDialog(label, defaultValue, opts) {
+  opts = opts || {};
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay show app-dialog-overlay';
+    overlay.innerHTML = `<div class="modal app-dialog">
+      <div class="app-dialog-label"></div>
+      <input type="text" class="app-dialog-input">
+      <div class="app-dialog-actions">
+        <button class="app-dialog-btn cancel" type="button">취소</button>
+        <button class="app-dialog-btn primary" type="button">${opts.okText || '확인'}</button>
+      </div>
+    </div>`;
+    overlay.querySelector('.app-dialog-label').textContent = label;
+    const input = overlay.querySelector('.app-dialog-input');
+    input.value = defaultValue || '';
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    document.body.appendChild(overlay);
+    // Focus + select after the browser layout settles so iOS opens the keyboard
+    setTimeout(() => { input.focus(); input.select(); }, 30);
+    const onKey = (e) => {
+      if (e.key === 'Escape') close(null);
+      else if (e.key === 'Enter') close(input.value);
+    };
+    function close(v) {
+      document.removeEventListener('keydown', onKey);
+      overlay.remove();
+      resolve(v);
+    }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(null); });
+    overlay.querySelector('.app-dialog-btn.cancel').addEventListener('click', () => close(null));
+    overlay.querySelector('.app-dialog-btn.primary').addEventListener('click', () => close(input.value));
+    input.addEventListener('keydown', onKey);
+    document.addEventListener('keydown', onKey);
+  });
+}
+
 // =================== HAPTICS ===================
 // Centralized vibration helper. Web Vibration API is supported on Android
 // (Chrome, Edge, Brave, Samsung) and silently no-ops on iOS Safari.
