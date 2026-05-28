@@ -1849,7 +1849,7 @@ function openDailyNote(dKey) {
     m = {
       id: memoIdCounter++,
       title: `daily:${dKey}`,
-      content: `# ${dKey}\n\n`,
+      content: buildDailyNoteTemplate(dKey),
       date: now,
       updatedAt: now,
       tags: ['daily']
@@ -1862,6 +1862,84 @@ function openDailyNote(dKey) {
     navigateTo('memo', { updateHash: false });
   }
   selectNote('memo', m.id);
+}
+
+// 데일리노트 기본 양식 — Obsidian Daily Notes + Bullet Journal + Five Minute Journal 혼합
+// (저장: 사장님이 수정한 사용자 템플릿이 localStorage에 있으면 그걸 우선)
+function buildDailyNoteTemplate(dKey) {
+  const userTpl = load('daily_template', null);
+  const [y, m, d] = dKey.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const dayName = ['일','월','화','수','목','금','토'][date.getDay()];
+  // 어제·내일 키 계산 (시간대 안전)
+  const prev = new Date(date); prev.setDate(prev.getDate() - 1);
+  const next = new Date(date); next.setDate(next.getDate() + 1);
+  const prevKey = dailyDateKey(prev);
+  const nextKey = dailyDateKey(next);
+  // 치환 토큰
+  const tpl = userTpl || _DEFAULT_DAILY_TEMPLATE;
+  return tpl
+    .replace(/\{\{date\}\}/g, dKey)
+    .replace(/\{\{dayName\}\}/g, dayName)
+    .replace(/\{\{yesterday\}\}/g, prevKey)
+    .replace(/\{\{tomorrow\}\}/g, nextKey)
+    .replace(/\{\{time\}\}/g, `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`);
+}
+
+const _DEFAULT_DAILY_TEMPLATE = `# {{date}} ({{dayName}})
+
+← [[daily:{{yesterday}}]]  ·  [[daily:{{tomorrow}}]] →
+
+## 🎯 오늘의 목표
+-
+
+## ✅ 할 일
+- [ ]
+- [ ]
+- [ ]
+
+## 📝 메모·아이디어
+-
+
+## 🙏 감사한 것
+1.
+2.
+3.
+
+## 🌙 회고
+- 잘된 것:
+- 아쉬운 것:
+- 내일은:
+`;
+
+// 사용자가 자기 템플릿으로 바꾸고 싶을 때 — 현재 데일리노트를 템플릿으로 저장
+async function saveDailyTemplateFromCurrent() {
+  const m = memos.find(x => x.id === activeMemoId);
+  if (!m || !(m.title || '').startsWith('daily:')) {
+    toast('데일리노트를 연 상태에서 실행하세요'); return;
+  }
+  if (!(await confirmDialog('현재 데일리노트 본문을 기본 템플릿으로 저장할까요?\n(다음에 새 데일리노트 만들 때 이 양식이 적용됩니다)', { okText: '저장' }))) return;
+  // 토큰 역치환 — 사장님이 적은 날짜·요일을 다시 {{}}로
+  const m_dKey = m.title.slice('daily:'.length);
+  const [yy, mm, dd] = m_dKey.split('-').map(Number);
+  const dt = new Date(yy, mm - 1, dd);
+  const dn = ['일','월','화','수','목','금','토'][dt.getDay()];
+  const prev = new Date(dt); prev.setDate(prev.getDate() - 1);
+  const next = new Date(dt); next.setDate(next.getDate() + 1);
+  let tpl = m.content
+    .split(m_dKey).join('{{date}}')
+    .split(`(${dn})`).join('({{dayName}})')
+    .split(dailyDateKey(prev)).join('{{yesterday}}')
+    .split(dailyDateKey(next)).join('{{tomorrow}}');
+  save('daily_template', tpl);
+  toast('데일리노트 템플릿 저장됨', 'success');
+}
+
+// 사용자 템플릿 초기화 (기본으로 되돌리기)
+async function resetDailyTemplate() {
+  if (!(await confirmDialog('데일리노트 템플릿을 기본 양식으로 되돌릴까요?', { danger: false, okText: '초기화' }))) return;
+  try { localStorage.removeItem('mindflow_daily_template'); } catch {}
+  toast('기본 양식으로 초기화됨', 'success');
 }
 
 function openTodayDailyNote() { openDailyNote(dailyDateKey()); }
@@ -2095,6 +2173,27 @@ function findMindmapNodesLinkingTo(memoId) {
   return out;
 }
 
+// 메모 백링크 패널에서 마인드맵 노드 연결을 한 줄로 해제
+function unlinkMindmapNodeFromHere(mmId, nodeId) {
+  if (typeof mindmaps === 'undefined') return;
+  const mm = mindmaps.find(x => x.id === mmId);
+  if (!mm) return;
+  const node = (mm.nodes || []).find(n => n.id === nodeId);
+  if (!node) return;
+  delete node.noteId;
+  node.updatedAt = new Date().toISOString();  // CRDT node mtime
+  mm.updatedAt = new Date().toISOString();
+  save('mindmaps', mindmaps);
+  // 캔버스가 그 마인드맵을 보고 있으면 즉시 갱신
+  if (typeof activeMindmapId !== 'undefined' && activeMindmapId === mmId && typeof drawMindMap === 'function') {
+    if (typeof bindActiveMap === 'function') bindActiveMap();
+    drawMindMap();
+    if (typeof updateNodeActionBar === 'function') updateNodeActionBar();
+  }
+  renderMemoEditor();
+  toast('연결 해제됨', 'success');
+}
+
 // 백링크 패널 HTML — 에디터 본문 아래에 붙음. 백링크 없으면 빈 문자열.
 function _renderBacklinkPanel(memo) {
   if (!memo) return '';
@@ -2116,10 +2215,15 @@ function _renderBacklinkPanel(memo) {
       ${snip ? `<div class="backlink-snippet">${escapeHtml(snip)}</div>` : ''}
     </div>`;
   }).join('');
-  // 마인드맵 노드에서 가리키는 경우 (역방향)
-  const mmItems = mmLinks.map(x => `<div class="backlink-item" onclick="selectNote('mindmap', ${x.mindmapId})">
-    <div class="backlink-title"><span class="mi mi-sm" style="vertical-align:-3px;">account_tree</span> ${escapeHtml(x.mindmapName)}</div>
-    <div class="backlink-snippet">노드 "${escapeHtml(x.nodeText)}"</div>
+  // 마인드맵 노드에서 가리키는 경우 (역방향) — 우측에 ✕ unlink 버튼
+  const mmItems = mmLinks.map(x => `<div class="backlink-item backlink-item-mm" onclick="selectNote('mindmap', ${x.mindmapId})">
+    <div class="backlink-item-main">
+      <div class="backlink-title"><span class="mi mi-sm" style="vertical-align:-3px;">account_tree</span> ${escapeHtml(x.mindmapName)}</div>
+      <div class="backlink-snippet">노드 "${escapeHtml(x.nodeText)}"</div>
+    </div>
+    <button class="backlink-unlink" onclick="event.stopPropagation();unlinkMindmapNodeFromHere(${x.mindmapId}, ${x.nodeId})" title="연결 해제" aria-label="연결 해제">
+      <span class="mi mi-sm">link_off</span>
+    </button>
   </div>`).join('');
   return `<div class="backlink-panel">
     ${links.length > 0 ? `<div class="backlink-header">
@@ -2163,6 +2267,8 @@ function _cmdActions() {
     { key: 'go-routine',   label: '루틴으로 이동',  icon: 'fitness_center', fn: () => { closeCmdPalette(); navigateTo('routine'); } },
     { key: 'sync-now',     label: '지금 동기화',    icon: 'sync',         fn: () => { closeCmdPalette(); if (typeof openSyncModal === 'function') openSyncModal(); } },
     { key: 'theme',        label: '테마 선택',      icon: 'palette',      fn: () => { closeCmdPalette(); if (typeof openThemePicker === 'function') openThemePicker(); } },
+    { key: 'save-daily-tpl',  label: '현재 데일리노트를 템플릿으로 저장', icon: 'bookmark_add', fn: () => { closeCmdPalette(); saveDailyTemplateFromCurrent(); } },
+    { key: 'reset-daily-tpl', label: '데일리노트 템플릿 초기화', icon: 'restart_alt', fn: () => { closeCmdPalette(); resetDailyTemplate(); } },
     { key: 'cleanup-conflicts', label: '충돌 사본 정리', icon: 'cleaning_services', fn: () => { closeCmdPalette(); if (typeof cleanupSyncConflicts === 'function') cleanupSyncConflicts(); } },
   ];
 }

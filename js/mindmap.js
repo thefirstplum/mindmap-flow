@@ -969,7 +969,7 @@ function updateNodeActionBar() {
   const noteBtn = document.getElementById('nab-note-link');
   if (noteBtn && node) {
     if (node.noteId) {
-      noteBtn.title = '연결된 메모 열기 (오른쪽 클릭으로 해제)';
+      noteBtn.title = '연결된 메모 열기';
       noteBtn.innerHTML = '<span class="mi mi-sm mi-fill">description</span><span>메모 열기</span>';
       noteBtn.onclick = (e) => jumpToLinkedMemo(node.id);
       noteBtn.oncontextmenu = (e) => { e.preventDefault(); unlinkNodeFromMemo(); return false; };
@@ -979,6 +979,11 @@ function updateNodeActionBar() {
       noteBtn.onclick = (e) => openNoteLinkPicker();
       noteBtn.oncontextmenu = null;
     }
+  }
+  // 연결 해제 버튼 — 노드가 메모와 연결된 경우에만 표시
+  const unlinkBtn = document.getElementById('nab-note-unlink');
+  if (unlinkBtn && node) {
+    unlinkBtn.style.display = node.noteId ? '' : 'none';
   }
 }
 
