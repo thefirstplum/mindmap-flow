@@ -544,6 +544,17 @@
   <button class="cancel" onclick="closeMmMenu()">취소</button>
 </div>
 
+<!-- Memo action sheet (우클릭/long-press 컨텍스트 메뉴) -->
+<div class="action-sheet-overlay" id="memo-action-overlay" onclick="closeMemoMenu()"></div>
+<div class="action-sheet" id="memo-action-sheet">
+  <div class="action-sheet-title" id="memo-action-title"></div>
+  <button onclick="togglePinMemoActive()" id="memo-action-pin">📌 고정</button>
+  <button onclick="renameMemoActive()">✏️ 이름 변경</button>
+  <button onclick="duplicateMemoActive()">⧉ 복제</button>
+  <button class="danger" onclick="deleteMemoActive()">🗑 삭제</button>
+  <button class="cancel" onclick="closeMemoMenu()">취소</button>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- CodeMirror 6 bundle (local, no CDN) -->
@@ -557,7 +568,7 @@
 <script src="js/navigation.js?v=20260520c" defer></script>
 <script src="js/mindmap.js?v=20260521b" defer></script>
 <script src="js/timeblock.js?v=20260509a" defer></script>
-<script src="js/memo.js?v=20260520f" defer></script>
+<script src="js/memo.js?v=20260528a" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260520e" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
