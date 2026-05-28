@@ -16,7 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260528e">
+<link rel="stylesheet" href="styles.css?v=20260528f">
 </head>
 <body>
 <div class="app">
@@ -547,6 +547,19 @@
   <button class="cancel" onclick="closeMmMenu()">취소</button>
 </div>
 
+<!-- Command palette (⌘K) -->
+<div class="modal-overlay cmd-palette-overlay" id="cmd-palette-overlay" onclick="if(event.target===this)closeCmdPalette()">
+  <div class="modal cmd-palette">
+    <input type="text" class="cmd-palette-input" id="cmd-palette-input" placeholder="메모·태그·액션 검색…  (tag:work · is:pinned · type:memo)">
+    <div class="cmd-palette-results" id="cmd-palette-results"></div>
+    <div class="cmd-palette-hint">
+      <span><code>↑↓</code> 이동</span>
+      <span><code>Enter</code> 열기</span>
+      <span><code>Esc</code> 닫기</span>
+    </div>
+  </div>
+</div>
+
 <!-- Memo action sheet (우클릭/long-press 컨텍스트 메뉴) -->
 <div class="action-sheet-overlay" id="memo-action-overlay" onclick="closeMemoMenu()"></div>
 <div class="action-sheet" id="memo-action-sheet">
@@ -568,10 +581,10 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
-<script src="js/navigation.js?v=20260528e" defer></script>
+<script src="js/navigation.js?v=20260528f" defer></script>
 <script src="js/mindmap.js?v=20260528e" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
-<script src="js/memo.js?v=20260528e" defer></script>
+<script src="js/memo.js?v=20260528f" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260520e" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
