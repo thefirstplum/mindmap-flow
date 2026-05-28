@@ -269,6 +269,42 @@ function deleteMemoActive() {
   deleteMemo(id);
 }
 
+// 메모 → 현재 활성 마인드맵에 노드로 추가하고 양방향 연결
+function addMemoToActiveMindmap() {
+  const id = memoMenuTargetId;
+  closeMemoMenu();
+  const m = memos.find(x => x.id === id);
+  if (!m) return;
+  if (typeof mindmaps === 'undefined' || mindmaps.length === 0) {
+    toast('먼저 마인드맵을 만드세요'); return;
+  }
+  const map = mindmaps.find(x => x.id === activeMindmapId) || mindmaps[0];
+  if (!map) { toast('마인드맵을 찾을 수 없어요'); return; }
+  // 화면 중앙 근처에 살짝 랜덤 위치
+  const cx = 400 + Math.floor((Math.random() - 0.5) * 200);
+  const cy = 300 + Math.floor((Math.random() - 0.5) * 200);
+  const newNode = {
+    id: (map.idCounter || 1),
+    text: (m.title || '제목 없음').slice(0, 30),
+    x: cx, y: cy,
+    color: '#268bd2',
+    noteId: m.id
+  };
+  map.nodes = map.nodes || [];
+  map.nodes.push(newNode);
+  map.idCounter = (map.idCounter || 1) + 1;
+  map.updatedAt = new Date().toISOString();
+  save('mindmaps', mindmaps);
+  // 활성 마인드맵으로 이동
+  activeMindmapId = map.id;
+  save('mm_active', activeMindmapId);
+  if (typeof bindActiveMap === 'function') bindActiveMap();
+  if (typeof drawMindMap === 'function') drawMindMap();
+  if (typeof navigateTo === 'function' && currentPage !== 'memo') navigateTo('memo', { updateHash: false });
+  if (typeof selectNote === 'function') selectNote('mindmap', map.id);
+  toast(`"${m.title || '제목'}" 마인드맵 "${map.name}"에 추가됨`, 'success');
+}
+
 function saveMemos() {
   save('memos', memos);
   save('memo_idcounter', memoIdCounter);
@@ -1779,11 +1815,24 @@ function findBacklinks(memo) {
   return memos.filter(other => other.id !== memo.id && re.test(other.content || ''));
 }
 
+// 이 메모를 noteId로 가리키는 마인드맵 노드 목록
+function findMindmapNodesLinkingTo(memoId) {
+  if (typeof mindmaps === 'undefined') return [];
+  const out = [];
+  for (const mm of mindmaps) {
+    for (const n of (mm.nodes || [])) {
+      if (n.noteId === memoId) out.push({ mindmapId: mm.id, mindmapName: mm.name, nodeId: n.id, nodeText: n.text });
+    }
+  }
+  return out;
+}
+
 // 백링크 패널 HTML — 에디터 본문 아래에 붙음. 백링크 없으면 빈 문자열.
 function _renderBacklinkPanel(memo) {
   if (!memo) return '';
   const links = findBacklinks(memo);
-  if (links.length === 0) return '';
+  const mmLinks = findMindmapNodesLinkingTo(memo.id);
+  if (links.length === 0 && mmLinks.length === 0) return '';
   const items = links.map(l => {
     // 매칭 위치 주변 짧은 스니펫
     const re = new RegExp('\\[\\[\\s*' + _escapeRegex(memo.title.trim()) + '(?:\\|[^\\]\\n]+)?\\s*\\]\\]', 'i');
@@ -1799,12 +1848,22 @@ function _renderBacklinkPanel(memo) {
       ${snip ? `<div class="backlink-snippet">${escapeHtml(snip)}</div>` : ''}
     </div>`;
   }).join('');
+  // 마인드맵 노드에서 가리키는 경우 (역방향)
+  const mmItems = mmLinks.map(x => `<div class="backlink-item" onclick="selectNote('mindmap', ${x.mindmapId})">
+    <div class="backlink-title"><span class="mi mi-sm" style="vertical-align:-3px;">account_tree</span> ${escapeHtml(x.mindmapName)}</div>
+    <div class="backlink-snippet">노드 "${escapeHtml(x.nodeText)}"</div>
+  </div>`).join('');
   return `<div class="backlink-panel">
-    <div class="backlink-header">
+    ${links.length > 0 ? `<div class="backlink-header">
       <span class="mi mi-sm">north_east</span>
       <span>이 메모를 참조하는 노트 ${links.length}개</span>
     </div>
-    <div class="backlink-list">${items}</div>
+    <div class="backlink-list">${items}</div>` : ''}
+    ${mmLinks.length > 0 ? `<div class="backlink-header" style="${links.length > 0 ? 'margin-top:14px;' : ''}">
+      <span class="mi mi-sm">account_tree</span>
+      <span>이 메모와 연결된 마인드맵 노드 ${mmLinks.length}개</span>
+    </div>
+    <div class="backlink-list">${mmItems}</div>` : ''}
   </div>`;
 }
 

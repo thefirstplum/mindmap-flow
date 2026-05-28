@@ -215,6 +215,10 @@
                 <span class="mi mi-sm">link</span>
                 <span>연결</span>
               </button>
+              <button class="nab-btn" onclick="openNoteLinkPicker()" title="메모 연결" id="nab-note-link">
+                <span class="mi mi-sm">description</span>
+                <span>메모</span>
+              </button>
               <button class="nab-btn danger" onclick="deleteSelected()" title="삭제">
                 <span class="mi mi-sm">delete</span>
                 <span>삭제</span>
@@ -547,6 +551,19 @@
   <button class="cancel" onclick="closeMmMenu()">취소</button>
 </div>
 
+<!-- Note link picker (마인드맵 노드에 메모 연결) -->
+<div class="modal-overlay cmd-palette-overlay" id="note-link-picker-overlay" onclick="if(event.target===this)closeNoteLinkPicker()">
+  <div class="modal cmd-palette">
+    <input type="text" class="cmd-palette-input" id="note-link-picker-input" placeholder="연결할 메모 검색…">
+    <div class="cmd-palette-results" id="note-link-picker-results"></div>
+    <div class="cmd-palette-hint">
+      <span><code>↑↓</code> 이동</span>
+      <span><code>Enter</code> 연결</span>
+      <span><code>Esc</code> 닫기</span>
+    </div>
+  </div>
+</div>
+
 <!-- Command palette (⌘K) -->
 <div class="modal-overlay cmd-palette-overlay" id="cmd-palette-overlay" onclick="if(event.target===this)closeCmdPalette()">
   <div class="modal cmd-palette">
@@ -567,6 +584,7 @@
   <button onclick="togglePinMemoActive()" id="memo-action-pin"><span class="mi mi-sm">push_pin</span> 고정</button>
   <button onclick="renameMemoActive()"><span class="mi mi-sm">edit</span> 이름 변경</button>
   <button onclick="duplicateMemoActive()"><span class="mi mi-sm">content_copy</span> 복제</button>
+  <button onclick="addMemoToActiveMindmap()"><span class="mi mi-sm">account_tree</span> 활성 마인드맵에 노드로 추가</button>
   <button class="danger" onclick="deleteMemoActive()"><span class="mi mi-sm">delete</span> 삭제</button>
   <button class="cancel" onclick="closeMemoMenu()">취소</button>
 </div>
@@ -582,9 +600,9 @@
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
 <script src="js/navigation.js?v=20260528f" defer></script>
-<script src="js/mindmap.js?v=20260528e" defer></script>
+<script src="js/mindmap.js?v=20260528h" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
-<script src="js/memo.js?v=20260528g" defer></script>
+<script src="js/memo.js?v=20260528h" defer></script>
 <script src="js/journal.js?v=20260509a" defer></script>
 <script src="js/calendar.js?v=20260520e" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
