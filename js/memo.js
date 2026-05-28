@@ -821,6 +821,40 @@ function navigateMemoList(delta) {
   t.el.scrollIntoView({ block: 'nearest' });
 }
 
+// 메모 메타정보 한 번에 계산 (에디터 표시용)
+function computeMemoMeta(memo) {
+  const content = memo.content || '';
+  const charCount = content.length;
+  // 한국어 기준 읽기 속도 ~250자/분
+  const readMin = Math.max(1, Math.round(charCount / 250));
+  // 이미지 마크다운 + base64 data: URI 둘 다 카운트
+  const imageCount = (content.match(/!\[[^\]]*\]\(/g) || []).length;
+  const lineCount = content ? content.split('\n').length : 0;
+  return {
+    charCount, readMin, imageCount, lineCount,
+    createdRel: relativeTime(memo.date || memo.createdAt || memo.updatedAt),
+    updatedRel: relativeTime(memo.updatedAt || memo.date),
+  };
+}
+
+// "5분 전", "오늘 14:30", "3일 전", "5월 28일" 같은 상대시간 표기
+function relativeTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const diffMs = now - d;
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return '방금';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}분 전`;
+  const diffH = Math.floor(diffMin / 60);
+  if (isSameDay(d, now)) return `오늘 ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+  if (diffH < 24 * 7) return `${Math.floor(diffH / 24)}일 전`;
+  if (d.getFullYear() === now.getFullYear()) return `${d.getMonth()+1}월 ${d.getDate()}일`;
+  return `${d.getFullYear()}.${d.getMonth()+1}.${d.getDate()}`;
+}
+
 function renderMemoEditor() {
   const editor = document.getElementById('memo-editor');
   // Capture decoded images before the DOM is replaced so we can
@@ -849,10 +883,8 @@ function renderMemoEditor() {
     </div>`;
     return;
   }
-  const date = new Date(memo.date);
-  const dateStr = `${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 ${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}`;
-  const charCount = memo.content.length;
-  const wordCount = memo.content.trim().split(/\s+/).filter(Boolean).length;
+  // 풍부한 메타정보 — 생성/수정 둘 다 + 읽기시간 + 이미지·줄·태그
+  const meta = computeMemoMeta(memo);
 
   // Three editor modes:
   //   'view' — read-only rendered HTML (tap body to enter live)
@@ -887,9 +919,15 @@ function renderMemoEditor() {
       <input type="text" value="${escapeHtml(memo.title)}" oninput="updateMemoTitle(this.value)" placeholder="제목 없음">
     </div>
     <div class="memo-meta">
-      <span>${dateStr}</span>
+      <span title="수정 시각">수정 ${meta.updatedRel}</span>
       <span class="dot"></span>
-      <span>${charCount}자 · ${wordCount}단어</span>
+      <span title="작성 시각">작성 ${meta.createdRel}</span>
+      <span class="dot"></span>
+      <span>${meta.charCount}자</span>
+      <span class="dot"></span>
+      <span>읽기 ${meta.readMin}분</span>
+      ${meta.imageCount > 0 ? `<span class="dot"></span><span>이미지 ${meta.imageCount}</span>` : ''}
+      ${(memo.tags || []).length > 0 ? `<span class="dot"></span><span>태그 ${(memo.tags || []).length}</span>` : ''}
     </div>
     <div class="memo-tags-row">
       <div id="memo-tag-chips">

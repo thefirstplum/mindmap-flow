@@ -669,6 +669,41 @@ body[data-theme="leather"] {
   padding-top: 14px;
 }
 
+/* ── Block embed ![[제목]] (Obsidian transclusion) ── */
+.embed-block {
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.embed-block-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  background: var(--surface3);
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+}
+.embed-block-head:hover { background: var(--surface); color: var(--accent); }
+.embed-block-body {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--text);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.embed-block-body p:first-child { margin-top: 0; }
+.embed-block-body p:last-child { margin-bottom: 0; }
+.embed-block-miss,
+.embed-block-skip {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-mute);
+  font-style: italic;
+}
+
 /* ── Wikilink [[제목]] (Obsidian/Roam-style) ── */
 .wikilink {
   color: var(--accent);

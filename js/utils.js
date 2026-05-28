@@ -21,6 +21,32 @@ function optimizeImageUrl(url) {
 }
 
 // =================== MARKDOWN PARSER ===================
+// 블록 임베드용 — 제목으로 메모 찾아서 본문 재귀 렌더 (depth 2 가드)
+function _renderEmbed(title, depth) {
+  if (depth >= 2) {
+    return `<div class="embed-block embed-block-skip">↻ 임베드 깊이 제한 (${title})</div>`;
+  }
+  if (typeof memos === 'undefined') {
+    return `<div class="embed-block embed-block-miss">↻ [[${title}]]</div>`;
+  }
+  const m = memos.find(x => (x.title || '').trim() === title);
+  if (!m) {
+    return `<div class="embed-block embed-block-miss">↻ <a href="#" class="wikilink" onclick="event.preventDefault();openMemoByTitle('${title.replace(/'/g, "\\'")}')">${title}</a> (없음 — 클릭해 만들기)</div>`;
+  }
+  // 재귀 렌더 (전역 깊이 카운터)
+  window._mdEmbedDepth = (window._mdEmbedDepth || 0) + 1;
+  let inner;
+  try { inner = md2html(m.content || '*(빈 메모)*'); }
+  finally { window._mdEmbedDepth = Math.max(0, (window._mdEmbedDepth || 0) - 1); }
+  return `<div class="embed-block">
+    <div class="embed-block-head" onclick="openMemoByTitle('${title.replace(/'/g, "\\'")}')">
+      <span class="mi mi-sm">north_east</span>
+      <span>${title}</span>
+    </div>
+    <div class="embed-block-body">${inner}</div>
+  </div>`;
+}
+
 function md2html(md) {
   if (!md) return '';
   let s = md;
@@ -77,6 +103,14 @@ function md2html(md) {
 
   // Inline code
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+
+  // Block embed ![[Title]] — Obsidian-style transclusion. Renders referenced
+  // memo's body inline as a quote-box. Depth-limited (2) to prevent infinite
+  // recursion. Must run BEFORE wikilinks (else [[]] inside ![[]] matches first)
+  // and BEFORE image syntax (![alt](url)) — but the !\[\[ token is unique.
+  s = s.replace(/!\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g, (_m, target) => {
+    return _renderEmbed(target.trim(), (window._mdEmbedDepth || 0));
+  });
 
   // Wikilinks [[Title]] or [[Title|Display]] — Obsidian/Roam-style links to other
   // memos by title. Resolved at click time (onclick → openMemoByTitle).
