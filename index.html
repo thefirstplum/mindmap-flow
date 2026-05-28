@@ -415,6 +415,24 @@
       </div>
     </details>
 
+    <div id="storage-usage-section" style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="color:var(--text-dim);font-size:13px;font-weight:600;">
+          <span class="mi mi-sm" style="vertical-align:-3px;">database</span>
+          저장공간 사용량
+        </div>
+        <button onclick="refreshStorageUsage()" class="tb-btn" style="padding:3px 10px;font-size:11px;" title="새로고침">
+          <span class="mi mi-sm">refresh</span>
+        </button>
+      </div>
+      <div id="storage-usage-bar" style="height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;margin-bottom:8px;">
+        <div id="storage-usage-bar-fill" style="height:100%;background:var(--accent);width:0%;transition:width 0.3s;"></div>
+      </div>
+      <div id="storage-usage-text" style="font-size:11px;color:var(--text-mute);line-height:1.6;">
+        측정 중…
+      </div>
+    </div>
+
     <details style="margin-top:22px;" id="backup-section">
       <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);list-style:none;">
         🛟 자동 로컬 백업 <span style="color:var(--text-mute);font-weight:400;font-size:11px;" id="backup-summary-count"></span>
@@ -614,7 +632,7 @@
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260509a" defer></script>
-<script src="js/sync.js?v=20260528j" defer></script>
+<script src="js/sync.js?v=20260528q" defer></script>
 <script src="js/main.js?v=20260528n" defer></script>
 
 </body>

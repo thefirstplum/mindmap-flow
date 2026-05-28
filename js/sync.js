@@ -129,6 +129,7 @@ function openSyncModal() {
   updateGistStatus();
   updateFolderStatus();
   refreshBackupList();
+  refreshStorageUsage();
   if (!isFsApiSupported()) {
     const folderEl = document.getElementById('folder-status');
     if (folderEl) {
@@ -3412,5 +3413,82 @@ async function initFolder() {
       // Don't request permission immediately; wait for user gesture
     }
   } catch {}
+}
+
+// =================== STORAGE USAGE PANEL ===================
+// 동기화 모달의 저장공간 사용량 시각화. navigator.storage.estimate()는 전체
+// origin 합계 (IDB + LS + Cache 등 모두 포함). 항목별 내역은 직접 계산해서
+// "메모 X.X MB · 마인드맵 Y.Y MB" 형태로 분해 표시.
+async function refreshStorageUsage() {
+  const bar = document.getElementById('storage-usage-bar-fill');
+  const txt = document.getElementById('storage-usage-text');
+  if (!bar || !txt) return;
+  txt.textContent = '측정 중…';
+
+  // 1) 항목별 사이즈 — IDB(_kvCache)에서 직렬화 후 측정 (정확)
+  const mb = (n) => (n / 1024 / 1024).toFixed(n < 1024 * 1024 ? 3 : 2);
+  const kb = (n) => (n / 1024).toFixed(1);
+  const fmt = (n) => n >= 1024 * 1024 ? `${mb(n)} MB` : `${kb(n)} KB`;
+  const byteSize = (v) => {
+    try { return new Blob([typeof v === 'string' ? v : JSON.stringify(v)]).size; }
+    catch { return 0; }
+  };
+  // 캐시에서 키별 사이즈 집계
+  const breakdown = [];
+  let totalKv = 0;
+  if (typeof _kvCache !== 'undefined') {
+    const groups = { memos: 0, mindmaps: 0, timeblocks: 0, journal: 0, routine: 0, etc: 0 };
+    for (const [k, v] of _kvCache) {
+      const sz = byteSize(v);
+      totalKv += sz;
+      if (k === 'memos' || k.startsWith('memo_')) groups.memos += sz;
+      else if (k === 'mindmaps' || k.startsWith('mm_') || k.startsWith('mindmap_')) groups.mindmaps += sz;
+      else if (k === 'tb_blocks' || k.startsWith('tb_')) groups.timeblocks += sz;
+      else if (k.startsWith('journal')) groups.journal += sz;
+      else if (k.startsWith('routine')) groups.routine += sz;
+      else groups.etc += sz;
+    }
+    const items = [
+      { l: '📝 메모', s: groups.memos },
+      { l: '🧠 마인드맵', s: groups.mindmaps },
+      { l: '📅 타임블록', s: groups.timeblocks },
+      { l: '📔 일기', s: groups.journal },
+      { l: '🔁 루틴', s: groups.routine },
+      { l: '⚙️ 기타', s: groups.etc },
+    ].filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+    for (const x of items) breakdown.push(`${x.l} ${fmt(x.s)}`);
+  }
+
+  // 2) IDB 백업·버전 히스토리 등 별도 DB 사이즈는 estimate에 포함됨
+  let estLine = '';
+  let pct = 0;
+  if (navigator.storage?.estimate) {
+    try {
+      const { usage, quota } = await navigator.storage.estimate();
+      if (usage && quota) {
+        pct = (usage / quota) * 100;
+        estLine = `<strong>${mb(usage)} MB</strong> / ${(quota / 1024 / 1024 / 1024).toFixed(1)} GB (${pct.toFixed(2)}%)`;
+      }
+    } catch {}
+  }
+
+  bar.style.width = Math.min(100, pct).toFixed(1) + '%';
+  bar.style.background = pct > 95 ? 'var(--red, #dc3545)'
+                       : pct > 80 ? 'var(--yellow, #f5b400)'
+                       : 'var(--accent)';
+
+  txt.innerHTML = `
+    <div style="margin-bottom:6px;">
+      ${estLine || `<strong>${fmt(totalKv)}</strong> (브라우저 estimate 미지원)`}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px 12px;color:var(--text-dim);">
+      ${breakdown.map(x => `<span>${x}</span>`).join('')}
+    </div>
+    <div style="margin-top:6px;color:var(--text-mute);font-size:10.5px;">
+      ${pct > 95 ? '⚠️ 한계 임박 — 안 쓰는 메모·마인드맵 정리 권장'
+       : pct > 80 ? '⚠️ 사용량 많음 — 모니터링 필요'
+       : '✅ 여유 충분 (IDB primary, 디스크의 ~60% 사용 가능)'}
+      · 백업·버전 히스토리·이미지 포함 전체 합계
+    </div>`;
 }
 
