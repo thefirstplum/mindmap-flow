@@ -786,11 +786,14 @@ function mergeMemos(remoteMemos, localMemos, opts) {
 }
 
 // Merge remote mindmaps into local mindmaps. Mirrors mergeMemos' protections:
-// 3-way deletion detection AND tag preservation when remote lacks the field.
+// tombstones (no resurrection), 3-way deletion via pullSnap, and tag preservation
+// when remote lacks the field.
 function mergeMindmaps(remoteMms, localMms, opts) {
   opts = opts || {};
   const pullSnapMm = opts.pullSnapMm || {};
+  const tombstones = opts.tombstones || {};
   const remoteIdSet = new Set(remoteMms.map(m => m && m.id).filter(Boolean));
+  const mtime = mm => new Date(mm.updatedAt || 0).getTime();
   const mergeWithTags = (winner, loser) => {
     if (!('tags' in winner) && loser && Array.isArray(loser.tags) && loser.tags.length > 0) {
       return { ...winner, tags: loser.tags };
@@ -801,15 +804,21 @@ function mergeMindmaps(remoteMms, localMms, opts) {
   for (const m of localMms) {
     if (!remoteIdSet.has(m.id) && (m.id in pullSnapMm)) {
       const snapAt = new Date(pullSnapMm[m.id] || 0).getTime();
-      const localAt = new Date(m.updatedAt || 0).getTime();
-      if (localAt <= snapAt) continue; // accept remote deletion
+      if (mtime(m) <= snapAt) continue; // accept remote deletion
     }
     map.set(m.id, m);
   }
   for (const remote of remoteMms) {
     if (!remote?.id) continue;
+    // Tombstone wins over remote-alive if the local deletion is newer than the
+    // remote update — protects against resurrection when snapshot was wiped.
+    const deletedAt = tombstones[remote.id];
+    if (deletedAt && new Date(deletedAt).getTime() >= mtime(remote)) {
+      map.delete(remote.id);
+      continue;
+    }
     const local = map.get(remote.id);
-    if (!local || new Date(remote.updatedAt || 0) >= new Date(local.updatedAt || 0)) {
+    if (!local || mtime(remote) >= mtime(local)) {
       map.set(remote.id, mergeWithTags(remote, local));
     }
   }
@@ -909,7 +918,14 @@ function computeDriveDirty() {
     return cur > last;
   });
   const localMmIds = new Set(mindmaps.map(mm => mm.id));
-  const deletedMindmapIds = Object.keys(snap.mindmaps).map(s => parseInt(s)).filter(id => !localMmIds.has(id));
+  // Include tombstoned ids too — snapshot can be empty after schema bump / fresh
+  // device / ITP eviction. Without this, mindmaps deleted on device A would not
+  // get pushed (= still present on Drive) and device B would resurrect them.
+  const mmTombs = load('mindmap_tombstones', {});
+  const deletedMindmapIds = Array.from(new Set([
+    ...Object.keys(snap.mindmaps).map(s => parseInt(s)),
+    ...Object.keys(mmTombs).map(s => parseInt(s)),
+  ])).filter(id => !localMmIds.has(id));
 
   // Timeblock days: tb_meta[day] is the per-day mtime; days without meta still
   // need to push on first run (snap won't have them either, so "undefined → dirty")
@@ -1465,21 +1481,34 @@ async function drivePushAll() {
       }
       newSnap.mindmaps[mm.id] = capturedMtime;
     });
+    const mmDeleteSuccess = [];
     await batchAll(diff.deletedMindmapIds, async id => {
       const f = mindmapByName.get(`mindmap-${id}.json`);
       if (!f) {
         delete newSnap.mindmaps[id];
         delete newSnap.driveMtimes.mindmap[id];
+        mmDeleteSuccess.push(id);
         return;
       }
       try {
         await driveDeleteFile(f.id);
         delete newSnap.mindmaps[id];
         delete newSnap.driveMtimes.mindmap[id];
+        mmDeleteSuccess.push(id);
       } catch (e) {
         console.warn('[Sync] Mindmap delete failed for id', id, '— keeping in snapshot:', e.message);
       }
     });
+    // Clear mindmap tombstones for successful deletions only (mirror memo path).
+    // Failed deletes keep their tombstone so they retry next push.
+    if (mmDeleteSuccess.length) {
+      const mmTombsCur = load('mindmap_tombstones', {});
+      let changed = false;
+      for (const id of mmDeleteSuccess) {
+        if (id in mmTombsCur) { delete mmTombsCur[id]; changed = true; }
+      }
+      if (changed) localStorage.setItem('mindflow_mindmap_tombstones', JSON.stringify(mmTombsCur));
+    }
 
     // Timeblocks — uploaded into MindFlow/timeblocks/
     await batchAll(diff.dirtyTbDays, async dayKey => {
@@ -1725,11 +1754,12 @@ async function applyDriveData(files) {
     // --- Mindmaps ---
     const legacyApp = (appParsed?.app === 'mindflow') ? appParsed : null;
     if (remoteMmFiles.length > 0) {
-      // Shared mindmap merge — tombstone-equivalent (3-way deletion via snap)
-      // + tag preservation when remote lacks the field (otherwise tags vanish
-      // every time another device that doesn't carry tags wins the timestamp).
+      // Shared mindmap merge — tombstones + 3-way deletion via snap + tag
+      // preservation when remote lacks the field (otherwise tags vanish every
+      // time another device that doesn't carry tags wins the timestamp).
       mindmaps = mergeMindmaps(mmRaws.filter(r => r?.id), mindmaps, {
         pullSnapMm: pullSnap.mindmaps || {},
+        tombstones: load('mindmap_tombstones', {}),
       });
       activeMindmapId = mindmaps.find(m => m.id === activeMindmapId)?.id ?? mindmaps[0]?.id ?? null;
       localStorage.setItem('mindflow_mindmaps', JSON.stringify(mindmaps));

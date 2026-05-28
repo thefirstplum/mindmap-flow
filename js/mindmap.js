@@ -143,6 +143,12 @@ function deleteMindmapById(id) {
   const m = mindmaps.find(x => x.id === id);
   if (!m) return;
   if (!confirm(`마인드맵 "${m.name}"을(를) 삭제하시겠습니까?`)) return;
+  // Record tombstone so Drive sync can't resurrect this mindmap on the next pull
+  // (parallels memo_tombstones in js/memo.js — snapshot-only deletion was unsafe
+  //  when snapshot was empty after schema bump / fresh device / ITP eviction).
+  const tombs = load('mindmap_tombstones', {});
+  tombs[id] = new Date().toISOString();
+  save('mindmap_tombstones', tombs);
   const wasActive = (activeMindmapId === id);
   mindmaps = mindmaps.filter(x => x.id !== id);
   if (wasActive) {

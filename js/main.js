@@ -28,11 +28,9 @@ if (mindmaps.length === 0) {
 renderMindmapList();
 drawMindMap();
 
-// Prevent iOS bounce
-document.body.addEventListener('touchmove', e => {
-  if (e.target.closest('.timeblock-body, .memo-items, textarea, .modal, .markdown-body')) return;
-  if (e.touches.length > 1) return;
-}, { passive: true });
+// (옛 "Prevent iOS bounce" touchmove 핸들러 제거 — passive:true + preventDefault
+//  호출 없음 = dead code. html/body의 `overscroll-behavior: none` 한 줄이 이미
+//  바운스를 막고 있음.)
 
 // Apply settings (show/hide ledger tab etc.) and init ledger renderer
 applySettings();
@@ -46,6 +44,13 @@ if (typeof migrateHashtagsFromContent === 'function') {
 // Daily backup (idle, runs at most once per 24h)
 if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});
+}
+
+// Ask browser for persistent storage — without this, iOS Safari may evict
+// localStorage after 7 days idle, silently losing data. No-op on browsers
+// that don't support the API.
+if (typeof requestPersistentStorage === 'function') {
+  requestPersistentStorage().catch(() => {});
 }
 
 // =================== SERVICE WORKER (PWA instant-update) ===================

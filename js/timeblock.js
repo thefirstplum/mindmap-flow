@@ -482,7 +482,7 @@ function renderTimeblockList() {
         <div class="tb-list-date">${date.getMonth()+1}월 ${date.getDate()}일 (${dayName})${isToday ? '<span class="today-tag">TODAY</span>' : ''}</div>
         <div class="tb-list-meta">${meta}</div>
       </div>
-      ${blocks.length > 0 ? '<button class="swipe-action" aria-label="이날 일정 모두 삭제">🗑 모두 삭제</button>' : ''}
+      ${blocks.length > 0 ? '<button class="swipe-action" aria-label="이날 일정 모두 삭제"><span class="mi mi-sm">delete</span> 모두 삭제</button>' : ''}
     </div>`;
   }).join('');
   if (!container.dataset.swipeReady) {
