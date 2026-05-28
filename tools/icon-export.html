@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MindFlow 아이콘 PNG 생성기</title>
+<style>
+  body { font-family: -apple-system, sans-serif; padding: 30px; max-width: 720px; margin: 0 auto; background: #0f1117; color: #fdf6e3; }
+  h1 { font-weight: 700; }
+  .icons { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px; margin: 24px 0; }
+  .icon-card { background: #1a1d24; border-radius: 10px; padding: 14px; text-align: center; }
+  .icon-card img { background: #fff; border-radius: 8px; display: block; margin: 0 auto 10px; }
+  .icon-card .label { font-size: 12px; color: #999; margin-bottom: 6px; }
+  .icon-card .filename { font-size: 11px; color: #6c7280; font-family: ui-monospace, Menlo, monospace; }
+  .icon-card a { display: inline-block; margin-top: 8px; background: #b58900; color: #fff; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 600; }
+  .actions { margin-top: 24px; }
+  button { background: #268bd2; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  button:hover { filter: brightness(1.1); }
+  pre { background: #1a1d24; padding: 14px; border-radius: 8px; overflow-x: auto; font-size: 11px; }
+  .hint { background: #1a1d24; padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<h1>📱 MindFlow 아이콘 PNG 생성기</h1>
+<p>icon.svg를 PWA에 필요한 사이즈로 변환합니다. 각 카드의 <strong>다운로드</strong> 버튼을 누르거나 아래 <strong>일괄 다운로드</strong>를 누른 뒤 mindflow-app/ 폴더에 저장하세요.</p>
+
+<div class="icons" id="icons"></div>
+
+<div class="actions">
+  <button onclick="downloadAll()">⬇️ 일괄 다운로드 (5개 PNG)</button>
+</div>
+
+<div class="hint">
+  <strong>다운받은 후 해야 할 일:</strong>
+  <ol>
+    <li>5개 PNG 파일을 <code>mindflow-app/</code> 루트에 저장</li>
+    <li>(이미 manifest.json·index.html은 자동 인식하도록 업데이트됨)</li>
+    <li>git add . && git commit -m "chore: PNG 아이콘 추가" && git push</li>
+  </ol>
+</div>
+
+<script>
+const SVG_TEXT = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0f1117"/>
+  <text x="256" y="356" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="320" fill="#fdf6e3" text-anchor="middle">M</text>
+</svg>`;
+
+// Maskable variant: 안전영역 80% 안에 컨텐츠 배치 + 전체 영역 가득 채우기 (rx=0)
+const SVG_MASKABLE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0f1117"/>
+  <text x="256" y="328" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="240" fill="#fdf6e3" text-anchor="middle">M</text>
+</svg>`;
+
+const ICONS = [
+  { size: 180, file: 'apple-touch-icon-180.png', label: 'apple-touch-icon (iOS 홈)', svg: SVG_TEXT },
+  { size: 192, file: 'icon-192.png',             label: 'Android (표준)',          svg: SVG_TEXT },
+  { size: 512, file: 'icon-512.png',             label: 'Android (고해상도/스플래시)', svg: SVG_TEXT },
+  { size: 192, file: 'icon-192-maskable.png',    label: 'Android maskable (적응형)', svg: SVG_MASKABLE },
+  { size: 512, file: 'icon-512-maskable.png',    label: 'Android maskable (고해상도)', svg: SVG_MASKABLE },
+];
+
+function svgToBlob(svgText, size) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(resolve, 'image/png');
+    };
+    img.src = url;
+  });
+}
+
+async function render() {
+  const wrap = document.getElementById('icons');
+  for (const ic of ICONS) {
+    const card = document.createElement('div');
+    card.className = 'icon-card';
+    const previewSize = Math.min(ic.size, 112);
+    const blob = await svgToBlob(ic.svg, ic.size);
+    const url = URL.createObjectURL(blob);
+    card.innerHTML = `
+      <img src="${url}" width="${previewSize}" height="${previewSize}">
+      <div class="label">${ic.label}</div>
+      <div class="filename">${ic.file} · ${ic.size}×${ic.size}</div>
+      <a href="${url}" download="${ic.file}">⬇️ 다운로드</a>
+    `;
+    wrap.appendChild(card);
+    // 캐시
+    ic._url = url;
+  }
+}
+
+async function downloadAll() {
+  for (const ic of ICONS) {
+    const a = document.createElement('a');
+    a.href = ic._url;
+    a.download = ic.file;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    await new Promise(r => setTimeout(r, 200));
+  }
+}
+
+render();
+</script>
+</body>
+</html>

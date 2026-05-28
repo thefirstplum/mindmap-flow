@@ -911,6 +911,9 @@ function renderMemoEditor() {
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
         <span class="mi mi-sm">image</span>
       </button>
+      <button class="memo-icon-btn" onclick="openVersionHistory()" title="버전 히스토리">
+        <span class="mi mi-sm">history</span>
+      </button>
       <button class="memo-icon-btn danger" onclick="deleteMemo(${memo.id})" title="메모 삭제">
         <span class="mi mi-sm">delete</span>
       </button>
@@ -1821,6 +1824,193 @@ function markLoadedImages() {
   document.querySelectorAll('.markdown-body img').forEach(img => {
     if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
   });
+}
+
+// =================== PER-NOTE VERSION HISTORY (IndexedDB) ===================
+// BackupService는 '전체 상태' 단위. per-note history는 다른 메모를 안 건드리고
+// 한 메모의 직전 버전들만 복원. 5분 throttle + selectNote 시 flush.
+const MH_DB = 'mindflow-memo-history';
+const MH_STORE = 'versions';
+const MH_VERSIONS_PER_MEMO = 10;
+const MH_THROTTLE_MS = 5 * 60_000;
+const _mhLastPushAt = {};
+
+function _mhOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(MH_DB, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(MH_STORE)) {
+        const s = db.createObjectStore(MH_STORE, { keyPath: 'key' });
+        s.createIndex('memoId', 'memoId');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function mhGetVersionsForMemo(memoId) {
+  try {
+    const db = await _mhOpen();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(MH_STORE, 'readonly');
+      const idx = tx.objectStore(MH_STORE).index('memoId');
+      const req = idx.getAll(memoId);
+      req.onsuccess = () => resolve((req.result || []).sort((a, b) => b.ts - a.ts));
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) { console.warn('mh get:', e); return []; }
+}
+
+async function mhPushVersion(memo, opts) {
+  if (!memo) return;
+  opts = opts || {};
+  const now = Date.now();
+  if (!opts.force && _mhLastPushAt[memo.id] && now - _mhLastPushAt[memo.id] < MH_THROTTLE_MS) return;
+  try {
+    const existing = await mhGetVersionsForMemo(memo.id);
+    // 동일 내용이면 skip (디바운스만 통과해도 의미 없음)
+    if (existing.length && existing[0].content === (memo.content || '') && existing[0].title === (memo.title || '')) return;
+    _mhLastPushAt[memo.id] = now;
+    const db = await _mhOpen();
+    const tx = db.transaction(MH_STORE, 'readwrite');
+    const store = tx.objectStore(MH_STORE);
+    store.put({
+      key: `${memo.id}:${now}`,
+      memoId: memo.id,
+      ts: now,
+      title: memo.title || '',
+      content: memo.content || '',
+      tags: memo.tags || []
+    });
+    // 오래된 버전 정리
+    if (existing.length >= MH_VERSIONS_PER_MEMO) {
+      for (const v of existing.slice(MH_VERSIONS_PER_MEMO - 1)) store.delete(v.key);
+    }
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  } catch (e) { console.warn('mh push:', e); }
+}
+
+async function mhDeleteAllForMemo(memoId) {
+  try {
+    const versions = await mhGetVersionsForMemo(memoId);
+    if (versions.length === 0) return;
+    const db = await _mhOpen();
+    const tx = db.transaction(MH_STORE, 'readwrite');
+    const store = tx.objectStore(MH_STORE);
+    for (const v of versions) store.delete(v.key);
+    await new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = () => rej(tx.error); });
+  } catch {}
+}
+
+// ===== UI: 버전 히스토리 모달 =====
+async function openVersionHistory() {
+  if (!activeMemoId) { toast('메모를 먼저 선택하세요'); return; }
+  const memo = memos.find(m => m.id === activeMemoId);
+  if (!memo) return;
+  // 현재 버전도 한 번 강제 푸시 (직전 스냅샷 보장)
+  await mhPushVersion(memo, { force: true });
+  const versions = await mhGetVersionsForMemo(memo.id);
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay show app-dialog-overlay version-history-overlay';
+  const body = document.createElement('div');
+  body.className = 'modal version-history-modal';
+  body.innerHTML = `
+    <div class="vh-header">
+      <span class="mi mi-sm">history</span>
+      <span>버전 히스토리 — ${escapeHtml(memo.title || '제목 없음')}</span>
+      <button class="vh-close" onclick="this.closest('.modal-overlay').remove()" aria-label="닫기">
+        <span class="mi mi-sm">close</span>
+      </button>
+    </div>
+    <div class="vh-body">
+      ${versions.length === 0
+        ? '<div class="vh-empty">아직 저장된 버전이 없어요. 5분 이상 텀을 두고 편집하면 자동 기록됩니다.</div>'
+        : `<div class="vh-list">${versions.map((v, i) => `
+            <div class="vh-item ${i === 0 ? 'active' : ''}" data-vk="${v.key}">
+              <div class="vh-item-time">${_vhRelTime(v.ts)} ${i === 0 ? '<span class="vh-current">현재</span>' : ''}</div>
+              <div class="vh-item-title">${escapeHtml(v.title || '제목 없음')}</div>
+              <div class="vh-item-sub">${v.content.length}자</div>
+            </div>`).join('')}</div>
+          <div class="vh-preview" id="vh-preview"></div>`}
+    </div>
+    <div class="vh-actions">
+      <button class="app-dialog-btn cancel" onclick="this.closest('.modal-overlay').remove()">닫기</button>
+      ${versions.length > 0 ? '<button class="app-dialog-btn primary" id="vh-restore-btn">선택한 버전으로 복원</button>' : ''}
+    </div>`;
+  overlay.appendChild(body);
+  document.body.appendChild(overlay);
+  if (versions.length === 0) return;
+
+  // 첫 번째 = 현재 버전 미리보기
+  let selectedVk = versions[0].key;
+  const setPreview = (key) => {
+    const v = versions.find(x => x.key === key);
+    if (!v) return;
+    selectedVk = key;
+    document.querySelectorAll('.vh-item').forEach(el => el.classList.toggle('selected', el.dataset.vk === key));
+    document.getElementById('vh-preview').innerHTML = `
+      <div class="vh-preview-title">${escapeHtml(v.title || '제목 없음')}</div>
+      <div class="vh-preview-meta">${_vhFullTime(v.ts)} · ${v.content.length}자 · 태그 ${(v.tags || []).length}개</div>
+      <div class="vh-preview-body markdown-body">${md2html(v.content || '')}</div>`;
+  };
+  setPreview(versions[0].key);
+  overlay.querySelectorAll('.vh-item').forEach(el => {
+    el.addEventListener('click', () => setPreview(el.dataset.vk));
+  });
+  const restoreBtn = overlay.querySelector('#vh-restore-btn');
+  if (restoreBtn) {
+    restoreBtn.addEventListener('click', async () => {
+      const v = versions.find(x => x.key === selectedVk);
+      if (!v) return;
+      const ok = await confirmDialog(`이 버전으로 복원하시겠어요?\n(현재 버전은 히스토리에 백업됩니다)`, { okText: '복원' });
+      if (!ok) return;
+      // 현재 버전을 백업
+      await mhPushVersion(memo, { force: true });
+      // 복원
+      memo.title = v.title;
+      memo.content = v.content;
+      memo.tags = v.tags || [];
+      memo.updatedAt = new Date().toISOString();
+      saveMemos();
+      renderMemoEditor();
+      renderMemoList();
+      overlay.remove();
+      toast('버전 복원됨', 'success');
+    });
+  }
+}
+
+function _vhRelTime(ts) {
+  const d = new Date(ts);
+  return (typeof relativeTime === 'function') ? relativeTime(d.toISOString()) : d.toLocaleString();
+}
+function _vhFullTime(ts) {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+// === 자동 버전 푸시 훅 ===
+// selectNote가 다른 메모로 갈 때 직전 메모 한 번 스냅샷
+const _origSelectNote = typeof selectNote === 'function' ? selectNote : null;
+if (_origSelectNote) {
+  window.selectNote = function(type, id) {
+    if (activeMemoId && activeMemoId !== id) {
+      const prev = memos.find(m => m.id === activeMemoId);
+      if (prev) mhPushVersion(prev); // 자동 5분 throttle
+    }
+    return _origSelectNote(type, id);
+  };
+}
+// 메모 삭제 시 히스토리도 정리
+const _origDeleteMemo = typeof deleteMemo === 'function' ? deleteMemo : null;
+if (_origDeleteMemo) {
+  window.deleteMemo = async function(id) {
+    const res = await _origDeleteMemo(id);
+    mhDeleteAllForMemo(id).catch(() => {});
+    return res;
+  };
 }
 
 // =================== WIKILINKS [[]] + 백링크 ===================
