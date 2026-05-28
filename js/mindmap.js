@@ -466,6 +466,22 @@ function drawMindMap() {
     ctx.textBaseline = 'middle';
     ctx.fillText(n.text, n.x, n.y);
 
+    // Note link indicator (작은 문서 아이콘, 좌상단 코너) — 노드가 메모와 연결된 경우
+    if (n.noteId) {
+      const ix = n.x - w/2 + 8;
+      const iy = n.y - h/2 + 8;
+      ctx.beginPath();
+      ctx.arc(ix, iy, 7, 0, Math.PI * 2);
+      ctx.fillStyle = '#fff';
+      ctx.fill();
+      // 작은 doc 모양 (직사각형 + 접힌 모서리)
+      ctx.fillStyle = n.color || '#b58900';
+      ctx.font = '700 9px -apple-system, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('📝', ix, iy + 0.5);
+    }
+
     // Connection handle on selected node (right side)
     if (isSelected && !isDraggingConnection) {
       const hx = n.x + w/2 + 16;
@@ -934,6 +950,21 @@ function updateNodeActionBar() {
   bar.classList.add('show');
   const node = nodes.find(n => n.id === selectedNode);
   if (node) syncToolbarColor(node.color || currentNodeColor);
+  // 메모 연결 버튼 라벨/액션 토글
+  const noteBtn = document.getElementById('nab-note-link');
+  if (noteBtn && node) {
+    if (node.noteId) {
+      noteBtn.title = '연결된 메모 열기 (오른쪽 클릭으로 해제)';
+      noteBtn.innerHTML = '<span class="mi mi-sm mi-fill">description</span><span>메모 열기</span>';
+      noteBtn.onclick = (e) => jumpToLinkedMemo(node.id);
+      noteBtn.oncontextmenu = (e) => { e.preventDefault(); unlinkNodeFromMemo(); return false; };
+    } else {
+      noteBtn.title = '메모 연결';
+      noteBtn.innerHTML = '<span class="mi mi-sm">description</span><span>메모</span>';
+      noteBtn.onclick = (e) => openNoteLinkPicker();
+      noteBtn.oncontextmenu = null;
+    }
+  }
 }
 
 function openNodeEditSelected() {
@@ -1058,4 +1089,158 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { selectedNode = null; selectedEdge = null; isConnecting = false; connectingFrom = null; canvas.classList.remove('connecting'); updateToolbarState(); updateNodeActionBar(); drawMindMap(); }
   }
 });
+
+// =================== NODE ↔ MEMO LINKING ===================
+// 노드에 메모를 연결하면 노드 좌상단에 작은 아이콘이 뜨고, 노드 더블탭(또는
+// 액션바 메모 버튼) 시 그 메모로 점프. 메모 컨텍스트 메뉴에서도 역방향 연결 가능.
+
+let _noteLinkPickerActiveIdx = 0;
+let _noteLinkPickerResults = [];
+let _noteLinkPickerTargetNodeId = null;
+
+function openNoteLinkPicker(targetNodeId) {
+  // Default = currently selected node
+  _noteLinkPickerTargetNodeId = targetNodeId != null ? targetNodeId : selectedNode;
+  if (_noteLinkPickerTargetNodeId == null) {
+    toast('먼저 노드를 선택하세요'); return;
+  }
+  const o = document.getElementById('note-link-picker-overlay');
+  if (!o) return;
+  o.classList.add('show');
+  const inp = document.getElementById('note-link-picker-input');
+  inp.value = '';
+  _noteLinkPickerActiveIdx = 0;
+  renderNoteLinkPickerResults('');
+  setTimeout(() => inp.focus(), 30);
+}
+function closeNoteLinkPicker() {
+  const o = document.getElementById('note-link-picker-overlay');
+  if (o) o.classList.remove('show');
+  _noteLinkPickerTargetNodeId = null;
+}
+function renderNoteLinkPickerResults(q) {
+  const cont = document.getElementById('note-link-picker-results');
+  if (!cont) return;
+  const tokens = (typeof parseSearchQuery === 'function') ? parseSearchQuery(q) : [];
+  // 메모만 보여줌 (마인드맵 연결은 의미 없음)
+  const list = (typeof memos !== 'undefined' ? memos : [])
+    .filter(m => {
+      if (!tokens.length) return true;
+      if (typeof evalSearchQuery === 'function') {
+        // memo의 searchText 필드 보장
+        const sm = { ...m, type: 'memo', searchText: ((m.title || '') + ' ' + (m.content || '')).toLowerCase() };
+        return evalSearchQuery(sm, tokens);
+      }
+      return ((m.title || '') + ' ' + (m.content || '')).toLowerCase().includes((q || '').toLowerCase());
+    })
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .slice(0, 20);
+  _noteLinkPickerResults = list;
+  let html = '';
+  if (list.length === 0) {
+    // 검색어가 있으면 "새 메모로 생성" 옵션
+    if (q && q.trim()) {
+      html = `<div class="cmd-palette-section">없으면 새로 만들기</div>
+        <div class="cmd-palette-item active" data-create="1">
+          <span class="mi mi-sm">add</span>
+          <div class="cmd-palette-item-main">
+            <div class="cmd-palette-item-title">"${(typeof escapeHtml === 'function' ? escapeHtml(q) : q)}" 메모 생성하고 연결</div>
+          </div>
+        </div>`;
+    } else {
+      html = '<div class="cmd-palette-empty">검색 결과 없음</div>';
+    }
+  } else {
+    for (let i = 0; i < list.length; i++) {
+      const m = list[i];
+      const titleHl = (typeof highlightSearchMatch === 'function' && typeof escapeHtml === 'function')
+        ? highlightSearchMatch(escapeHtml(m.title || '제목 없음'), tokens)
+        : (m.title || '제목 없음');
+      const sub = (typeof previewSnippetWithMatch === 'function')
+        ? previewSnippetWithMatch(m.content || '', tokens)
+        : (m.content || '').slice(0, 80);
+      const subHl = (typeof highlightSearchMatch === 'function' && typeof escapeHtml === 'function')
+        ? highlightSearchMatch(escapeHtml(sub), tokens) : sub;
+      html += `<div class="cmd-palette-item ${i === _noteLinkPickerActiveIdx ? 'active' : ''}" data-mid="${m.id}">
+        <span class="mi mi-sm">edit_note</span>
+        <div class="cmd-palette-item-main">
+          <div class="cmd-palette-item-title">${titleHl}</div>
+          <div class="cmd-palette-item-sub">${subHl}</div>
+        </div>
+      </div>`;
+    }
+  }
+  cont.innerHTML = html;
+  cont.querySelectorAll('.cmd-palette-item').forEach((el) => {
+    el.addEventListener('click', () => {
+      if (el.dataset.create) {
+        const q = document.getElementById('note-link-picker-input').value.trim();
+        _createAndLinkMemo(q);
+      } else {
+        const mid = parseInt(el.dataset.mid);
+        _linkNodeToMemo(_noteLinkPickerTargetNodeId, mid);
+      }
+    });
+  });
+}
+function _linkNodeToMemo(nodeId, memoId) {
+  const n = nodes.find(x => x.id === nodeId);
+  if (!n) { closeNoteLinkPicker(); return; }
+  n.noteId = memoId;
+  saveMindMap();
+  closeNoteLinkPicker();
+  drawMindMap();
+  updateNodeActionBar();
+  const m = (typeof memos !== 'undefined' ? memos : []).find(x => x.id === memoId);
+  toast(`노드 "${n.text}" ↔ 메모 "${m?.title || '제목 없음'}" 연결됨`, 'success');
+}
+function _createAndLinkMemo(title) {
+  if (typeof memos === 'undefined' || typeof memoIdCounter === 'undefined') {
+    toast('메모 모듈이 로드되지 않았어요'); return;
+  }
+  const now = new Date().toISOString();
+  const m = { id: memoIdCounter++, title: title, content: '', date: now, updatedAt: now, tags: [] };
+  memos.unshift(m);
+  if (typeof saveMemos === 'function') saveMemos();
+  _linkNodeToMemo(_noteLinkPickerTargetNodeId, m.id);
+}
+function unlinkNodeFromMemo() {
+  if (selectedNode == null) return;
+  const n = nodes.find(x => x.id === selectedNode);
+  if (!n || !n.noteId) return;
+  delete n.noteId;
+  saveMindMap();
+  drawMindMap();
+  updateNodeActionBar();
+  toast('연결 해제됨');
+}
+// 노드 더블탭 시 호출 — 메모로 점프
+function jumpToLinkedMemo(nodeId) {
+  const n = nodes.find(x => x.id === nodeId);
+  if (!n || !n.noteId) return false;
+  if (typeof navigateTo === 'function' && currentPage !== 'memo') navigateTo('memo', { updateHash: false });
+  if (typeof selectNote === 'function') selectNote('memo', n.noteId);
+  return true;
+}
+
+// Wire picker input
+document.addEventListener('DOMContentLoaded', () => {
+  const inp = document.getElementById('note-link-picker-input');
+  if (!inp) return;
+  inp.addEventListener('input', (e) => renderNoteLinkPickerResults(e.target.value));
+  inp.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); _noteLinkPickerActiveIdx = Math.min(_noteLinkPickerResults.length - 1, _noteLinkPickerActiveIdx + 1); renderNoteLinkPickerResults(inp.value); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _noteLinkPickerActiveIdx = Math.max(0, _noteLinkPickerActiveIdx - 1); renderNoteLinkPickerResults(inp.value); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const cont = document.getElementById('note-link-picker-results');
+      const createBtn = cont.querySelector('[data-create="1"]');
+      if (createBtn) { _createAndLinkMemo(inp.value.trim()); return; }
+      const r = _noteLinkPickerResults[_noteLinkPickerActiveIdx];
+      if (r) _linkNodeToMemo(_noteLinkPickerTargetNodeId, r.id);
+    }
+    else if (e.key === 'Escape') { e.preventDefault(); closeNoteLinkPicker(); }
+  });
+});
+
 
