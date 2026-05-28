@@ -78,6 +78,15 @@ function md2html(md) {
   // Inline code
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
+  // Wikilinks [[Title]] or [[Title|Display]] — Obsidian/Roam-style links to other
+  // memos by title. Resolved at click time (onclick → openMemoByTitle).
+  // Render before markdown links so [[x]] doesn't get misparsed as [x](y).
+  s = s.replace(/\[\[([^\]\n|]+)(?:\|([^\]\n]+))?\]\]/g, (_m, target, display) => {
+    const safeTarget = (target || '').trim().replace(/"/g, '&quot;');
+    const safeDisp = ((display || target) || '').trim();
+    return `<a href="#" class="wikilink" data-wikilink="${safeTarget}" onclick="event.preventDefault();openMemoByTitle('${safeTarget.replace(/'/g, "\\'")}')">${safeDisp}</a>`;
+  });
+
   // Links and images. Rewrite Drive thumbnail URLs to the lh3 CDN form
   // for ~2-3× faster fetches (CDN-cached vs. on-demand thumbnail gen).
   // Add loading="lazy" + decoding="async" so multiple images don't block

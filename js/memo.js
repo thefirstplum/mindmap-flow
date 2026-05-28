@@ -865,6 +865,7 @@ function renderMemoEditor() {
         onblur="setTimeout(hideMemoTagInput,150)">
     </div>
     ${bodyHtml}
+    ${_renderBacklinkPanel(memo)}
   `;
 
   // Restore decoded images to avoid iOS re-decode flicker
@@ -1746,6 +1747,65 @@ function markLoadedImages() {
   document.querySelectorAll('.markdown-body img').forEach(img => {
     if (img.complete && img.naturalWidth > 0) img.classList.add('loaded');
   });
+}
+
+// =================== WIKILINKS [[]] + 백링크 ===================
+// 위키링크 클릭 시 호출 — 제목 매칭 메모로 점프. 없으면 자동 생성.
+function openMemoByTitle(title) {
+  if (!title) return;
+  const t = String(title).trim();
+  let m = memos.find(x => (x.title || '').trim() === t);
+  if (!m) {
+    // Auto-create — Obsidian/Roam 표준 동작 (위키링크는 새 노트 진입로)
+    const now = new Date().toISOString();
+    m = { id: memoIdCounter++, title: t, content: '', date: now, updatedAt: now, tags: [] };
+    memos.unshift(m);
+    saveMemos();
+    toast(`새 메모 "${t}" 생성됨`, 'success');
+  }
+  if (typeof navigateTo === 'function' && currentPage !== 'memo') {
+    navigateTo('memo', { updateHash: false });
+  }
+  selectNote('memo', m.id);
+}
+
+// 이 메모를 본문에서 [[제목]]으로 가리키는 다른 메모 목록
+function findBacklinks(memo) {
+  if (!memo || !memo.title) return [];
+  const t = memo.title.trim();
+  if (!t) return [];
+  // Case-insensitive, exact title match — 빈 제목/충돌 사본 제외
+  const re = new RegExp('\\[\\[\\s*' + _escapeRegex(t) + '(?:\\|[^\\]\\n]+)?\\s*\\]\\]', 'i');
+  return memos.filter(other => other.id !== memo.id && re.test(other.content || ''));
+}
+
+// 백링크 패널 HTML — 에디터 본문 아래에 붙음. 백링크 없으면 빈 문자열.
+function _renderBacklinkPanel(memo) {
+  if (!memo) return '';
+  const links = findBacklinks(memo);
+  if (links.length === 0) return '';
+  const items = links.map(l => {
+    // 매칭 위치 주변 짧은 스니펫
+    const re = new RegExp('\\[\\[\\s*' + _escapeRegex(memo.title.trim()) + '(?:\\|[^\\]\\n]+)?\\s*\\]\\]', 'i');
+    const idx = (l.content || '').search(re);
+    let snip = '';
+    if (idx >= 0) {
+      const start = Math.max(0, idx - 30);
+      const end = Math.min((l.content || '').length, idx + 60);
+      snip = ((start > 0 ? '… ' : '') + l.content.slice(start, end).replace(/\n+/g, ' ') + (end < l.content.length ? ' …' : ''));
+    }
+    return `<div class="backlink-item" onclick="selectNote('memo', ${l.id})">
+      <div class="backlink-title">${escapeHtml(l.title) || '제목 없음'}</div>
+      ${snip ? `<div class="backlink-snippet">${escapeHtml(snip)}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="backlink-panel">
+    <div class="backlink-header">
+      <span class="mi mi-sm">north_east</span>
+      <span>이 메모를 참조하는 노트 ${links.length}개</span>
+    </div>
+    <div class="backlink-list">${items}</div>
+  </div>`;
 }
 
 // =================== COMMAND PALETTE (⌘K) ===================

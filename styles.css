@@ -669,6 +669,62 @@ body[data-theme="leather"] {
   padding-top: 14px;
 }
 
+/* ── Wikilink [[제목]] (Obsidian/Roam-style) ── */
+.wikilink {
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 0 4px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.wikilink:hover { filter: brightness(1.1); text-decoration: underline; }
+
+/* ── Backlink panel (메모 에디터 하단) ── */
+.backlink-panel {
+  margin: 24px 26px 60px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 10px;
+}
+.backlink-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.02em;
+  margin-bottom: 10px;
+}
+.backlink-list {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.backlink-item {
+  padding: 9px 12px;
+  background: var(--surface);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-left: 3px solid var(--accent2);
+}
+.backlink-item:hover { background: var(--surface3); }
+.backlink-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.backlink-snippet {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+@media (max-width: 768px) {
+  .backlink-panel { margin: 18px 15px 40px; padding: 12px 14px; }
+}
+
 /* ── Search highlight (메모 리스트 검색어 매칭) ── */
 .memo-item mark,
 .cmd-palette mark {
