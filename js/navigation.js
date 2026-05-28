@@ -114,3 +114,112 @@ document.addEventListener('keydown', (e) => {
 
 // The sidebar is always the expanded panel now (it hosts the calendar link +
 // tag tree, Bear-style) — the `expanded` class is hardcoded in the HTML.
+
+// =================== HISTORY-BASED BACK BUTTON ===================
+// Android Chrome PWA's hardware back button + iOS standalone (no edge-swipe)
+// otherwise just closes the app. We keep a single "sentinel" history entry —
+// the first back press pops it; we intercept, close the topmost UI layer
+// (action sheet → modal → theme picker → drawer → memo editor), and re-push
+// the sentinel so subsequent backs can close more layers.
+function _historyHasSentinel() {
+  try { return history.state?.mf === 'sentinel'; } catch { return false; }
+}
+function _pushSentinel() {
+  if (!_historyHasSentinel()) {
+    try { history.pushState({ mf: 'sentinel' }, ''); } catch {}
+  }
+}
+_pushSentinel();
+
+function _closeTopLayer() {
+  // Order = visual stacking (topmost first)
+  const sheet = document.querySelector('.action-sheet.show');
+  if (sheet) {
+    sheet.classList.remove('show');
+    document.querySelectorAll('.action-sheet-overlay.show').forEach(o => o.classList.remove('show'));
+    return true;
+  }
+  const modal = document.querySelector('.modal-overlay.show');
+  if (modal) {
+    modal.classList.remove('show');
+    return true;
+  }
+  const tp = document.getElementById('theme-picker-popup');
+  if (tp && tp.classList.contains('show')) {
+    if (typeof closeThemePicker === 'function') closeThemePicker();
+    else tp.classList.remove('show');
+    return true;
+  }
+  if (document.body.classList.contains('drawer-open')) {
+    closeMobileSidebar();
+    return true;
+  }
+  // Mobile: memo editor or mindmap canvas open → back to list
+  const memoPage = document.getElementById('memo-page');
+  if (memoPage && memoPage.classList.contains('show-editor') && window.innerWidth <= 768) {
+    if (typeof backToList === 'function') backToList();
+    return true;
+  }
+  return false;
+}
+
+window.addEventListener('popstate', () => {
+  if (_closeTopLayer()) {
+    // Re-push sentinel so user can keep pressing back to close more layers
+    _pushSentinel();
+  }
+  // else: nothing to close — let the back propagate (PWA closes / browser back)
+});
+
+// =================== MOBILE MODAL DRAG-TO-DISMISS ===================
+// Bottom-sheet modals show a grabber (.modal::before) and users instinctively
+// swipe down to close — but the grabber was decorative. Wire actual gesture.
+(function attachModalDragDismiss() {
+  let dragging = false, modal = null, startY = 0, startTime = 0;
+  function onStart(e) {
+    if (window.innerWidth > 768) return; // bottom-sheet behaviour only on mobile
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    const m = e.target.closest('.modal-overlay.show .modal');
+    if (!m) return;
+    // Don't intercept if touch starts inside an interactive input
+    if (e.target.closest('input, textarea, select, button, [contenteditable="true"], .cm-editor')) return;
+    // Only grab if the modal's own scroll is at the top — otherwise let it scroll
+    if (m.scrollTop > 4) return;
+    dragging = true; modal = m;
+    startY = t.clientY; startTime = Date.now();
+    modal.style.transition = 'none';
+  }
+  function onMove(e) {
+    if (!dragging || !modal) return;
+    const t = e.touches[0];
+    const dy = t.clientY - startY;
+    if (dy < 0) return; // upward = no-op
+    modal.style.transform = `translateY(${dy}px)`;
+    if (e.cancelable) e.preventDefault();
+  }
+  function onEnd(e) {
+    if (!dragging || !modal) return;
+    const t = (e.changedTouches && e.changedTouches[0]) || e;
+    const dy = Math.max(0, (t.clientY || 0) - startY);
+    const dt = Math.max(1, Date.now() - startTime);
+    const vel = dy / dt; // px/ms
+    const shouldClose = dy > 80 || vel > 0.4;
+    modal.style.transition = 'transform 0.24s cubic-bezier(0.32,0.72,0.16,1)';
+    if (shouldClose) {
+      const overlay = modal.closest('.modal-overlay');
+      modal.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        if (modal) modal.style.transform = '';
+        if (overlay) overlay.classList.remove('show');
+      }, 240);
+    } else {
+      modal.style.transform = '';
+    }
+    dragging = false; modal = null;
+  }
+  document.addEventListener('touchstart', onStart, { passive: true });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd);
+  document.addEventListener('touchcancel', onEnd);
+})();
