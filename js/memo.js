@@ -206,7 +206,10 @@ function showNoteMenu(type, id, ev) {
   memoMenuTargetId = id;
   document.getElementById('memo-action-title').textContent = m.title || '제목 없음';
   const pinBtn = document.getElementById('memo-action-pin');
-  if (pinBtn) pinBtn.textContent = m.pinned ? '📌 고정 해제' : '📌 고정';
+  if (pinBtn) {
+    const pinIcon = '<span class="mi mi-sm' + (m.pinned ? ' mi-fill' : '') + '">push_pin</span>';
+    pinBtn.innerHTML = pinIcon + ' ' + (m.pinned ? '고정 해제' : '고정');
+  }
   document.getElementById('memo-action-overlay').classList.add('show');
   document.getElementById('memo-action-sheet').classList.add('show');
 }
@@ -589,9 +592,9 @@ function renderMemoList() {
         <div class="memo-select-bar">
           <span class="memo-select-count">${n}개 선택</span>
           <button class="memo-select-btn" onclick="selectAllMemosInView()">전체</button>
-          <button class="memo-select-btn" onclick="bulkAddTagToSelectedMemos()" ${n===0?'disabled':''}>🏷 태그추가</button>
-          <button class="memo-select-btn" onclick="bulkRemoveTagFromSelectedMemos()" ${n===0?'disabled':''}>태그제거</button>
-          <button class="memo-select-btn danger" onclick="bulkDeleteSelectedMemos()" ${n===0?'disabled':''}>🗑 삭제</button>
+          <button class="memo-select-btn" onclick="bulkAddTagToSelectedMemos()" ${n===0?'disabled':''}><span class="mi mi-sm">label</span> 태그추가</button>
+          <button class="memo-select-btn" onclick="bulkRemoveTagFromSelectedMemos()" ${n===0?'disabled':''}><span class="mi mi-sm">label_off</span> 태그제거</button>
+          <button class="memo-select-btn danger" onclick="bulkDeleteSelectedMemos()" ${n===0?'disabled':''}><span class="mi mi-sm">delete</span> 삭제</button>
           <button class="memo-select-btn" onclick="exitMemoSelectMode()">완료</button>
         </div>`;
     } else {
@@ -655,7 +658,7 @@ function renderMemoList() {
         </div>
         ${pinBtn}
       </div>
-      <button class="swipe-action" aria-label="삭제">🗑 삭제</button>
+      <button class="swipe-action" aria-label="삭제"><span class="mi mi-sm">delete</span> 삭제</button>
     </div>`;
   }).join('');
   // Wire swipe-to-delete (only when not in select mode)

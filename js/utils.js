@@ -239,11 +239,55 @@ function save(key, data) {
     scheduleAutoSave();
     scheduleGistSave();
     scheduleDriveSave();
-  } catch (e) { toast('저장 실패: 저장 공간 부족', 'error'); }
+    // Cheap quota check (sampled, not every save) — warn before silent fail
+    _maybeCheckQuota();
+  } catch (e) {
+    toast('저장 실패: 저장 공간 부족 — 동기화 모달에서 용량 확인 필요', 'error');
+    // Hard fail: tell user immediately, not just a flash toast
+    if (typeof console !== 'undefined') console.error('[save] quota exceeded for key', key, e);
+  }
 }
 function load(key, def) {
   try { const v = localStorage.getItem('mindflow_' + key); return v ? JSON.parse(v) : def; }
   catch { return def; }
+}
+
+// =================== STORAGE QUOTA ===================
+// localStorage hard-fails silently when full → user thinks edits saved but they
+// didn't. Sample navigator.storage.estimate() periodically and warn at 80%.
+let _quotaLastCheckAt = 0;
+let _quotaLastWarnAt = 0;
+async function _maybeCheckQuota() {
+  // Throttle: check at most once per 60s
+  const now = Date.now();
+  if (now - _quotaLastCheckAt < 60_000) return;
+  _quotaLastCheckAt = now;
+  if (!navigator.storage?.estimate) return;
+  try {
+    const { usage, quota } = await navigator.storage.estimate();
+    if (!usage || !quota) return;
+    const pct = usage / quota;
+    if (pct > 0.8 && now - _quotaLastWarnAt > 60 * 60_000) {
+      _quotaLastWarnAt = now;
+      const mb = (n) => (n / 1024 / 1024).toFixed(1);
+      toast(`⚠️ 저장공간 ${Math.round(pct * 100)}% 사용 중 (${mb(usage)}MB / ${mb(quota)}MB) — 정리 권장`, 'error');
+    }
+  } catch {}
+}
+// Request persistent storage so the browser doesn't evict our data under pressure
+// (iOS Safari may evict after 7 days idle without this — silent data loss risk).
+async function requestPersistentStorage() {
+  if (!navigator.storage?.persist) return null;
+  try {
+    const already = await navigator.storage.persisted?.();
+    if (already) return true;
+    return await navigator.storage.persist();
+  } catch { return null; }
+}
+// Expose for manual diagnostics in the sync modal
+async function getStorageEstimate() {
+  if (!navigator.storage?.estimate) return null;
+  try { return await navigator.storage.estimate(); } catch { return null; }
 }
 
 // =================== INDEXEDDB (folder handle persistence) ===================
