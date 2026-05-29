@@ -1759,23 +1759,8 @@ async function uploadFileToDrive(file) {
   }
 }
 
-function _fileIcon(name) {
-  const ext = (name || '').split('.').pop()?.toLowerCase();
-  const map = {
-    pdf: '📄',
-    doc: '📝', docx: '📝', odt: '📝', hwp: '📝', hwpx: '📝',
-    xls: '📊', xlsx: '📊', csv: '📊', ods: '📊',
-    ppt: '📊', pptx: '📊', key: '📊',
-    zip: '🗜️', rar: '🗜️', '7z': '🗜️', tar: '🗜️', gz: '🗜️',
-    mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬', webm: '🎬',
-    mp3: '🎵', wav: '🎵', m4a: '🎵', flac: '🎵', ogg: '🎵',
-    txt: '📃', md: '📃', log: '📃',
-    json: '⚙️', xml: '⚙️', yaml: '⚙️', yml: '⚙️',
-    html: '🌐', htm: '🌐',
-    js: '📜', ts: '📜', py: '📜', java: '📜', c: '📜', cpp: '📜', go: '📜', rs: '📜', swift: '📜'
-  };
-  return map[ext] || '📎';
-}
+// 모든 파일은 단일 📎 표지자로 통일 (CLAUDE.md 본문 일관성 — 12개 이모지로
+// 다양화하면 메모 본문이 어수선해짐).
 
 function _fmtFileSize(n) {
   if (!Number.isFinite(n)) return '?';
@@ -1798,9 +1783,10 @@ async function triggerFileUpload() {
     for (const f of files) {
       const result = await uploadFileToDrive(f);
       if (!result) continue;
-      const icon = _fileIcon(result.name);
       const size = _fmtFileSize(result.size);
-      const link = `[${icon} ${result.name} (${size})](${result.url})\n`;
+      // 단일 📎 표지자 — 컨벤션상 본문 안내 이모지 카테고리. 본문에 박히는
+      // 마크다운 링크라 mi 사용 불가, 모든 파일에 동일 클립으로 일관성.
+      const link = `[📎 ${result.name} (${size})](${result.url})\n`;
       insertIntoActiveMemo(link);
     }
     setTimeout(() => { try { input.remove(); } catch {} }, 200);
