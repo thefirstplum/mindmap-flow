@@ -53,7 +53,7 @@
   --ease: cubic-bezier(0.32, 0.72, 0.16, 1);
 }
 
-/* Charcoal — 깊은 차콜 + 회색 베이스 (Bear Charcoal 톤 정확히) */
+/* Charcoal — 깊은 차콜 + 회색 베이스 + 은은한 머스타드/세이지 액센트 */
 body.charcoal {
   --bg:           #1B1E22;   /* 깊은 차콜 (거의 무채색) */
   --bg-soft:      #232730;
@@ -63,26 +63,26 @@ body.charcoal {
   --border:       #3C4250;
   --border-soft:  #2D333D;
 
-  --text:         #D6D2CB;   /* 따뜻한 회색 (Bear charcoal 텍스트) */
+  --text:         #D6D2CB;   /* 따뜻한 회색 */
   --text-dim:     #9C988F;
   --text-mute:    #6B6862;
 
-  /* 액센트는 차분하게 살아있는 톤 — 핫핑크 X, 차분한 마젠타 */
-  --accent:       #C77FA8;   /* 차분 마젠타 — 회색 기반에 옅게 */
-  --accent-soft:  #DCA3C0;
-  --accent-glow:  rgba(199, 127, 168, 0.16);
-  --accent-2:     #D49580;   /* 차분한 코랄 (회색 톤 살짝) */
-  --accent-3:     #C9A77C;   /* 차분한 살구·황금 */
+  /* 액센트 = 은은한 머스타드/안티크 골드 + 세이지 (마젠타 완전 제거) */
+  --accent:       #B89866;   /* 머스타드 골드 — 은은한 craft 톤 */
+  --accent-soft:  #D0B383;
+  --accent-glow:  rgba(184, 152, 102, 0.16);
+  --accent-2:     #8FA68E;   /* 세이지 그린 — 차분한 secondary */
+  --accent-3:     #C9A77C;   /* 옅은 모래·샌드 */
 
-  /* markdown 톤도 차분하게 */
-  --md-code:      #7DAFA8;
-  --md-link:      #8FB5DA;
+  /* markdown — 차분한 톤으로 통일 */
+  --md-code:      #8FA68E;   /* 세이지 (accent-2와 결 맞춤) */
+  --md-link:      #8AA6BD;   /* 차분 블루 그레이 */
   --md-highlight: rgba(220, 220, 220, 0.14);
   --md-tag:       #A8B575;
 
-  --green:        #98A55F;
+  --green:        #8FA68E;
   --yellow:       #C8B07A;
-  --red:          #D26B68;
+  --red:          #C77670;   /* 옅은 적갈 */
 
   --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
   --shadow-2: 0 4px 14px rgba(0,0,0,0.5);
