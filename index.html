@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260528o">
+<link rel="stylesheet" href="styles.css?v=20260604a">
 </head>
 <body>
 <div class="app">
@@ -55,14 +55,12 @@
         <div class="subtitle" id="page-subtitle">메모와 마인드맵을 한 곳에서</div>
       </div>
       <div class="header-spacer"></div>
-      <button class="header-btn theme-toggle" id="theme-toggle" onclick="openThemePicker()" title="테마 선택">
-        <span class="mi mi-sm">palette</span>
-      </button>
-      <!-- Theme picker popup -->
-      <div class="theme-picker-overlay" id="theme-picker-overlay" onclick="closeThemePicker()"></div>
-      <div class="theme-picker-popup" id="theme-picker-popup">
-        <div class="theme-picker-title">테마 선택</div>
-        <div class="theme-picker-grid" id="theme-picker-grid"></div>
+      <!-- Theme picker — palette 아이콘 + 드롭다운 popup -->
+      <div class="theme-dd" id="theme-dd">
+        <button class="header-btn theme-toggle" id="theme-toggle" onclick="openThemePicker()" title="테마 선택">
+          <span class="mi mi-sm">palette</span>
+        </button>
+        <div class="theme-dd-menu" id="theme-dd-menu"></div>
       </div>
       <button class="header-btn sync-pill" id="header-sync-pill" onclick="openSyncModal()" title="동기화">
         <span class="sync-dot"></span>
@@ -618,7 +616,7 @@
 <!-- CodeMirror 6 bundle (local, no CDN) -->
 <script src="js/vendor/cm6.bundle.js" defer></script>
 <!-- App scripts (order = dependency order) -->
-<script src="js/utils.js?v=20260528p" defer></script>
+<script src="js/utils.js?v=20260604a" defer></script>
 <script src="js/backup.js?v=20260509a" defer></script>
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
