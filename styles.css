@@ -2514,6 +2514,25 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   background: var(--accent);
   border-color: var(--accent);
 }
+
+/* 일반 외부 링크 [text](url) — 새 탭 */
+.cm-link-w {
+  color: var(--md-link, var(--accent));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  font-weight: 500;
+}
+.cm-link-w:hover { filter: brightness(1.1); }
+
+/* 형광펜 ==text== */
+.cm-highlight-w {
+  background: var(--md-highlight, #FFF59D);
+  color: inherit;
+  padding: 0 4px;
+  border-radius: 3px;
+}
 .cm-md-img {
   max-width: 100%; border-radius: 6px; display: block;
   cursor: text; transition: opacity 0.15s;
