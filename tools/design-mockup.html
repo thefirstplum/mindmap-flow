@@ -212,9 +212,16 @@ body.mobile-view .page-head .head-pill.primary span:not(.mi) { display: none; }
 body.mobile-view .memo-grid { grid-template-columns: 1fr; }
 body.mobile-view .memo-list { border-right: none; }
 body.mobile-view .memo-editor { display: none; }   /* 모바일에선 리스트 풀스크린 */
-/* 모바일 캘린더 — 데스크탑 주간 그리드는 숨기고 별도 1일 뷰로 */
+/* 모바일 캘린더 — 데스크탑 grid 해제하고 mob-cal만 풀폭 */
+body.mobile-view .cal-wrap {
+  display: block;        /* grid 해제 — 280px 컬럼 사라짐 */
+}
 body.mobile-view .cal-wrap > * { display: none; }
-body.mobile-view .mob-cal { display: flex; }
+body.mobile-view .mob-cal {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+}
 
 /* === 모바일 1일 캘린더 (mobile-view에서만 표시) === */
 .mob-cal { display: none; flex-direction: column; flex: 1; background: var(--bg); overflow-y: auto; }
@@ -238,25 +245,24 @@ body.mobile-view .mob-cal { display: flex; }
   color: var(--text-dim); cursor: pointer;
 }
 
-/* 7일 슬라이더 */
+/* 7일 슬라이더 — 균등 분배 (스크롤 X) */
 .mob-week-slider {
-  display: flex; gap: 3px;
-  padding: 6px 12px 14px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  padding: 6px 10px 14px;
 }
-.mob-week-slider::-webkit-scrollbar { display: none; }
 .mob-day {
-  flex: 1; min-width: 44px;
   background: transparent;
   border: none;
-  padding: 9px 4px 9px;
+  padding: 8px 0;
   border-radius: 14px;
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
   cursor: pointer;
   font-family: inherit;
   position: relative;
   transition: background 0.12s;
+  min-width: 0;
 }
 .mob-day:hover { background: var(--surface-2); }
 .mob-day .dow {
@@ -309,11 +315,11 @@ body.mobile-view .mob-cal { display: flex; }
   margin-left: 8px;
 }
 .mob-day-stat {
-  display: flex; gap: 6px;
-  font-size: 11px; font-weight: 600;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  font-size: 10.5px; font-weight: 600;
   color: var(--text-mute);
   letter-spacing: 0.04em; text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 .mob-day-stat .pill {
   background: var(--surface-2);
@@ -337,26 +343,42 @@ body.dark .mob-day-stat .pill.green { color: #92D49E; }
 .mob-timeline {
   position: relative;
   display: grid;
-  grid-template-columns: 50px 1fr;
+  grid-template-columns: 44px 1fr;
   border-top: 1px solid var(--border);
   padding-bottom: 80px;
+  width: 100%;
 }
 .mob-timeline .time-col,
 .mob-timeline .day-col {
   border-right: none;
+  min-width: 0;
+}
+.mob-timeline .time-col {
+  padding-right: 0;
+}
+.mob-timeline .time-col .time-slot {
+  text-align: right;
+  padding: 4px 8px 0 4px;
+  font-size: 10px;
 }
 .mob-timeline .day-col {
   border-left: 1px solid var(--border-soft);
+  position: relative;
 }
 .mob-timeline .event-card {
-  left: 6px; right: 12px;
-  border-radius: 12px;
-  padding: 9px 11px;
+  left: 6px; right: 14px;
+  border-radius: 10px;
+  padding: 9px 12px;
   font-size: 12px;
 }
 .mob-timeline .event-card .ev-title { font-size: 13px; }
 .mob-timeline .event-card .ev-time { font-size: 11px; }
-.mob-timeline .now-pill { left: -42px; transform: translateY(-50%); }
+.mob-timeline .now-pill {
+  left: -38px;
+  transform: translateY(-50%);
+  font-size: 9.5px;
+  padding: 2px 6px;
+}
 .mob-timeline .now-line { left: 0; right: 0; }
 
 /* "그 외 카드형 리스트" 섹션 — 시간 없는 항목들 */
@@ -461,7 +483,6 @@ body.mobile-view .m-bottom-tabs { display: flex; }
   background: linear-gradient(135deg, var(--accent), var(--accent-3));
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-weight: 800; font-size: 18px;
-  box-shadow: var(--shadow-2);
 }
 .sb-name {
   font-weight: 700; font-size: 15px; color: var(--text);
@@ -782,12 +803,11 @@ body.dark .editor-content {
   text-decoration: none;
 }
 .editor-content blockquote {
-  border-left: 3px solid var(--accent-3);
   padding: 12px 16px;
-  background: rgba(255, 132, 85, 0.08);
+  background: rgba(255, 132, 85, 0.10);
   color: var(--text-dim);
   margin: 16px 0 32px;
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px;
   line-height: 32px;
 }
 
@@ -797,7 +817,6 @@ body.dark .editor-content {
   padding: 14px 16px;
   background: var(--surface-2);
   border-radius: var(--r-lg);
-  border-left: 3px solid var(--accent);
 }
 .backlink-header {
   display: flex; align-items: center; gap: 6px;
@@ -808,10 +827,9 @@ body.dark .editor-content {
 }
 .backlink-item {
   background: var(--surface);
-  padding: 9px 12px;
+  padding: 10px 12px;
   border-radius: 8px;
   margin-bottom: 4px;
-  border-left: 3px solid var(--accent-2);
   cursor: pointer;
 }
 .backlink-item:hover { background: var(--bg-soft); }
@@ -1340,7 +1358,6 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
   padding: 10px 12px;
   margin-bottom: 6px;
   display: flex; align-items: center; gap: 10px;
-  border-left: 3px solid var(--accent);
 }
 .tb-item.done {
   opacity: 0.6;
@@ -1362,9 +1379,7 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
   font-family: ui-monospace, Menlo, monospace;
 }
 .tb-title { font-size: 13px; flex: 1; color: var(--text); }
-.tb-item.coral { border-left-color: var(--accent-2); }
 .tb-item.coral .tb-time { color: var(--accent-2); }
-.tb-item.apricot { border-left-color: var(--accent-3); }
 .tb-item.apricot .tb-time { color: var(--accent-3); }
 
 .cal-mood-row { display: flex; gap: 6px; margin-bottom: 12px; }
