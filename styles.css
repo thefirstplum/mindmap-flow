@@ -87,6 +87,19 @@ button { cursor: pointer; font-family: inherit; }
   /* Radii */
   --radius:    12px;
   --radius-sm:  8px;
+  /* === 타이포 스케일 (일관성 강제) === */
+  --fs-page-title:   20px;   /* 페이지 H1 (헤더, 에디터 외) */
+  --fs-editor-title: 30px;   /* 메모 에디터 큰 제목 */
+  --fs-section:      11px;   /* 섹션 헤더 (uppercase, tracking 0.1em) */
+  --fs-body:         14px;   /* 본문, item title */
+  --fs-sub:          13px;   /* 작은 라벨 */
+  --fs-meta:         10.5px; /* meta dot (uppercase, tracking 0.04em) */
+  --fs-mini:         10px;   /* 가장 작은 라벨 */
+  --fs-num:          22px;   /* 큰 숫자 (summary stat) */
+  --tracking-tight:  -0.025em;   /* H1 */
+  --tracking-body:   -0.01em;    /* 본문 살짝 */
+  --tracking-meta:   0.04em;     /* meta uppercase */
+  --tracking-section:0.1em;      /* section uppercase */
   /* Safe areas */
   --safe-top:   env(safe-area-inset-top,    0px);
   --safe-bot:   env(safe-area-inset-bottom, 0px);
@@ -419,7 +432,7 @@ body[data-theme="sunset"] {
    ──────────────────────────────────────────────────────────────── */
 .header {
   height: 64px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   padding: 0 22px;
@@ -433,6 +446,12 @@ body[data-theme="sunset"] {
   border-radius: 9px;
   display: flex; align-items: center; justify-content: center;
   color: #fff; flex-shrink: 0;
+  font-weight: 800;
+}
+.header > div:not(.header-icon):not(.header-spacer):not(.theme-dd) {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  justify-content: center;
 }
 /* Hamburger — opens the sidebar drawer on mobile (hidden on desktop) */
 .header-menu-btn {
@@ -447,17 +466,21 @@ body[data-theme="sunset"] {
 .header-menu-btn:active { background: var(--surface3); }
 .header-menu-btn svg { width: 22px; height: 22px; }
 .header h1 {
-  font-size: 19px; font-weight: 700;
+  font-size: var(--fs-page-title);
+  font-weight: 700;
   color: var(--text);
-  letter-spacing: -0.025em;
+  letter-spacing: var(--tracking-tight);
   margin: 0;
+  line-height: 1.15;
 }
 .header .subtitle {
-  color: var(--text-mute); font-size: 11px;
+  color: var(--text-mute);
+  font-size: var(--fs-meta);
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-meta);
   text-transform: uppercase;
-  margin-top: 1px;
+  margin-top: 2px;
+  line-height: 1.2;
 }
 .header-spacer { flex: 1; }
 .header-btn {
@@ -1769,20 +1792,27 @@ body[data-theme="sunset"] {
   overflow: hidden; flex-shrink: 0;
 }
 .memo-list-header {
-  padding: 14px 14px 10px;
-  border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 10px; flex-shrink: 0;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+  background: var(--bg-soft, var(--surface2));
 }
 .memo-list-title-row {
-  display: flex; align-items: center; justify-content: space-between;
+  display: flex; align-items: center; gap: 8px;
 }
 .memo-list-title-row .title {
-  font-size: 13px; font-weight: 700; color: var(--text);
+  font-size: var(--fs-section);
+  font-weight: 700; color: var(--text-mute);
+  letter-spacing: var(--tracking-section);
+  text-transform: uppercase;
 }
 .memo-list-title-row .count {
-  font-size: 11px; color: var(--text-mute);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-  background: var(--surface2); padding: 2px 8px; border-radius: 100px;
+  background: var(--surface); padding: 1px 7px; border-radius: 5px;
+  letter-spacing: 0.02em;
 }
 
 /* Tag filter bar */
