@@ -190,6 +190,15 @@ function togglePinNote(type, id, ev) {
 // Back-compat alias for text memos
 function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
+// "+ 새 노트" — 메모/마인드맵 분기 메뉴 (mockup: 헤더/리스트 헤더 둘 다 동일)
+function showNoteCreateMenu(anchor) {
+  // confirm 단순 분기: 가벼운 UX (별도 sheet 만들지 않음)
+  const choice = confirm('확인 = 새 메모, 취소 = 새 마인드맵');
+  if (choice) { if (typeof createMemo === 'function') createMemo(); }
+  else { if (typeof createMindmap === 'function') createMindmap(); }
+}
+window.showNoteCreateMenu = showNoteCreateMenu;
+
 // =================== NOTE CONTEXT MENU (우클릭/long-press) ===================
 // 메모/마인드맵 목록 항목 우클릭 시 액션 시트를 띄운다.
 // 마인드맵은 기존 showMindmapMenu 재사용, 메모는 자체 시트.
@@ -697,6 +706,9 @@ function renderMemoList() {
   const container = document.getElementById('memo-items');
   const countEl = document.getElementById('memo-count');
   if (countEl) countEl.textContent = allNotes.length;
+  // mockup .page-head-title .meta-chip — 페이지 헤더에 카운트 미러
+  const chipEl = document.getElementById('page-meta-chip');
+  if (chipEl && currentPage === 'memo') chipEl.textContent = allNotes.length;
 
   // Render select-mode toolbar (multi-select applies to text memos only)
   const toolbar = document.getElementById('memo-select-toolbar');

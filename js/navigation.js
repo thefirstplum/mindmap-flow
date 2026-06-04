@@ -1,22 +1,47 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
-const pages = { memo: '노트', calendar: '캘린더', routine: '루틴', ledger: '가계부' };
-const subtitles = {
-  memo: '메모와 마인드맵을 한 곳에서',
-  calendar: '하루를 한눈에 — 일정·할 일·감정',
-  routine: '오늘의 루틴 체크 + 시간별 알림',
-  ledger: '수입과 지출을 빠르게 기록하세요'
-};
-const pageIcons = {
-  memo: '<span class="mi mi-sm">edit_note</span>',
-  calendar: '<span class="mi mi-sm">calendar_month</span>',
-  routine: '<span class="mi mi-sm">fitness_center</span>',
-  ledger: '<span class="mi mi-sm">account_balance_wallet</span>'
+const pages = { memo: '노트', calendar: '캘린더', routine: '루틴', ledger: '가계부', journal: '감정일기' };
+
+// Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
+const headerActions = {
+  memo:     { label: '새 노트',  fn: () => (typeof showNoteCreateMenu === 'function' ? showNoteCreateMenu(document.getElementById('header-action-pill')) : (typeof createMemo === 'function' && createMemo())) },
+  calendar: { label: '일정',     fn: () => (typeof openTbModal === 'function' && openTbModal('add')) },
+  routine:  { label: '루틴',     fn: () => (typeof openRoutineModal === 'function' && openRoutineModal()) },
+  journal:  { label: '오늘',     fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
+  ledger:   { label: '추가',     fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
 };
 
-function setHeaderIcon(page) {
-  document.getElementById('header-icon').innerHTML = pageIcons[page] || '';
+// Header search-pill placeholder per page
+const headerSearchPlaceholder = {
+  memo:     '메모, 태그, 액션 검색…',
+  calendar: '일정 검색…',
+  routine:  '루틴 검색…',
+  journal:  '일기 검색…',
+  ledger:   '거래 검색…',
+};
+
+function applyHeaderForPage(page) {
+  const pill = document.getElementById('header-action-pill');
+  const label = document.getElementById('header-action-label');
+  const ph = document.getElementById('header-search-placeholder');
+  const a = headerActions[page];
+  if (pill && label) {
+    if (a) { pill.style.display = ''; label.textContent = a.label; }
+    else { pill.style.display = 'none'; }
+  }
+  if (ph) ph.textContent = headerSearchPlaceholder[page] || '검색…';
 }
-setHeaderIcon('memo');
+window.headerPrimaryAction = function() {
+  const a = headerActions[currentPage];
+  if (a && typeof a.fn === 'function') a.fn();
+};
+window.openCommandPalette = window.openCommandPalette || (function() {
+  // ⌘K 명령 팔레트 진입점이 다른 파일에 있을 수 있으니 fallback
+  return function() {
+    if (typeof openCmdK === 'function') openCmdK();
+    else if (typeof toggleCommandPalette === 'function') toggleCommandPalette();
+    else document.getElementById('memo-search')?.focus();
+  };
+})();
 
 // Current route — single source of truth for which page is showing.
 let currentPage = 'memo';
@@ -38,9 +63,8 @@ function navigateTo(page, opts) {
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === 'page-' + page));
   document.getElementById('page-title').textContent = pages[page];
-  document.getElementById('page-subtitle').textContent = subtitles[page];
-  setHeaderIcon(page);
   currentPage = page;
+  applyHeaderForPage(page);
 
   if (page === 'calendar') { renderCalendar(); renderCalDetail(); }
   if (page === 'routine' && typeof renderRoutinePage === 'function') renderRoutinePage();
