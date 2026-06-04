@@ -46,29 +46,38 @@ button { cursor: pointer; font-family: inherit; }
    §2  DESIGN TOKENS
    ──────────────────────────────────────────────────────────────── */
 :root {
-  /* Colour */
-  --bg:           #F7F6F3;
-  --surface:      #FFFFFF;
-  --surface2:     #F0EFE9;
-  --surface3:     #E5E4DE;
-  --border:       #D8D7D1;
-  --border-light: #E5E4DE;
-  --text:         #1A1917;
-  --text-dim:     #4A4845;
-  --text-mute:    #9A9894;
-  --accent:       #C84B3C;
-  --accent2:      #D96B5A;
-  --accent-glow:  rgba(200,75,60,0.10);
-  --green:        #34C759;
-  --orange:       #FF9500;
-  --red:          #FF3B30;
-  --blue:         #007AFF;
-  --pink:         #FF2D55;
-  --cyan:         #32ADE6;
-  --code-color:   #6E3DB7;
+  /* Solarized Light (default) — Bear 검증 톤 */
+  --bg:           #FDF6E3;
+  --bg-soft:      #F4ECD8;
+  --surface:      #FFFCF2;
+  --surface2:     #EEE8D5;
+  --surface3:     #E1D9C0;
+  --border:       #E0D6BD;
+  --border-light: #EDE3CC;
+  --text:         #4A4540;
+  --text-dim:     #7A7068;
+  --text-mute:    #ADA294;
+  --accent:       #B85E94;
+  --accent2:      #E97770;
+  --accent3:      #D2832E;
+  --accent-soft:  #D17EA9;
+  --accent-glow:  rgba(184,94,148,0.12);
+  /* markdown 강조 */
+  --md-code:      #2AA198;
+  --md-link:      #268BD2;
+  --md-highlight: #FFF59D;
+  --md-tag:       #859900;
+  /* 기존 호환 */
+  --code-color:   #2AA198;
+  --green:        #859900;
+  --orange:       #D2832E;
+  --red:          #DC322F;
+  --blue:         #268BD2;
+  --pink:         #B85E94;
+  --cyan:         #2AA198;
   /* Shadows */
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.04), 0 2px 6px rgba(0,0,0,0.04);
-  --shadow-2: 0 2px 8px rgba(0,0,0,0.08), 0 8px 22px rgba(0,0,0,0.06);
+  --shadow-1: 0 1px 2px rgba(58,46,42,0.05), 0 2px 6px rgba(58,46,42,0.04);
+  --shadow-2: 0 4px 14px rgba(58,46,42,0.07), 0 8px 22px rgba(58,46,42,0.05);
   /* Radii */
   --radius:    12px;
   --radius-sm:  8px;
@@ -81,30 +90,169 @@ button { cursor: pointer; font-family: inherit; }
 }
 
 /* ────────────────────────────────────────────────────────────────
-   §3  DARK THEME (Leather)
+   §3  THEMES (14종) — Bear 영감 + craft 시그니처
    ──────────────────────────────────────────────────────────────── */
+
+/* Solarized Dark — Solarized 베이스 + 따뜻한 노트 톤 */
+body[data-theme="dark"] {
+  --bg:#1B2027; --bg-soft:#232932; --surface:#2A323D; --surface2:#324050; --surface3:#3D4B5C;
+  --border:#3A4A5C; --border-light:#2E3A47;
+  --text:#C3CBCB; --text-dim:#93A1A1; --text-mute:#6E7E85;
+  --accent:#E093BD; --accent2:#F49891; --accent3:#F0B264; --accent-soft:#EFB1D2; --accent-glow:rgba(224,147,189,0.18);
+  --md-code:#4DCFC6; --md-link:#5DAEEE; --md-highlight:rgba(255,245,157,0.25); --md-tag:#B5C342;
+  --code-color:#4DCFC6;
+  --green:#B5C342; --orange:#F0B264; --red:#F45E5B; --blue:#5DAEEE; --pink:#E093BD; --cyan:#4DCFC6;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.35); --shadow-2:0 4px 14px rgba(0,0,0,0.4);
+  color-scheme: dark;
+}
+
+/* Charcoal — 깊은 차콜 + 회색 + 머스타드/세이지 */
+body[data-theme="charcoal"] {
+  --bg:#1B1E22; --bg-soft:#232730; --surface:#2A2E36; --surface2:#353A44; --surface3:#404750;
+  --border:#3C4250; --border-light:#2D333D;
+  --text:#D6D2CB; --text-dim:#9C988F; --text-mute:#6B6862;
+  --accent:#B89866; --accent2:#8FA68E; --accent3:#C9A77C; --accent-soft:#D0B383; --accent-glow:rgba(184,152,102,0.16);
+  --md-code:#8FA68E; --md-link:#8AA6BD; --md-highlight:rgba(220,220,220,0.14); --md-tag:#A8B575;
+  --code-color:#8FA68E;
+  --green:#8FA68E; --orange:#C9A77C; --red:#C77670; --blue:#8AA6BD; --pink:#B89866; --cyan:#8FA68E;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.45); --shadow-2:0 4px 14px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+
+/* Sepia — 누런 안티크 종이 */
+body[data-theme="sepia"] {
+  --bg:#F2E7CD; --bg-soft:#E8DAB7; --surface:#F9F0D9; --surface2:#DEC998; --surface3:#CDB47A;
+  --border:#CFB47C; --border-light:#DCC692;
+  --text:#3D2E12; --text-dim:#6E5A2E; --text-mute:#A28F65;
+  --accent:#A66B23; --accent2:#B0512E; --accent3:#8A7438; --accent-soft:#C0843D; --accent-glow:rgba(166,107,35,0.14);
+  --md-code:#6E7530; --md-link:#3E6B92; --md-highlight:#F5E7A0; --md-tag:#7B7A2A;
+  --code-color:#6E7530;
+  --green:#637030; --orange:#A87A2A; --red:#B0442D; --blue:#3E6B92; --pink:#A66B23; --cyan:#6E7530;
+  color-scheme: light;
+}
+
+/* Sakura — 옅은 벚꽃 분홍 */
+body[data-theme="sakura"] {
+  --bg:#FCEFF3; --bg-soft:#F6E1E9; --surface:#FFF8FA; --surface2:#F0D2DE; --surface3:#E5B7CA;
+  --border:#EAC0CF; --border-light:#F2D8E1;
+  --text:#5A3848; --text-dim:#8A6577; --text-mute:#B894A2;
+  --accent:#D86A8A; --accent2:#C7869E; --accent3:#A88DAE; --accent-soft:#E892A8; --accent-glow:rgba(216,106,138,0.14);
+  --md-code:#7AA589; --md-link:#7693C7; --md-highlight:#FCE9CC; --md-tag:#A1A14E;
+  --code-color:#7AA589;
+  --green:#84AA8B; --orange:#DAA94A; --red:#D85F75; --blue:#7693C7; --pink:#D86A8A; --cyan:#7AA589;
+  color-scheme: light;
+}
+
+/* Toothpaste — 청록·민트 + 살색 (Bear 클래식) */
+body[data-theme="toothpaste"] {
+  --bg:#EAF4F1; --bg-soft:#D9E9E4; --surface:#F4F9F7; --surface2:#C6DDD6; --surface3:#A6C5BC;
+  --border:#B8D2CB; --border-light:#CDE0DA;
+  --text:#1F4C48; --text-dim:#4F7572; --text-mute:#869C99;
+  --accent:#2E96A0; --accent2:#E29C8E; --accent3:#5DAA9F; --accent-soft:#51B0B9; --accent-glow:rgba(46,150,160,0.14);
+  --md-code:#1F8580; --md-link:#3F73A8; --md-highlight:#F5E5A8; --md-tag:#7B9F46;
+  --code-color:#1F8580;
+  --green:#5BA889; --orange:#C9A042; --red:#C95A4F; --blue:#3F73A8; --pink:#E29C8E; --cyan:#2E96A0;
+  color-scheme: light;
+}
+
+/* Leather — 차색 사이드바 + 크림 본문 (mnmo 정신) */
 body[data-theme="leather"] {
-  --bg:           #1B1A18;
-  --surface:      #242320;
-  --surface2:     #2E2C29;
-  --surface3:     #3A3835;
-  --border:       #4A4845;
-  --border-light: #3A3835;
-  --text:         #F0EDE8;
-  --text-dim:     #C8C4BC;
-  --text-mute:    #7A7874;
-  --accent:       #D94F3D;
-  --accent2:      #E8675A;
-  --accent-glow:  rgba(217,79,61,0.20);
-  --green:        #30D158;
-  --orange:       #FF9F0A;
-  --red:          #FF453A;
-  --blue:         #0A84FF;
-  --pink:         #FF375F;
-  --cyan:         #64D2FF;
-  --code-color:   #BF5AF2;
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.3);
-  --shadow-2: 0 2px 8px rgba(0,0,0,0.5), 0 8px 22px rgba(0,0,0,0.4);
+  --bg:#F4E9D0; --bg-soft:#D9BD83; --surface:#FCF3D8; --surface2:#CDA968; --surface3:#B58F50;
+  --border:#B89665; --border-light:#C9A874;
+  --text:#3D2918; --text-dim:#6B4C30; --text-mute:#967655;
+  --accent:#A35817; --accent2:#C99244; --accent3:#7E6A40; --accent-soft:#C27338; --accent-glow:rgba(163,88,23,0.14);
+  --md-code:#5E7330; --md-link:#3E6B92; --md-highlight:#F5DBA0; --md-tag:#7B6A30;
+  --code-color:#5E7330;
+  --green:#6B7A30; --orange:#A8772A; --red:#A8442D; --blue:#3E6B92; --pink:#A35817; --cyan:#5E7330;
+  color-scheme: light;
+}
+
+/* Botanical — 옅은 식물 그린 + 크림 */
+body[data-theme="botanical"] {
+  --bg:#F2EFE0; --bg-soft:#E2E6D2; --surface:#F9F6E8; --surface2:#D2D9C0; --surface3:#B7C09E;
+  --border:#C0C9AC; --border-light:#D1D6BC;
+  --text:#3D4438; --text-dim:#6B7464; --text-mute:#989E8E;
+  --accent:#6B8C5A; --accent2:#B8A06B; --accent3:#8F8E63; --accent-soft:#8AA779; --accent-glow:rgba(107,140,90,0.14);
+  --md-code:#52887F; --md-link:#4B7CA6; --md-highlight:#F0E2A0; --md-tag:#8B9442;
+  --code-color:#52887F;
+  --green:#6B8C5A; --orange:#C4A746; --red:#B8553A; --blue:#4B7CA6; --pink:#6B8C5A; --cyan:#52887F;
+  color-scheme: light;
+}
+
+/* Diary — 손글씨 다이어리 (살구 베이지 + 잉크 브라운) */
+body[data-theme="diary"] {
+  --bg:#F8E8D8; --bg-soft:#EFD5BC; --surface:#FFF4E2; --surface2:#E3CAA8; --surface3:#D1B287;
+  --border:#D4B68F; --border-light:#E3CAA8;
+  --text:#4B3023; --text-dim:#7A5235; --text-mute:#A88660;
+  --accent:#C76E55; --accent2:#7B9A8A; --accent3:#C9A465; --accent-soft:#DC8F75; --accent-glow:rgba(199,110,85,0.14);
+  --md-code:#6B8470; --md-link:#4A6E92; --md-highlight:#F5D89A; --md-tag:#8A8A2E;
+  --code-color:#6B8470;
+  --green:#7B9A6B; --orange:#C9A046; --red:#C25647; --blue:#4A6E92; --pink:#C76E55; --cyan:#6B8470;
+  color-scheme: light;
+}
+
+/* Dracula — 보라/핑크 다크 */
+body[data-theme="dracula"] {
+  --bg:#282A36; --bg-soft:#31333F; --surface:#3B3D52; --surface2:#44475A; --surface3:#565973;
+  --border:#44475A; --border-light:#383A4C;
+  --text:#F8F8F2; --text-dim:#BCBCC0; --text-mute:#6272A4;
+  --accent:#FF79C6; --accent2:#BD93F9; --accent3:#FFB86C; --accent-soft:#FFA5DC; --accent-glow:rgba(255,121,198,0.18);
+  --md-code:#50FA7B; --md-link:#8BE9FD; --md-highlight:rgba(241,250,140,0.2); --md-tag:#F1FA8C;
+  --code-color:#50FA7B;
+  --green:#50FA7B; --orange:#FFB86C; --red:#FF5555; --blue:#8BE9FD; --pink:#FF79C6; --cyan:#8BE9FD;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.4); --shadow-2:0 4px 14px rgba(0,0,0,0.45);
+  color-scheme: dark;
+}
+
+/* Gotham — 청남 미니멀 다크 */
+body[data-theme="gotham"] {
+  --bg:#0A1019; --bg-soft:#121A2C; --surface:#1A233A; --surface2:#243149; --surface3:#2F4361;
+  --border:#2A3B58; --border-light:#1F2D44;
+  --text:#C5D1E0; --text-dim:#8A9AB0; --text-mute:#5C6F88;
+  --accent:#4A8FD4; --accent2:#6BB6DD; --accent3:#95C8E8; --accent-soft:#6FA8E0; --accent-glow:rgba(74,143,212,0.18);
+  --md-code:#5DCFBC; --md-link:#82A8DA; --md-highlight:rgba(180,201,130,0.2); --md-tag:#B4C982;
+  --code-color:#5DCFBC;
+  --green:#75B073; --orange:#D6BD68; --red:#DD6B68; --blue:#82A8DA; --pink:#4A8FD4; --cyan:#5DCFBC;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.45); --shadow-2:0 4px 14px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+
+/* Forest — 깊은 숲 그린 */
+body[data-theme="forest"] {
+  --bg:#1A2620; --bg-soft:#233028; --surface:#2C3A32; --surface2:#38483E; --surface3:#455A4C;
+  --border:#3D4F44; --border-light:#2E3D34;
+  --text:#D4DCCB; --text-dim:#9CAA94; --text-mute:#6E7D69;
+  --accent:#79B36F; --accent2:#C9A85C; --accent3:#B07050; --accent-soft:#98C58F; --accent-glow:rgba(121,179,111,0.16);
+  --md-code:#6FBDB4; --md-link:#82B6D6; --md-highlight:rgba(200,182,86,0.18); --md-tag:#C8B656;
+  --code-color:#6FBDB4;
+  --green:#79B36F; --orange:#C9A85C; --red:#C26A5F; --blue:#82B6D6; --pink:#79B36F; --cyan:#6FBDB4;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.4); --shadow-2:0 4px 14px rgba(0,0,0,0.45);
+  color-scheme: dark;
+}
+
+/* Ocean — 깊은 코발트 + 해질녘 살구 */
+body[data-theme="ocean"] {
+  --bg:#0E1E2F; --bg-soft:#15273B; --surface:#1D3149; --surface2:#284060; --surface3:#335278;
+  --border:#2B4467; --border-light:#1E3450;
+  --text:#CCDAE6; --text-dim:#8FA8BE; --text-mute:#5C7488;
+  --accent:#4FB3D9; --accent2:#E08B6E; --accent3:#58A0BC; --accent-soft:#76C8E2; --accent-glow:rgba(79,179,217,0.18);
+  --md-code:#4FCFC6; --md-link:#82B5DA; --md-highlight:rgba(181,201,130,0.18); --md-tag:#B5C982;
+  --code-color:#4FCFC6;
+  --green:#71B57D; --orange:#E08B6E; --red:#DD7770; --blue:#82B5DA; --pink:#4FB3D9; --cyan:#4FCFC6;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.4); --shadow-2:0 4px 14px rgba(0,0,0,0.45);
+  color-scheme: dark;
+}
+
+/* Sunset — 일몰 마젠타·오렌지 다크 */
+body[data-theme="sunset"] {
+  --bg:#2A1A28; --bg-soft:#382238; --surface:#432C44; --surface2:#533952; --surface3:#674862;
+  --border:#533752; --border-light:#3F2A3F;
+  --text:#F4DDD4; --text-dim:#C9ADAB; --text-mute:#8F7782;
+  --accent:#E85E8A; --accent2:#FF8A52; --accent3:#F5BC4A; --accent-soft:#F08AAB; --accent-glow:rgba(232,94,138,0.20);
+  --md-code:#5BDDC4; --md-link:#6CAAE0; --md-highlight:rgba(245,188,74,0.18); --md-tag:#DAC85B;
+  --code-color:#5BDDC4;
+  --green:#82C275; --orange:#FF8A52; --red:#F25E5E; --blue:#6CAAE0; --pink:#E85E8A; --cyan:#5BDDC4;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.4); --shadow-2:0 4px 14px rgba(0,0,0,0.45);
   color-scheme: dark;
 }
 
@@ -2309,159 +2457,58 @@ body[data-theme="leather"] {
   border-left-color: var(--accent);
 }
 
-/* Solarized Dark */
-body[data-theme="solarized-dark"] {
-  --bg: #002b36; --surface: #002b36; --surface2: #073642; --surface3: #0e4a5c;
-  --border: #0e4a5c; --border-light: #1a6377;
-  --text: #93a1a1; --text-dim: #839496; --text-mute: #586e75;
-  --accent: #2aa198; --accent2: #268bd2; --accent-glow: rgba(42,161,152,0.20);
-  --green: #859900; --orange: #cb4b16; --red: #dc322f; --blue: #268bd2;
-  --pink: #d33682; --cyan: #2aa198; --code-color: #b58900;
-  color-scheme: dark;
-}
+/* (테마 정의는 §3로 통합 — 14종 모두 한 곳에 정의됨) */
 
-/* Dracula */
-body[data-theme="dracula"] {
-  --bg: #282a36; --surface: #282a36; --surface2: #21222c; --surface3: #44475a;
-  --border: #44475a; --border-light: #6272a4;
-  --text: #f8f8f2; --text-dim: #c8c8b8; --text-mute: #6272a4;
-  --accent: #ff79c6; --accent2: #bd93f9; --accent-glow: rgba(255,121,198,0.18);
-  --green: #50fa7b; --orange: #ffb86c; --red: #ff5555; --blue: #8be9fd;
-  --pink: #ff79c6; --cyan: #8be9fd; --code-color: #f1fa8c;
-  color-scheme: dark;
-}
-body[data-theme="dracula"] .markdown-body h3 { color: var(--accent2); }
-body[data-theme="dracula"] .markdown-body code { background: rgba(241,250,140,0.10); }
-body[data-theme="dracula"] .markdown-body blockquote { border-left-color: var(--accent2); }
-body[data-theme="dracula"] .markdown-body a { color: var(--accent); }
-
-/* Toothpaste */
-body[data-theme="toothpaste"] {
-  --bg: #1e2a38; --surface: #243244; --surface2: #192232; --surface3: #2c3d54;
-  --border: #2c3d54; --border-light: #3d5270;
-  --text: #d6e8f4; --text-dim: #93b4cc; --text-mute: #567890;
-  --accent: #00c8c8; --accent2: #00e5e0; --accent-glow: rgba(0,200,200,0.22);
-  --green: #50e3b4; --orange: #ffb454; --red: #ff6b8a; --blue: #4aadff;
-  --pink: #e87aff; --cyan: #00c8c8; --code-color: #ffd866;
-  color-scheme: dark;
-}
-
-/* Cobalt */
-body[data-theme="cobalt"] {
-  --bg: #193549; --surface: #1e3f5a; --surface2: #142d42; --surface3: #254a68;
-  --border: #254a68; --border-light: #35607e;
-  --text: #e0eaf5; --text-dim: #a8c0d8; --text-mute: #60899e;
-  --accent: #ffc600; --accent2: #ffd740; --accent-glow: rgba(255,198,0,0.22);
-  --green: #64e08a; --orange: #ff9d3a; --red: #ff5f6e; --blue: #5ab3ff;
-  --pink: #ff80cc; --cyan: #40d9d9; --code-color: #ffc600;
-  color-scheme: dark;
-}
-
-/* Panic */
-body[data-theme="panic"] {
-  --bg: #1c1c1e; --surface: #252527; --surface2: #161618; --surface3: #303032;
-  --border: #333335; --border-light: #484849;
-  --text: #ebebeb; --text-dim: #b0b0b0; --text-mute: #707070;
-  --accent: #f58220; --accent2: #ffaa4a; --accent-glow: rgba(245,130,32,0.22);
-  --green: #4cd98f; --orange: #f58220; --red: #ff4d4d; --blue: #4da8ff;
-  --pink: #ff6eb4; --cyan: #4dd4d4; --code-color: #ffd866;
-  color-scheme: dark;
-}
-
-/* Duotone Light */
-body[data-theme="duotone-light"] {
-  --bg: #f8f8fc; --surface: #ffffff; --surface2: #efeff6; --surface3: #e2e2ee;
-  --border: #d8d8e8; --border-light: #c0c0d8;
-  --text: #2c2c3e; --text-dim: #55557a; --text-mute: #9090aa;
-  --accent: #6366f1; --accent2: #818cf8; --accent-glow: rgba(99,102,241,0.16);
-  --green: #10b981; --orange: #f59e0b; --red: #ef4444; --blue: #3b82f6;
-  --pink: #ec4899; --cyan: #06b6d4; --code-color: #7c3aed;
-  color-scheme: light;
-}
-
-/* Duotone Snow */
-body[data-theme="duotone-snow"] {
-  --bg: #ffffff; --surface: #f5f7fa; --surface2: #ebeef5; --surface3: #dde3ef;
-  --border: #ccd5e4; --border-light: #b5c2d8;
-  --text: #1c2030; --text-dim: #4a5280; --text-mute: #8892b0;
-  --accent: #0070f3; --accent2: #3d9bff; --accent-glow: rgba(0,112,243,0.14);
-  --green: #0fa968; --orange: #f5841e; --red: #e53e3e; --blue: #0070f3;
-  --pink: #d53f8c; --cyan: #00b4d8; --code-color: #6d28d9;
-  color-scheme: light;
-}
-
-/* Gotham */
-body[data-theme="gotham"] {
-  --bg: #0d1117; --surface: #161b22; --surface2: #0a0e14; --surface3: #1f2836;
-  --border: #21262d; --border-light: #30363d;
-  --text: #c9d1d9; --text-dim: #8b949e; --text-mute: #484f58;
-  --accent: #26a69a; --accent2: #4ec3b8; --accent-glow: rgba(38,166,154,0.20);
-  --green: #3fb950; --orange: #e3b341; --red: #f85149; --blue: #58a6ff;
-  --pink: #f778ba; --cyan: #39c5cf; --code-color: #79c0ff;
-  color-scheme: dark;
-}
-
-/* Dieci */
-body[data-theme="dieci"] {
-  --bg: #131313; --surface: #1a1a1a; --surface2: #0e0e0e; --surface3: #222222;
-  --border: #2a2a2a; --border-light: #383838;
-  --text: #cccccc; --text-dim: #999999; --text-mute: #606060;
-  --accent: #d4a520; --accent2: #e8be40; --accent-glow: rgba(212,165,32,0.22);
-  --green: #7abf5e; --orange: #d4a520; --red: #d95e5e; --blue: #6aadda;
-  --pink: #c87eb0; --cyan: #62c4c4; --code-color: #d4a520;
-  color-scheme: dark;
-}
-
-/* Ayu */
-body[data-theme="ayu"] {
-  --bg: #fafafa; --surface: #ffffff; --surface2: #f2f3f4; --surface3: #e8eaed;
-  --border: #dde0e7; --border-light: #c8ccd6;
-  --text: #5c6166; --text-dim: #7e8994; --text-mute: #abb2bf;
-  --accent: #399ee6; --accent2: #58b4f8; --accent-glow: rgba(57,158,230,0.16);
-  --green: #86b300; --orange: #fa8d3e; --red: #f07171; --blue: #399ee6;
-  --pink: #d685d6; --cyan: #4cbf99; --code-color: #f07171;
-  color-scheme: light;
-}
-
-/* Theme Picker Popup */
-.theme-picker-overlay { position: fixed; inset: 0; z-index: 900; display: none; }
-.theme-picker-overlay.show { display: block; }
-.theme-picker-popup {
-  position: fixed; top: 62px; right: 12px; z-index: 901;
+/* Theme Picker — palette 아이콘 + 드롭다운 popup (14종, sectioned) */
+.theme-dd { position: relative; display: inline-block; }
+.theme-dd-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px); right: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 16px; padding: 13px 15px 15px;
+  border-radius: 14px;
+  padding: 8px;
+  z-index: 1100;
+  min-width: 240px;
   box-shadow: var(--shadow-2);
-  display: none; flex-direction: column; gap: 10px; min-width: 256px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
-.theme-picker-popup.show { display: flex; }
-.theme-picker-title {
-  font-size: 11px; font-weight: 700; color: var(--text-mute);
-  letter-spacing: 0.06em; text-transform: uppercase;
-  padding-bottom: 6px; border-bottom: 1px solid var(--border);
+.theme-dd.open .theme-dd-menu { display: block; }
+.theme-dd-section {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 10px 4px;
 }
-.theme-picker-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.theme-swatch {
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  cursor: pointer; padding: 5px 3px; border-radius: 9px;
-  transition: background 0.12s; border: 2px solid transparent;
+.theme-dd-item {
+  background: transparent; border: none;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 9px;
+  width: 100%;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
 }
-.theme-swatch:hover { background: var(--surface2); }
-.theme-swatch.active { border-color: var(--accent); background: var(--surface2); }
-.theme-swatch-circle {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 2px solid rgba(0,0,0,0.08);
-  position: relative; overflow: hidden; flex-shrink: 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.14);
+.theme-dd-item:hover { background: var(--surface2); }
+.theme-dd-item.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 700;
 }
-.theme-swatch-circle::after {
-  content: ''; position: absolute; bottom: 0; right: 0;
-  width: 12px; height: 12px; border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.3);
+.theme-dd-dots { display: flex; gap: 3px; flex-shrink: 0; }
+.theme-dd-dot {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.08);
 }
-.theme-swatch-label {
-  font-size: 9px; font-weight: 600; color: var(--text-dim);
-  text-align: center; line-height: 1.2; letter-spacing: -0.1px;
+/* 모바일: 우상단에서 잘림 방지 */
+@media (max-width: 768px) {
+  .theme-dd-menu { right: -4px; min-width: 220px; max-height: 60vh; }
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -2752,15 +2799,7 @@ body[data-theme="ayu"] {
   .nab-color { width: 20px; height: 20px; }
   .nab-btn { padding: 3px 5px; }
 
-  /* Theme picker popup: above tab bar */
-  .theme-picker-popup {
-    top: auto;
-    bottom: calc(16px + var(--safe-bot));
-    right: 8px; left: 8px; min-width: unset;
-  }
-  .theme-picker-grid { grid-template-columns: repeat(6, 1fr); }
-  .theme-swatch-circle { width: 28px; height: 28px; }
-  .theme-swatch-label { font-size: 8px; }
+  /* (테마 드롭다운은 위에 통합 미디어쿼리로 처리) */
 }
 
 /* ── Small phones ≤ 380px ── */

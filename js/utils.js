@@ -142,126 +142,115 @@ function md2html(md) {
   return s;
 }
 
-// =================== THEME (12 Bear themes) ===================
-// Internal names map to CSS body[data-theme="xxx"] selectors.
-// 'leather' = Bear Charcoal (keeps existing CSS selector).
-// 'solarized' = Bear Solarized Light (default, no data-theme attr).
-const THEMES = [
-  'solarized', 'leather', 'toothpaste', 'cobalt',
-  'solarized-dark', 'panic', 'duotone-light', 'duotone-snow',
-  'gotham', 'dracula', 'dieci', 'ayu'
+// =================== THEME (14종 — Bear 영감 + craft 시그니처) ===================
+// CSS selector: body 또는 body[data-theme="xxx"]
+// 'light' (Solarized Light, default — no attr), 'dark', 'charcoal' + 11개 확장
+const THEMES_META = [
+  { section: '코어' },
+  { key: 'light',      label: 'Solarized Light', dots: ['#FDF6E3', '#B85E94', '#D2832E'] },
+  { key: 'dark',       label: 'Solarized Dark',  dots: ['#1B2027', '#E093BD', '#F0B264'] },
+  { key: 'charcoal',   label: 'Charcoal',        dots: ['#1B1E22', '#B89866', '#8FA68E'] },
+  { section: '라이트' },
+  { key: 'sepia',      label: 'Sepia',           dots: ['#F2E7CD', '#A66B23', '#B0512E'] },
+  { key: 'sakura',     label: 'Sakura',          dots: ['#FCEFF3', '#D86A8A', '#C7869E'] },
+  { key: 'toothpaste', label: 'Toothpaste',      dots: ['#EAF4F1', '#2E96A0', '#E29C8E'] },
+  { key: 'leather',    label: 'Leather',         dots: ['#F4E9D0', '#A35817', '#C99244'] },
+  { key: 'botanical',  label: 'Botanical',       dots: ['#F2EFE0', '#6B8C5A', '#B8A06B'] },
+  { key: 'diary',      label: 'Diary',           dots: ['#F8E8D8', '#C76E55', '#7B9A8A'] },
+  { section: '다크' },
+  { key: 'dracula',    label: 'Dracula',         dots: ['#282A36', '#FF79C6', '#BD93F9'] },
+  { key: 'gotham',     label: 'Gotham',          dots: ['#0A1019', '#4A8FD4', '#95C8E8'] },
+  { key: 'forest',     label: 'Forest',          dots: ['#1A2620', '#79B36F', '#C9A85C'] },
+  { key: 'ocean',      label: 'Ocean',           dots: ['#0E1E2F', '#4FB3D9', '#E08B6E'] },
+  { key: 'sunset',     label: 'Sunset',          dots: ['#2A1A28', '#E85E8A', '#F5BC4A'] },
 ];
-const THEME_LABELS = {
-  'solarized':      'Solarized Light',
-  'leather':        'Charcoal',
-  'toothpaste':     'Toothpaste',
-  'cobalt':         'Cobalt',
-  'solarized-dark': 'Solarized Dark',
-  'panic':          'Panic Mode',
-  'duotone-light':  'Duotone Light',
-  'duotone-snow':   'Duotone Snow',
-  'gotham':         'Gotham',
-  'dracula':        'Dracula',
-  'dieci':          'Dieci',
-  'ayu':            'Ayu'
-};
-// bg color + accent color for each theme swatch
-const THEME_COLORS = {
-  'solarized':      { bg: '#fdf6e3', accent: '#2aa198' },
-  'leather':        { bg: '#282828', accent: '#4ab4b4' },
-  'toothpaste':     { bg: '#1e2a38', accent: '#00c8c8' },
-  'cobalt':         { bg: '#193549', accent: '#ffc600' },
-  'solarized-dark': { bg: '#002b36', accent: '#2aa198' },
-  'panic':          { bg: '#1c1c1e', accent: '#f58220' },
-  'duotone-light':  { bg: '#f8f8fc', accent: '#6366f1' },
-  'duotone-snow':   { bg: '#ffffff', accent: '#0070f3' },
-  'gotham':         { bg: '#0d1117', accent: '#26a69a' },
-  'dracula':        { bg: '#282a36', accent: '#ff79c6' },
-  'dieci':          { bg: '#131313', accent: '#d4a520' },
-  'ayu':            { bg: '#fafafa', accent: '#399ee6' }
-};
-const THEME_META_COLOR = {
-  'solarized':      '#fdf6e3',
-  'leather':        '#282828',
-  'toothpaste':     '#1e2a38',
-  'cobalt':         '#193549',
-  'solarized-dark': '#002b36',
-  'panic':          '#1c1c1e',
-  'duotone-light':  '#f8f8fc',
-  'duotone-snow':   '#ffffff',
-  'gotham':         '#0d1117',
-  'dracula':        '#282a36',
-  'dieci':          '#131313',
-  'ayu':            '#fafafa'
-};
+const THEMES = THEMES_META.filter(t => t.key).map(t => t.key);
+const THEME_LABELS = Object.fromEntries(THEMES_META.filter(t => t.key).map(t => [t.key, t.label]));
+const THEME_META_COLOR = Object.fromEntries(THEMES_META.filter(t => t.key).map(t => [t.key, t.dots[0]]));
 
+// 기존 12개 사용자가 쓰던 테마 → 새 14개로 매핑
 function migrateThemeName(t) {
-  if (t === 'paper' || t == null) return 'solarized';
-  if (t === 'charcoal') return 'leather';
-  return THEMES.includes(t) ? t : 'solarized';
+  if (t == null || t === 'paper' || t === 'solarized' || t === 'duotone-snow' || t === 'ayu') return 'light';
+  if (t === 'solarized-dark') return 'dark';
+  if (t === 'cobalt') return 'ocean';
+  if (t === 'panic') return 'sunset';
+  if (t === 'duotone-light') return 'sakura';
+  if (t === 'dieci') return 'charcoal';
+  if (t === 'leather') return 'charcoal';  // 기존 leather (다크 차콜) → charcoal (새 다크 톤)
+  return THEMES.includes(t) ? t : 'light';
 }
 
 let currentTheme = (function () {
   try { return migrateThemeName(JSON.parse(localStorage.getItem('mindflow_theme'))); }
-  catch { return 'solarized'; }
+  catch { return 'light'; }
 })();
 
 function applyTheme(theme) {
   theme = migrateThemeName(theme);
-  if (theme === 'solarized') document.body.removeAttribute('data-theme');
+  if (theme === 'light') document.body.removeAttribute('data-theme');
   else document.body.setAttribute('data-theme', theme);
 
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = THEME_META_COLOR[theme] || '#fdf6e3';
+  if (meta) meta.content = THEME_META_COLOR[theme] || '#FDF6E3';
 
   currentTheme = theme;
   try { localStorage.setItem('mindflow_theme', JSON.stringify(theme)); } catch {}
 
-  // Update picker active state if open
-  document.querySelectorAll('.theme-swatch').forEach(el => {
+  // 드롭다운 active state 동기화
+  document.querySelectorAll('.theme-dd-item').forEach(el => {
     el.classList.toggle('active', el.dataset.theme === theme);
   });
 }
 
-function toggleTheme() {
-  openThemePicker();
-}
+function toggleTheme() { openThemePicker(); }
 
+// 드롭다운 popup — palette 아이콘 옆에 펼침
 function openThemePicker() {
-  const overlay = document.getElementById('theme-picker-overlay');
-  const popup = document.getElementById('theme-picker-popup');
-  if (!overlay || !popup) return;
-
-  // Build grid if empty
-  const grid = document.getElementById('theme-picker-grid');
-  if (grid && !grid.children.length) {
-    THEMES.forEach(t => {
-      const c = THEME_COLORS[t];
-      const swatch = document.createElement('div');
-      swatch.className = 'theme-swatch' + (t === currentTheme ? ' active' : '');
-      swatch.dataset.theme = t;
-      swatch.innerHTML = `
-        <div class="theme-swatch-circle" style="background:${c.bg};">
-          <div style="position:absolute;bottom:0;right:0;width:14px;height:14px;border-radius:50%;background:${c.accent};border:2px solid rgba(255,255,255,0.25);"></div>
-        </div>
-        <span class="theme-swatch-label">${THEME_LABELS[t]}</span>`;
-      swatch.addEventListener('click', () => {
-        applyTheme(t);
+  const dd = document.getElementById('theme-dd');
+  if (!dd) return;
+  // 메뉴 빌드 (한 번만)
+  const menu = document.getElementById('theme-dd-menu');
+  if (menu && !menu.children.length) {
+    for (const t of THEMES_META) {
+      if (t.section) {
+        const h = document.createElement('div');
+        h.className = 'theme-dd-section';
+        h.textContent = t.section;
+        menu.appendChild(h);
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.className = 'theme-dd-item' + (t.key === currentTheme ? ' active' : '');
+      btn.dataset.theme = t.key;
+      btn.innerHTML = `<span class="theme-dd-dots">
+        <span class="theme-dd-dot" style="background:${t.dots[0]}"></span>
+        <span class="theme-dd-dot" style="background:${t.dots[1]}"></span>
+        <span class="theme-dd-dot" style="background:${t.dots[2]}"></span>
+      </span><span>${t.label}</span>`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        applyTheme(t.key);
         if (typeof drawMindMap === 'function') drawMindMap();
-        if (typeof toast === 'function') toast(THEME_LABELS[t]);
+        if (typeof toast === 'function') toast(t.label);
         closeThemePicker();
       });
-      grid.appendChild(swatch);
-    });
+      menu.appendChild(btn);
+    }
   }
-
-  overlay.classList.add('show');
-  popup.classList.add('show');
+  dd.classList.toggle('open');
 }
 
 function closeThemePicker() {
-  document.getElementById('theme-picker-overlay')?.classList.remove('show');
-  document.getElementById('theme-picker-popup')?.classList.remove('show');
+  document.getElementById('theme-dd')?.classList.remove('open');
+}
+
+// 외부 클릭 시 드롭다운 닫기 (한 번만 등록)
+if (typeof window !== 'undefined' && !window._themeDdInited) {
+  window._themeDdInited = true;
+  document.addEventListener('click', (e) => {
+    const dd = document.getElementById('theme-dd');
+    if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+  });
 }
 
 applyTheme(currentTheme);
