@@ -5,8 +5,9 @@
 
 let calViewMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calSelectedKey = dateKey(new Date());
+let calWeekStart = _calStartOfWeek(new Date());  // 현재 주 일요일
 
-// 타임블록 색상명 → hex (tb-modal 팔레트와 동일)
+// 타임블록 색상 → 이벤트 카드 컬러 클래스 매핑 (mockup 7색)
 const TB_COLOR_HEX = {
   yellow:'#b58900', orange:'#cb4b16', red:'#dc322f', rose:'#e11d48',
   magenta:'#d33682', purple:'#7c3aed', violet:'#6c71c4', sky:'#0284c7',
@@ -14,61 +15,305 @@ const TB_COLOR_HEX = {
   brown:'#92400e', slate:'#475569'
 };
 const tbHex = c => TB_COLOR_HEX[c] || TB_COLOR_HEX.yellow;
+const TB_COLOR_CLASS = {
+  yellow:'c-yellow', orange:'c-apricot', red:'c-coral', rose:'c-coral',
+  magenta:'c-magenta', purple:'c-lavender', violet:'c-lavender', sky:'c-blue',
+  blue:'c-blue', cyan:'c-blue', teal:'c-green', green:'c-green',
+  brown:'c-apricot', slate:'c-lavender'
+};
+const tbColorClass = c => TB_COLOR_CLASS[c] || 'c-yellow';
+
+// 주의 시작일 (일요일) 계산
+function _calStartOfWeek(d) {
+  const r = new Date(d);
+  r.setDate(r.getDate() - r.getDay());
+  r.setHours(0, 0, 0, 0);
+  return r;
+}
+function _calAddDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r; }
+
+// 시각(HH:MM) → 분 (06:00 = 360)
+function _timeToMin(t) {
+  const [h, m] = (t || '00:00').split(':').map(Number);
+  return h * 60 + (m || 0);
+}
 
 function renderCalendar() {
-  const grid = document.getElementById('calendar-grid');
+  _renderMiniCal();
+  _renderWeekGrid();
+  _renderSummary();
+  _renderMobileCal();
+}
+
+// ===== 미니 월간 =====
+function _renderMiniCal() {
+  const grid = document.getElementById('mini-cal-grid');
   if (!grid) return;
-  const label = document.getElementById('calendar-month-label');
-  if (label) label.textContent = `${calViewMonth.getFullYear()}년 ${calViewMonth.getMonth()+1}월`;
+  const title = document.getElementById('mini-cal-title');
+  if (title) title.textContent = `${calViewMonth.getFullYear()}년 ${calViewMonth.getMonth()+1}월`;
 
   const year = calViewMonth.getFullYear();
   const month = calViewMonth.getMonth();
   const startDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
   const prevMonthDays = new Date(year, month, 0).getDate();
   const todayKey = dateKey(new Date());
 
-  let cells = '';
-  // 이전 달 꼬리
+  const weekStartKey = dateKey(calWeekStart);
+  const weekEndKey = dateKey(_calAddDays(calWeekStart, 6));
+  const inWeek = k => k >= weekStartKey && k <= weekEndKey;
+
+  let html = '';
+  // 이전 달
   for (let i = startDow - 1; i >= 0; i--) {
-    cells += `<div class="cal-cell is-muted"><div class="cal-daynum">${prevMonthDays - i}</div></div>`;
+    html += `<div class="mini-cal-cell other">${prevMonthDays - i}</div>`;
   }
   // 이번 달
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const key = dateKey(date);
-    const blocks = timeBlocks[key] || [];
-    const journal = journalEntries[key];
-    const dow = date.getDay();
+    const has = (timeBlocks[key] || []).length > 0 || (journalEntries[key] && (journalEntries[key].mood || journalEntries[key].content));
     const cls = [
-      'cal-cell',
-      key === todayKey ? 'is-today' : '',
-      key === calSelectedKey ? 'is-selected' : '',
-      dow === 0 ? 'is-sun' : '',
-      dow === 6 ? 'is-sat' : '',
+      'mini-cal-cell',
+      key === todayKey ? 'today' : '',
+      inWeek(key) ? 'in-week' : '',
+      date.getDay() === 0 && inWeek(key) ? 'week-start' : '',
+      date.getDay() === 6 && inWeek(key) ? 'week-end' : '',
+      has ? 'has-event' : '',
     ].filter(Boolean).join(' ');
+    html += `<div class="${cls}" onclick="calSelectDayMini('${key}')">${d}</div>`;
+  }
+  // 다음 달
+  const total = startDow + daysInMonth;
+  const trail = (7 - (total % 7)) % 7;
+  for (let i = 1; i <= trail; i++) {
+    html += `<div class="mini-cal-cell other">${i}</div>`;
+  }
+  grid.innerHTML = html;
+}
 
-    let dots = '';
-    if (blocks.length) {
-      const shown = blocks.slice(0, 4);
-      dots = `<div class="cal-dots">${
-        shown.map(b => `<span class="cal-dot" style="background:${tbHex(b.color)}"></span>`).join('')
-      }${blocks.length > 4 ? `<span class="cal-more">+${blocks.length-4}</span>` : ''}</div>`;
-    }
-    const mood = (journal && journal.mood) ? `<span class="cal-mood">${journal.mood}</span>` : '';
+// 미니월간 셀 클릭 → 그 주를 메인 뷰로
+function calSelectDayMini(key) {
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  calSelectedKey = key;
+  calWeekStart = _calStartOfWeek(date);
+  renderCalendar();
+}
 
-    cells += `<div class="${cls}" onclick="calSelectDay('${key}')">
-      <div class="cal-cell-top"><div class="cal-daynum">${d}</div>${mood}</div>
-      ${dots}
+// ===== 메인 주간 그리드 =====
+function _renderWeekGrid() {
+  const grid = document.getElementById('week-grid');
+  if (!grid) return;
+  const range = document.getElementById('week-range');
+  const end = _calAddDays(calWeekStart, 6);
+  if (range) {
+    const fmt = d => `${(d.getMonth()+1).toString().padStart(2,'0')}월 ${d.getDate().toString().padStart(2,'0')}일`;
+    range.textContent = `${fmt(calWeekStart)} — ${end.getDate().toString().padStart(2,'0')}일`;
+  }
+
+  const todayKey = dateKey(new Date());
+  const dows = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+
+  // 헤더
+  let header = '<div class="wdh-cell wdh-time-spacer"></div>';
+  for (let i = 0; i < 7; i++) {
+    const d = _calAddDays(calWeekStart, i);
+    const k = dateKey(d);
+    const cls = [
+      'wdh-cell',
+      k === todayKey ? 'today' : '',
+      i === 0 ? 'sun' : '',
+      i === 6 ? 'sat' : '',
+    ].filter(Boolean).join(' ');
+    header += `<div class="${cls}">
+      <div class="wdh-day-num">${d.getDate().toString().padStart(2,'0')}</div>
+      <div class="wdh-day-name">${dows[i]}</div>
     </div>`;
   }
-  // 다음 달 머리 (6주 채움)
-  const total = startDow + daysInMonth;
-  const trailing = (7 - (total % 7)) % 7;
-  for (let i = 1; i <= trailing; i++) {
-    cells += `<div class="cal-cell is-muted"><div class="cal-daynum">${i}</div></div>`;
+
+  // 시간 컬럼 (06:00 - 22:00, 17 슬롯, 60px/h)
+  const START_H = 6, END_H = 22;
+  let timeCol = '<div class="time-col">';
+  for (let h = START_H; h <= END_H; h++) {
+    timeCol += `<div class="time-slot">${h.toString().padStart(2,'0')}:00</div>`;
   }
-  grid.innerHTML = cells;
+  timeCol += '</div>';
+
+  // 7개 day 컬럼
+  let dayCols = '';
+  for (let i = 0; i < 7; i++) {
+    const date = _calAddDays(calWeekStart, i);
+    const k = dateKey(date);
+    const isToday = k === todayKey;
+    const cls = [
+      'day-col',
+      isToday ? 'today' : '',
+      (i === 0 || i === 6) ? 'weekend' : '',
+    ].filter(Boolean).join(' ');
+    let inner = '';
+    for (let h = START_H; h <= END_H; h++) inner += '<div class="hour-line"></div>';
+
+    // 이벤트 카드 — timeBlocks[k]에서
+    const blocks = timeBlocks[k] || [];
+    for (const b of blocks) {
+      const startMin = _timeToMin(b.start);
+      const endMin = _timeToMin(b.end);
+      const top = (startMin - START_H * 60) + 4;  // padding 보정
+      const height = Math.max(28, endMin - startMin - 4);
+      if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
+      const colorClass = tbColorClass(b.color);
+      inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="calEditBlockKey('${k}', ${blocks.indexOf(b)})">
+        <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+        <div class="ev-time">${b.start} — ${b.end}</div>
+      </div>`;
+    }
+
+    // 현재 시각 marker (오늘만)
+    if (isToday) {
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      if (nowMin >= START_H * 60 && nowMin <= END_H * 60) {
+        const top = nowMin - START_H * 60;
+        inner += `<div class="now-pill" style="top:${top}px;">${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
+        inner += `<div class="now-line" style="top:${top}px;"></div>`;
+      }
+    }
+    dayCols += `<div class="${cls}">${inner}</div>`;
+  }
+
+  grid.innerHTML = `
+    <div class="week-day-header">${header}</div>
+    <div class="week-body">${timeCol}${dayCols}</div>
+  `;
+}
+
+function _escapeHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function calEditBlockKey(key, idx) {
+  calSelectedKey = key;
+  currentDate = new Date(key);
+  editTbBlock(key, idx);
+}
+
+// 주 네비게이션
+function calPrevWeek() { calWeekStart = _calAddDays(calWeekStart, -7); renderCalendar(); }
+function calNextWeek() { calWeekStart = _calAddDays(calWeekStart, 7); renderCalendar(); }
+
+// ===== 요약 카드 =====
+function _renderSummary() {
+  const el = document.getElementById('cal-summary-card');
+  if (!el) return;
+  let totalBlocks = 0, totalMin = 0, doneCount = 0;
+  for (let i = 0; i < 7; i++) {
+    const k = dateKey(_calAddDays(calWeekStart, i));
+    const blocks = timeBlocks[k] || [];
+    totalBlocks += blocks.length;
+    for (const b of blocks) {
+      const d = _timeToMin(b.end) - _timeToMin(b.start);
+      if (d > 0) totalMin += d;
+      if (b.done) doneCount++;
+    }
+  }
+  const hh = Math.floor(totalMin / 60), mm = totalMin % 60;
+  el.innerHTML = `
+    <div class="summary-row"><span class="lbl">이번 주 블록</span><span class="val">${totalBlocks}</span></div>
+    <div class="summary-row"><span class="lbl">완료</span><span class="val accent">${doneCount} / ${totalBlocks}</span></div>
+    <div class="summary-row"><span class="lbl">계획 시간</span><span class="val">${hh}h ${mm}m</span></div>
+  `;
+}
+
+// ===== 모바일 1일 뷰 =====
+function _renderMobileCal() {
+  const el = document.getElementById('cal-mobile');
+  if (!el) return;
+  const todayKey = dateKey(new Date());
+  const dows = ['일','월','화','수','목','금','토'];
+
+  // 7일 슬라이더
+  let slider = '<div class="mob-week-slider">';
+  for (let i = 0; i < 7; i++) {
+    const d = _calAddDays(calWeekStart, i);
+    const k = dateKey(d);
+    const has = (timeBlocks[k] || []).length > 0;
+    const cls = [
+      'mob-day',
+      k === calSelectedKey ? 'active' : '',
+      i === 0 ? 'sun' : '',
+      i === 6 ? 'sat' : '',
+      has ? 'has-event' : '',
+    ].filter(Boolean).join(' ');
+    slider += `<button class="${cls}" onclick="calSelectDay('${k}')">
+      <span class="dow">${dows[i]}</span>
+      <span class="num">${d.getDate()}</span>
+    </button>`;
+  }
+  slider += '</div>';
+
+  // 선택일 정보
+  const [y, m, dd] = calSelectedKey.split('-').map(Number);
+  const date = new Date(y, m-1, dd);
+  const dowName = ['일요일','월요일','화요일','수요일','목요일','금요일','토요일'][date.getDay()];
+  const blocks = timeBlocks[calSelectedKey] || [];
+  let total = 0, done = 0;
+  for (const b of blocks) {
+    const d = _timeToMin(b.end) - _timeToMin(b.start);
+    if (d > 0) total += d;
+    if (b.done) done++;
+  }
+  const head = `
+    <div class="mob-day-head">
+      <div class="mob-day-big">${m}월 ${dd}일 ${dowName}</div>
+      <div class="mob-day-stat">
+        <span class="pill accent">${blocks.length} 블록</span>
+        ${blocks.length > 0 ? `<span class="pill">${done}/${blocks.length} 완료</span>` : ''}
+        ${total > 0 ? `<span class="pill">${Math.floor(total/60)}h ${total%60}m</span>` : ''}
+      </div>
+    </div>
+  `;
+
+  // 1일 시간표
+  const START_H = 7, END_H = 22;
+  let timeCol = '<div class="time-col">';
+  for (let h = START_H; h <= END_H; h++) {
+    timeCol += `<div class="time-slot">${h.toString().padStart(2,'0')}</div>`;
+  }
+  timeCol += '</div>';
+  let dayCol = '<div class="day-col">';
+  for (let h = START_H; h <= END_H; h++) dayCol += '<div class="hour-line"></div>';
+  for (const b of blocks) {
+    const startMin = _timeToMin(b.start);
+    const endMin = _timeToMin(b.end);
+    const top = (startMin - START_H * 60) + 4;
+    const height = Math.max(28, endMin - startMin - 4);
+    if (top < 0) continue;
+    dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
+      <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+      <div class="ev-time">${b.start} — ${b.end}</div>
+    </div>`;
+  }
+  // 현재시각 (오늘만)
+  if (calSelectedKey === todayKey) {
+    const now = new Date();
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin >= START_H * 60 && nowMin <= END_H * 60) {
+      const top = nowMin - START_H * 60;
+      dayCol += `<div class="now-pill" style="top:${top}px;">${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}</div>`;
+      dayCol += `<div class="now-line" style="top:${top}px;"></div>`;
+    }
+  }
+  dayCol += '</div>';
+
+  el.innerHTML = `
+    <div class="mob-cal-month-row">
+      <div class="mob-cal-month">${y}년 ${m}월</div>
+    </div>
+    ${slider}
+    ${head}
+    <div class="mob-timeline">${timeCol}${dayCol}</div>
+  `;
 }
 
 function renderCalDetail() {
@@ -174,25 +419,29 @@ function renderCalDetail() {
     + (notesHtml ? `<div class="cal-sec">${notesHtml}</div>` : '');
 }
 
-// ── 네비게이션 ──
+// ── 네비게이션 ── (주간 시간표용 업데이트)
 function calSelectDay(key) {
   calSelectedKey = key;
+  // 선택일이 현재 주에 없으면 주도 이동
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const ws = _calStartOfWeek(date);
+  if (dateKey(ws) !== dateKey(calWeekStart)) calWeekStart = ws;
   renderCalendar();
-  renderCalDetail();
-  document.getElementById('calendar-page-root')?.classList.add('show-detail');
 }
-function calPrevMonth() { calViewMonth.setMonth(calViewMonth.getMonth() - 1); renderCalendar(); }
-function calNextMonth() { calViewMonth.setMonth(calViewMonth.getMonth() + 1); renderCalendar(); }
+function calPrevMonth() { calViewMonth.setMonth(calViewMonth.getMonth() - 1); _renderMiniCal(); }
+function calNextMonth() { calViewMonth.setMonth(calViewMonth.getMonth() + 1); _renderMiniCal(); }
 function calGoToday() {
   const t = new Date();
   calViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
   calSelectedKey = dateKey(t);
+  calWeekStart = _calStartOfWeek(t);
   renderCalendar();
-  renderCalDetail();
 }
 function calBackToGrid() {
-  document.getElementById('calendar-page-root')?.classList.remove('show-detail');
+  // 주간 뷰에선 별도 동작 없음 (호환용 stub)
 }
+function renderCalDetail() { /* 주간 뷰로 통합됨 — 호환용 stub */ }
 
 // ── 타임블록 (기존 모달 재활용) ──
 // 모달 저장 함수들은 전역 currentDate를 쓰므로 선택일로 동기화한다.
