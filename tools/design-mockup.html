@@ -213,11 +213,18 @@ body.mobile-view .memo-grid { grid-template-columns: 1fr; }
 body.mobile-view .memo-list { border-right: none; }
 body.mobile-view .memo-editor { display: none; }   /* 모바일에선 리스트 풀스크린 */
 body.mobile-view .cal-wrap { grid-template-columns: 1fr; }
-body.mobile-view .cal-detail { display: none; }
-body.mobile-view .cal-main { padding: 16px 14px; }
-body.mobile-view .cal-month { font-size: 18px; }
-body.mobile-view .cal-cell { aspect-ratio: 1/1; padding: 5px 6px; }
-body.mobile-view .cal-cell .cal-day { font-size: 12px; }
+body.mobile-view .cal-side { display: none; }
+body.mobile-view .week-toolbar { padding: 14px 14px 10px; gap: 8px; flex-wrap: wrap; }
+body.mobile-view .week-range { font-size: 16px; }
+body.mobile-view .cat-pill-row { width: 100%; margin: 0; order: 3; }
+body.mobile-view .week-day-header { grid-template-columns: 40px repeat(7, 1fr); }
+body.mobile-view .week-body { grid-template-columns: 40px repeat(7, 1fr); }
+body.mobile-view .wdh-day-name { display: none; }
+body.mobile-view .wdh-cell { padding: 10px 2px 8px; }
+body.mobile-view .event-card { padding: 5px 6px; font-size: 10px; }
+body.mobile-view .event-card .ev-more,
+body.mobile-view .event-card .ev-status { display: none; }
+body.mobile-view .time-slot { font-size: 9px; padding: 3px 4px 0 0; }
 body.mobile-view .mm-toolbar { top: 14px; padding: 5px; }
 body.mobile-view .mm-toolbar .icon-btn { width: 32px; height: 32px; }
 body.mobile-view .node-action { bottom: 18px; padding: 8px 10px; }
@@ -737,91 +744,340 @@ body.dark .editor-content {
 .nab-btn:hover { background: var(--surface-2); color: var(--text); }
 .nab-btn.danger:hover { color: var(--red); background: rgba(212, 95, 90, 0.1); }
 
-/* =================== PAGE 3 — CALENDAR =================== */
+/* =================== PAGE 3 — CALENDAR (주간 시간표 메인) =================== */
 .cal-wrap {
-  flex: 1; display: grid;
-  grid-template-columns: 1fr 380px;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr;
   background: var(--bg);
   overflow: hidden;
 }
-.cal-main {
-  padding: 24px 32px;
+
+/* 좌측: mini 월간 캘린더 + 카테고리 + 요약 */
+.cal-side {
+  border-right: 1px solid var(--border);
+  background: var(--bg-soft);
   overflow-y: auto;
+  padding: 22px 18px;
 }
-.cal-toolbar {
-  display: flex; align-items: center; gap: 14px;
-  margin-bottom: 22px;
+.mini-cal-head {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px;
 }
-.cal-nav { background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px; border-radius: 50%; }
-.cal-nav:hover { color: var(--accent); background: var(--surface-2); }
-.cal-month {
-  font-size: 22px; font-weight: 700;
-  letter-spacing: -0.02em;
+.mini-cal-title {
+  font-size: 13px; font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.mini-cal-nav {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-dim);
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.mini-cal-nav:hover { background: var(--surface); color: var(--accent); }
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.mini-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.mini-cal-weekdays > span {
+  text-align: center;
+  font-size: 9.5px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  padding: 4px 0;
+}
+.mini-cal-weekdays > span.sun { color: var(--accent-2); }
+.mini-cal-weekdays > span.sat { color: var(--accent); }
+.mini-cal-cell {
+  aspect-ratio: 1/1;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500;
   color: var(--text);
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
 }
-.cal-today-btn {
+.mini-cal-cell:hover { background: var(--surface); }
+.mini-cal-cell.other { color: var(--text-mute); }
+.mini-cal-cell.today {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+.mini-cal-cell.in-week {
+  background: var(--accent-glow);
+  border-radius: 0;
+}
+.mini-cal-cell.week-start {
+  border-radius: 50% 0 0 50%;
+}
+.mini-cal-cell.week-end {
+  border-radius: 0 50% 50% 0;
+}
+.mini-cal-cell.has-event::after {
+  content: '';
+  position: absolute;
+  bottom: 1px; left: 50%;
+  transform: translateX(-50%);
+  width: 3px; height: 3px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.mini-cal-cell.today.has-event::after { background: #fff; }
+
+.cal-side-sec-title {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 18px 0 8px;
+}
+.cat-list { display: flex; flex-direction: column; gap: 3px; }
+.cat-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px;
+  font-size: 12.5px; font-weight: 500;
+  color: var(--text);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.cat-item:hover { background: var(--surface); }
+.cat-item.active { background: var(--surface); font-weight: 600; }
+.cat-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cat-count {
   margin-left: auto;
+  font-size: 11px; color: var(--text-mute);
+  font-weight: 600;
+}
+.summary-card {
   background: var(--surface);
-  border: 1px solid var(--border);
-  padding: 6px 14px;
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-top: 14px;
+  border: 1px solid var(--border-soft);
+}
+.summary-row {
+  display: flex; justify-content: space-between;
+  font-size: 12px; padding: 5px 0;
+}
+.summary-row .lbl { color: var(--text-dim); }
+.summary-row .val { font-weight: 700; color: var(--text); }
+.summary-row .val.accent { color: var(--accent); }
+
+/* 메인: 주간 시간표 */
+.week-main {
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.week-toolbar {
+  padding: 18px 28px 14px;
+  display: flex; align-items: center; gap: 14px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg);
+}
+.week-range {
+  font-size: 19px; font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.cat-pill-row {
+  display: flex; gap: 6px; flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin-left: 12px;
+}
+.cat-pill-row::-webkit-scrollbar { display: none; }
+.cat-pill {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  padding: 6px 13px;
   border-radius: 999px;
   font-family: inherit; font-size: 12px; font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
-  letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  transition: all 0.12s;
 }
-.cal-today-btn:hover { color: var(--accent); border-color: var(--accent); }
-.cal-weekdays {
-  display: grid; grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-  margin-bottom: 8px;
+.cat-pill:hover { border-color: var(--accent); }
+.cat-pill.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
-.cal-weekdays > span {
+.cat-pill.active .mi-fill { color: var(--accent-2); }
+.cat-pill .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+/* 주간 그리드 */
+.week-grid {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+  background: var(--bg);
+}
+.week-day-header {
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+  position: sticky; top: 0; z-index: 5;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+.wdh-cell {
+  padding: 14px 8px 10px;
   text-align: center;
+}
+.wdh-time-spacer { background: var(--bg); }
+.wdh-day-num {
   font-size: 11px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  margin-bottom: 2px;
 }
-.cal-weekdays > span.sun { color: var(--accent-2); }
-.cal-weekdays > span.sat { color: var(--accent); }
-.cal-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+.wdh-day-name {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
 }
-.cal-cell {
-  aspect-ratio: 1.05/1;
-  background: var(--surface);
-  border-radius: var(--r-md);
-  padding: 8px 9px;
-  cursor: pointer;
+.wdh-cell.today {
   position: relative;
-  display: flex; flex-direction: column;
-  border: 1px solid transparent;
-  transition: border-color 0.12s;
 }
-.cal-cell:hover { border-color: var(--border); }
-.cal-cell.today { background: var(--accent-glow); }
-.cal-cell.today .cal-day { color: var(--accent); font-weight: 700; }
-.cal-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
-.cal-cell.other-month { opacity: 0.45; background: var(--bg-soft); }
-.cal-day {
-  font-size: 14px; font-weight: 600;
+.wdh-cell.today .wdh-day-num {
+  display: inline-block;
+  background: var(--text);
+  color: var(--bg);
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.wdh-cell.today .wdh-day-name { color: var(--text); font-weight: 700; }
+.wdh-cell.sun .wdh-day-num,
+.wdh-cell.sun .wdh-day-name { color: var(--accent-2); }
+.wdh-cell.sat .wdh-day-num,
+.wdh-cell.sat .wdh-day-name { color: var(--accent); }
+
+/* 시간 슬롯 */
+.week-body {
+  position: relative;
+  display: grid;
+  grid-template-columns: 60px repeat(7, 1fr);
+}
+.time-col {
+  border-right: 1px solid var(--border-soft);
+  position: relative;
+}
+.time-slot {
+  height: 60px;
+  font-size: 10.5px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  text-align: right;
+  padding: 4px 8px 0 0;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.day-col {
+  border-right: 1px solid var(--border-soft);
+  position: relative;
+}
+.day-col:last-child { border-right: none; }
+.day-col.today { background: rgba(184, 94, 148, 0.025); }
+.day-col.weekend { background: rgba(0,0,0,0.012); }
+body.dark .day-col.weekend { background: rgba(255,255,255,0.02); }
+.hour-line {
+  height: 60px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* 이벤트 카드 (절대 위치) */
+.event-card {
+  position: absolute;
+  left: 4px; right: 4px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  cursor: pointer;
+  overflow: hidden;
+  border-left: 3px solid;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.event-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+  z-index: 3;
+}
+.event-card .ev-title {
+  font-weight: 700;
   color: var(--text);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.cal-cell.sun .cal-day { color: var(--accent-2); }
-.cal-cell.sat .cal-day { color: var(--accent); }
-.cal-dots {
-  display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto;
+.event-card .ev-time {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-family: ui-monospace, Menlo, monospace;
 }
-.cal-dot {
-  width: 5px; height: 5px; border-radius: 50%;
+.event-card .ev-more {
+  position: absolute;
+  top: 6px; right: 6px;
+  color: var(--text-dim);
+  opacity: 0; transition: opacity 0.12s;
 }
-.cal-dot.tb { background: var(--accent); }
-.cal-dot.j  { background: var(--accent-2); }
-.cal-dot.n  { background: var(--accent-3); }
-.cal-mood { font-size: 16px; margin-top: 2px; }
+.event-card:hover .ev-more { opacity: 1; }
+.event-card .ev-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(107, 174, 124, 0.18);
+  color: #4F8A60;
+  font-size: 9.5px; font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+body.dark .event-card .ev-status { color: #92D49E; }
+
+/* 이벤트 컬러 변형 — pastel */
+.event-card.c-magenta { background: rgba(184, 94, 148, 0.18); border-left-color: #B85E94; }
+.event-card.c-coral   { background: rgba(233, 119, 112, 0.18); border-left-color: #E97770; }
+.event-card.c-apricot { background: rgba(255, 132, 85, 0.18);  border-left-color: #FF8455; }
+.event-card.c-green   { background: rgba(107, 174, 124, 0.20); border-left-color: #6BAE7C; }
+.event-card.c-yellow  { background: rgba(226, 168, 71, 0.20);  border-left-color: #E2A847; }
+.event-card.c-blue    { background: rgba(106, 156, 198, 0.20); border-left-color: #6A9CC6; }
+.event-card.c-lavender{ background: rgba(160, 132, 198, 0.20); border-left-color: #A084C6; }
+
+/* 현재 시각 marker */
+.now-line {
+  position: absolute;
+  left: 0; right: 0;
+  border-top: 1.5px solid var(--accent);
+  z-index: 4;
+  pointer-events: none;
+}
+.now-pill {
+  position: absolute;
+  left: 6px;
+  transform: translateY(-50%);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 10px; font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-family: ui-monospace, Menlo, monospace;
+  letter-spacing: 0.04em;
+  z-index: 5;
+}
 
 /* Detail panel */
 .cal-detail {
@@ -1312,124 +1568,324 @@ body.dark .editor-content {
       </div>
 
       <div class="cal-wrap">
-        <div class="cal-main">
-          <div class="cal-toolbar">
-            <button class="cal-nav"><span class="mi">chevron_left</span></button>
-            <div class="cal-month">June 2026</div>
-            <button class="cal-nav"><span class="mi">chevron_right</span></button>
-            <button class="cal-today-btn">오늘</button>
+        <!-- 좌측: 미니 월간 + 카테고리 + 요약 -->
+        <aside class="cal-side">
+          <div class="mini-cal-head">
+            <button class="mini-cal-nav"><span class="mi mi-sm">chevron_left</span></button>
+            <div class="mini-cal-title">2026년 6월</div>
+            <button class="mini-cal-nav" style="margin-left:auto;"><span class="mi mi-sm">chevron_right</span></button>
           </div>
-          <div class="cal-weekdays">
-            <span class="sun">SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span class="sat">SAT</span>
+          <div class="mini-cal-weekdays">
+            <span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span>
           </div>
-          <div class="cal-grid">
-            <!-- 6주 × 7일 = 42 -->
-            <div class="cal-cell other-month sun"><div class="cal-day">31</div></div>
-            <div class="cal-cell"><div class="cal-day">1</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
-            <div class="cal-cell"><div class="cal-day">2</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span></div></div>
-            <div class="cal-cell"><div class="cal-day">3</div></div>
-            <div class="cal-cell today"><div class="cal-day">4</div><div class="cal-mood">😊</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span><span class="cal-dot n"></span></div></div>
-            <div class="cal-cell"><div class="cal-day">5</div><div class="cal-dots"><span class="cal-dot n"></span></div></div>
-            <div class="cal-cell sat"><div class="cal-day">6</div></div>
+          <div class="mini-cal-grid">
+            <div class="mini-cal-cell other">31</div>
+            <div class="mini-cal-cell has-event">1</div>
+            <div class="mini-cal-cell has-event">2</div>
+            <div class="mini-cal-cell">3</div>
+            <div class="mini-cal-cell today has-event">4</div>
+            <div class="mini-cal-cell has-event">5</div>
+            <div class="mini-cal-cell">6</div>
 
-            <div class="cal-cell sun"><div class="cal-day">7</div></div>
-            <div class="cal-cell"><div class="cal-day">8</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
-            <div class="cal-cell"><div class="cal-day">9</div></div>
-            <div class="cal-cell"><div class="cal-day">10</div><div class="cal-mood">🥲</div></div>
-            <div class="cal-cell"><div class="cal-day">11</div></div>
-            <div class="cal-cell selected"><div class="cal-day">12</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span></div></div>
-            <div class="cal-cell sat"><div class="cal-day">13</div></div>
+            <div class="mini-cal-cell in-week week-start">7</div>
+            <div class="mini-cal-cell in-week has-event">8</div>
+            <div class="mini-cal-cell in-week">9</div>
+            <div class="mini-cal-cell in-week has-event">10</div>
+            <div class="mini-cal-cell in-week has-event">11</div>
+            <div class="mini-cal-cell in-week has-event">12</div>
+            <div class="mini-cal-cell in-week week-end has-event">13</div>
 
-            <div class="cal-cell sun"><div class="cal-day">14</div></div>
-            <div class="cal-cell"><div class="cal-day">15</div></div>
-            <div class="cal-cell"><div class="cal-day">16</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
-            <div class="cal-cell"><div class="cal-day">17</div></div>
-            <div class="cal-cell"><div class="cal-day">18</div></div>
-            <div class="cal-cell"><div class="cal-day">19</div><div class="cal-mood">😍</div></div>
-            <div class="cal-cell sat"><div class="cal-day">20</div></div>
+            <div class="mini-cal-cell">14</div>
+            <div class="mini-cal-cell">15</div>
+            <div class="mini-cal-cell has-event">16</div>
+            <div class="mini-cal-cell">17</div>
+            <div class="mini-cal-cell">18</div>
+            <div class="mini-cal-cell has-event">19</div>
+            <div class="mini-cal-cell">20</div>
 
-            <div class="cal-cell sun"><div class="cal-day">21</div></div>
-            <div class="cal-cell"><div class="cal-day">22</div></div>
-            <div class="cal-cell"><div class="cal-day">23</div></div>
-            <div class="cal-cell"><div class="cal-day">24</div></div>
-            <div class="cal-cell"><div class="cal-day">25</div></div>
-            <div class="cal-cell"><div class="cal-day">26</div></div>
-            <div class="cal-cell sat"><div class="cal-day">27</div></div>
+            <div class="mini-cal-cell">21</div>
+            <div class="mini-cal-cell">22</div>
+            <div class="mini-cal-cell">23</div>
+            <div class="mini-cal-cell">24</div>
+            <div class="mini-cal-cell">25</div>
+            <div class="mini-cal-cell">26</div>
+            <div class="mini-cal-cell">27</div>
 
-            <div class="cal-cell sun"><div class="cal-day">28</div></div>
-            <div class="cal-cell"><div class="cal-day">29</div></div>
-            <div class="cal-cell"><div class="cal-day">30</div></div>
-            <div class="cal-cell other-month"><div class="cal-day">1</div></div>
-            <div class="cal-cell other-month"><div class="cal-day">2</div></div>
-            <div class="cal-cell other-month"><div class="cal-day">3</div></div>
-            <div class="cal-cell other-month sat"><div class="cal-day">4</div></div>
+            <div class="mini-cal-cell">28</div>
+            <div class="mini-cal-cell">29</div>
+            <div class="mini-cal-cell">30</div>
+            <div class="mini-cal-cell other">1</div>
+            <div class="mini-cal-cell other">2</div>
+            <div class="mini-cal-cell other">3</div>
+            <div class="mini-cal-cell other">4</div>
           </div>
-        </div>
 
-        <aside class="cal-detail">
-          <div class="cal-detail-head">
-            <div class="cal-detail-date">6월 12일</div>
-            <div class="cal-detail-dow">금요일 &middot; Week 24</div>
-          </div>
-          <div class="cal-summary">
-            <div class="cal-summary-stat"><div class="v">4</div><div class="l">Blocks</div></div>
-            <div class="cal-summary-stat"><div class="v">5h 20m</div><div class="l">Planned</div></div>
-            <div class="cal-summary-stat"><div class="v">3/4</div><div class="l">Done</div></div>
-          </div>
-          <div class="cal-section">
-            <div class="cal-sec-head">
-              <span><span class="mi">schedule</span> 타임블록</span>
-              <button class="cal-add-btn">+ 추가</button>
+          <div class="cal-side-sec-title">카테고리</div>
+          <div class="cat-list">
+            <div class="cat-item active">
+              <span class="cat-dot" style="background:#B85E94"></span>
+              <span>업무</span>
+              <span class="cat-count">8</span>
             </div>
-            <div class="tb-item done">
-              <button class="tb-check checked"><span class="mi mi-sm">check</span></button>
-              <span class="tb-time">09:00 — 10:30</span>
-              <span class="tb-title">팀 스탠드업 + 회고</span>
+            <div class="cat-item">
+              <span class="cat-dot" style="background:#E97770"></span>
+              <span>독서</span>
+              <span class="cat-count">3</span>
             </div>
-            <div class="tb-item">
-              <button class="tb-check"></button>
-              <span class="tb-time">11:00 — 12:00</span>
-              <span class="tb-title">디자인 시스템 토큰 정의</span>
+            <div class="cat-item">
+              <span class="cat-dot" style="background:#FF8455"></span>
+              <span>운동</span>
+              <span class="cat-count">4</span>
             </div>
-            <div class="tb-item coral done">
-              <button class="tb-check checked" style="background:var(--accent-2);border-color:var(--accent-2);"><span class="mi mi-sm">check</span></button>
-              <span class="tb-time">14:00 — 15:00</span>
-              <span class="tb-title">독서 — Refactoring 9장</span>
+            <div class="cat-item">
+              <span class="cat-dot" style="background:#6BAE7C"></span>
+              <span>개인</span>
+              <span class="cat-count">2</span>
             </div>
-            <div class="tb-item apricot">
-              <button class="tb-check"></button>
-              <span class="tb-time">19:30 — 20:30</span>
-              <span class="tb-title">러닝 5km + 스트레칭</span>
+            <div class="cat-item">
+              <span class="cat-dot" style="background:#6A9CC6"></span>
+              <span>약속</span>
+              <span class="cat-count">5</span>
             </div>
           </div>
-          <div class="cal-section">
-            <div class="cal-sec-head">
-              <span><span class="mi">favorite</span> 감정일기</span>
+
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="lbl">이번 주 블록</span>
+              <span class="val">22</span>
             </div>
-            <div class="cal-mood-row">
-              <button class="cal-mood-btn">😴</button>
-              <button class="cal-mood-btn">🥲</button>
-              <button class="cal-mood-btn">😐</button>
-              <button class="cal-mood-btn active">😊</button>
-              <button class="cal-mood-btn">😍</button>
-              <button class="cal-mood-btn">🔥</button>
+            <div class="summary-row">
+              <span class="lbl">완료</span>
+              <span class="val accent">14 / 22</span>
             </div>
-            <textarea class="cal-journal" placeholder="오늘 하루를 기록해보세요…">오랜만에 정리되는 느낌. 디자인 토큰 잡으면서 머릿속이 단순해졌다.</textarea>
-          </div>
-          <div class="cal-section" style="border-bottom:none;">
-            <div class="cal-sec-head">
-              <span><span class="mi">edit_note</span> 이 날 수정한 노트 (2)</span>
-            </div>
-            <div class="cal-note-item">
-              <span class="mi mi-sm">edit_note</span>
-              <span class="cal-note-title">디자인 시스템 v2 메모</span>
-            </div>
-            <div class="cal-note-item">
-              <span class="mi mi-sm">edit_note</span>
-              <span class="cal-note-title">Refactoring 9장 정리</span>
+            <div class="summary-row">
+              <span class="lbl">계획 시간</span>
+              <span class="val">28h 40m</span>
             </div>
           </div>
         </aside>
+
+        <!-- 메인: 주간 시간표 -->
+        <div class="week-main">
+          <div class="week-toolbar">
+            <button class="mini-cal-nav"><span class="mi">chevron_left</span></button>
+            <div class="week-range">06월 08일 — 14일</div>
+            <button class="mini-cal-nav"><span class="mi">chevron_right</span></button>
+            <div class="cat-pill-row">
+              <button class="cat-pill active"><span class="mi mi-sm mi-fill" style="font-size:14px;">check_circle</span> 전체</button>
+              <button class="cat-pill"><span class="dot" style="background:#B85E94"></span> 업무</button>
+              <button class="cat-pill"><span class="dot" style="background:#E97770"></span> 독서</button>
+              <button class="cat-pill"><span class="dot" style="background:#FF8455"></span> 운동</button>
+              <button class="cat-pill"><span class="dot" style="background:#6BAE7C"></span> 개인</button>
+              <button class="cat-pill"><span class="dot" style="background:#6A9CC6"></span> 약속</button>
+            </div>
+            <button class="cal-today-btn" style="margin-left:0;">이번 주</button>
+          </div>
+
+          <div class="week-grid">
+            <!-- 요일 헤더 -->
+            <div class="week-day-header">
+              <div class="wdh-cell wdh-time-spacer"></div>
+              <div class="wdh-cell sun">
+                <div class="wdh-day-num">08</div>
+                <div class="wdh-day-name">SUN</div>
+              </div>
+              <div class="wdh-cell">
+                <div class="wdh-day-num">09</div>
+                <div class="wdh-day-name">MON</div>
+              </div>
+              <div class="wdh-cell">
+                <div class="wdh-day-num">10</div>
+                <div class="wdh-day-name">TUE</div>
+              </div>
+              <div class="wdh-cell">
+                <div class="wdh-day-num">11</div>
+                <div class="wdh-day-name">WED</div>
+              </div>
+              <div class="wdh-cell today">
+                <div class="wdh-day-num">12</div>
+                <div class="wdh-day-name">THU</div>
+              </div>
+              <div class="wdh-cell">
+                <div class="wdh-day-num">13</div>
+                <div class="wdh-day-name">FRI</div>
+              </div>
+              <div class="wdh-cell sat">
+                <div class="wdh-day-num">14</div>
+                <div class="wdh-day-name">SAT</div>
+              </div>
+            </div>
+
+            <!-- 시간 슬롯 + 이벤트 -->
+            <div class="week-body">
+              <!-- 시간 컬럼 (06:00 - 22:00, 17시간) -->
+              <div class="time-col">
+                <div class="time-slot">06:00</div>
+                <div class="time-slot">07:00</div>
+                <div class="time-slot">08:00</div>
+                <div class="time-slot">09:00</div>
+                <div class="time-slot">10:00</div>
+                <div class="time-slot">11:00</div>
+                <div class="time-slot">12:00</div>
+                <div class="time-slot">13:00</div>
+                <div class="time-slot">14:00</div>
+                <div class="time-slot">15:00</div>
+                <div class="time-slot">16:00</div>
+                <div class="time-slot">17:00</div>
+                <div class="time-slot">18:00</div>
+                <div class="time-slot">19:00</div>
+                <div class="time-slot">20:00</div>
+                <div class="time-slot">21:00</div>
+                <div class="time-slot">22:00</div>
+              </div>
+
+              <!-- 일요일 -->
+              <div class="day-col weekend">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-green" style="top:240px;height:120px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">아침 산책</div>
+                  <div class="ev-time">10:00 — 12:00</div>
+                </div>
+              </div>
+
+              <!-- 월요일 -->
+              <div class="day-col">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-magenta" style="top:180px;height:90px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">팀 스탠드업</div>
+                  <div class="ev-time">09:00 — 10:30</div>
+                </div>
+                <div class="event-card c-coral" style="top:480px;height:60px;">
+                  <div class="ev-title">독서 — Refactoring</div>
+                  <div class="ev-time">14:00 — 15:00</div>
+                </div>
+                <div class="event-card c-apricot" style="top:780px;height:80px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">러닝 5km</div>
+                  <div class="ev-time">19:00 — 20:20</div>
+                </div>
+              </div>
+
+              <!-- 화요일 -->
+              <div class="day-col">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-magenta" style="top:240px;height:60px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">디자인 토큰 정의</div>
+                  <div class="ev-time">10:00 — 11:00</div>
+                </div>
+                <div class="event-card c-blue" style="top:420px;height:90px;">
+                  <div class="ev-title">디자이너 미팅</div>
+                  <div class="ev-time">13:00 — 14:30</div>
+                  <span class="ev-status"><span class="mi mi-sm mi-fill" style="font-size:11px;">check_circle</span> 확정</span>
+                </div>
+              </div>
+
+              <!-- 수요일 -->
+              <div class="day-col">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-lavender" style="top:120px;height:80px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">백링크 회고</div>
+                  <div class="ev-time">08:00 — 09:20</div>
+                </div>
+                <div class="event-card c-magenta" style="top:600px;height:120px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">Q3 OKR 회의</div>
+                  <div class="ev-time">16:00 — 18:00</div>
+                </div>
+              </div>
+
+              <!-- 목요일 (오늘) -->
+              <div class="day-col today">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+
+                <div class="event-card c-magenta" style="top:180px;height:90px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">팀 스탠드업 + 회고</div>
+                  <div class="ev-time">09:00 — 10:30</div>
+                </div>
+                <div class="event-card c-yellow" style="top:300px;height:60px;">
+                  <div class="ev-title">디자인 시스템 토큰</div>
+                  <div class="ev-time">11:00 — 12:00</div>
+                </div>
+                <div class="event-card c-coral" style="top:480px;height:60px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">Refactoring 9장</div>
+                  <div class="ev-time">14:00 — 15:00</div>
+                  <span class="ev-status"><span class="mi mi-sm mi-fill" style="font-size:11px;">check_circle</span> 완료</span>
+                </div>
+                <div class="event-card c-apricot" style="top:810px;height:60px;">
+                  <div class="ev-title">러닝 5km + 스트레칭</div>
+                  <div class="ev-time">19:30 — 20:30</div>
+                </div>
+
+                <!-- 현재 시각 marker (14:25 → 8시간 25분 → 505px) -->
+                <div class="now-pill" style="top:505px;">14:25</div>
+                <div class="now-line" style="top:505px;"></div>
+              </div>
+
+              <!-- 금요일 -->
+              <div class="day-col">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-magenta" style="top:180px;height:60px;">
+                  <div class="ev-title">주간 회고</div>
+                  <div class="ev-time">09:00 — 10:00</div>
+                </div>
+                <div class="event-card c-blue" style="top:360px;height:90px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">디자이너 + PM 동기화</div>
+                  <div class="ev-time">12:00 — 13:30</div>
+                </div>
+              </div>
+
+              <!-- 토요일 -->
+              <div class="day-col weekend">
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+                <div class="hour-line"></div>
+                <div class="event-card c-green" style="top:120px;height:120px;">
+                  <div class="ev-title">친구 모임</div>
+                  <div class="ev-time">08:00 — 10:00</div>
+                  <span class="ev-status"><span class="mi mi-sm mi-fill" style="font-size:11px;">check_circle</span> 확정</span>
+                </div>
+                <div class="event-card c-lavender" style="top:420px;height:180px;">
+                  <span class="ev-more mi mi-sm">more_horiz</span>
+                  <div class="ev-title">개인 프로젝트</div>
+                  <div class="ev-time">13:00 — 16:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
