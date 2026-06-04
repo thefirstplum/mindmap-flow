@@ -72,8 +72,8 @@ function md2html(md) {
   s = s.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
   s = s.replace(/<\/blockquote>\n<blockquote>/g, '<br>');
 
-  // Task lists
-  s = s.replace(/^[-*+] \[ \] (.+)$/gm, '<li class="task"><input type="checkbox" disabled> $1</li>');
+  // Task lists — '- [ ]' / '- []' 둘 다 지원
+  s = s.replace(/^[-*+] \[\s?\] (.+)$/gm, '<li class="task"><input type="checkbox" disabled> $1</li>');
   s = s.replace(/^[-*+] \[x\] (.+)$/gmi, '<li class="task done"><input type="checkbox" checked disabled> <del>$1</del></li>');
 
   // Unordered list
