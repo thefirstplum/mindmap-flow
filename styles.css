@@ -765,26 +765,27 @@ body[data-theme="sunset"] {
 .mindmap-page.list-collapsed   .panel-reopen-btn,
 .journal-page.list-collapsed   .panel-reopen-btn { display: flex; }
 
-/* ── Generic icon button (mockup 톤 — 34x34 둥근 사각형, hover accent) ── */
+/* ── Generic icon button (mockup 정밀 — 34x34 둥근 사각형) ── */
 .memo-icon-btn {
   width: 34px; height: 34px;
   background: transparent;
   border: none;
   border-radius: 8px;
   color: var(--text-dim);
-  display: flex; align-items: center; justify-content: center;
+  display: inline-flex; align-items: center; justify-content: center;
   flex-shrink: 0;
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, transform 0.08s;
   cursor: pointer;
   padding: 0;
   font-family: inherit;
+  line-height: 1;
 }
-.memo-icon-btn .mi { font-size: 19px; }
+.memo-icon-btn .mi { font-size: 19px; line-height: 1; }
 .memo-icon-btn:hover { background: var(--surface2); color: var(--accent); }
 .memo-icon-btn:active { transform: scale(0.95); }
 .memo-icon-btn.danger:hover { background: rgba(212, 95, 90, 0.12); color: var(--red); }
 
-/* memo-back: 좌상단 뒤로 버튼 — 모바일에서만 표시 */
+/* memo-back: 좌상단 뒤로 버튼 (모바일) */
 .memo-back {
   display: none;
   width: 34px; height: 34px;
@@ -792,11 +793,15 @@ body[data-theme="sunset"] {
   color: var(--text-dim);
   border-radius: 8px;
   font-size: 22px;
+  line-height: 1;
   cursor: pointer; padding: 0;
   align-items: center; justify-content: center;
   font-family: inherit;
 }
 .memo-back:hover { background: var(--surface2); color: var(--accent); }
+@media (max-width: 768px) {
+  .memo-back { display: inline-flex; }
+}
 
 /* ── Folder status (sync modal) ── */
 .folder-status {
@@ -1363,13 +1368,14 @@ body[data-theme="sunset"] {
 .mm-list-backdrop.show { display: block; }
 
 .mindmap-toolbar {
-  height: 50px;
+  height: 56px;
   background: var(--bg);
   border-bottom: 1px solid var(--border-light);
   display: flex; align-items: center;
-  padding: 0 22px; gap: 6px;
+  padding: 0 26px; gap: 4px;
   overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
 }
+.mindmap-toolbar > button { flex-shrink: 0; }
 .mindmap-toolbar::-webkit-scrollbar { display: none; }
 
 /* Mindmap tags row — below the toolbar */
@@ -1825,10 +1831,13 @@ body[data-theme="sunset"] {
   color: var(--text-dim);
   font-size: var(--fs-sub); font-weight: 700;
   letter-spacing: var(--tracking-body);
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
   font-family: inherit;
+  padding: 0 14px;
 }
 .note-create-btn:hover {
   background: var(--accent-glow);
@@ -1864,21 +1873,29 @@ body[data-theme="sunset"] {
   background: var(--bg-soft, var(--surface2));
 }
 .memo-list-title-row {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 6px;
+  min-width: 0;
+  line-height: 1.3;
 }
 .memo-list-title-row .title {
   font-size: var(--fs-section);
   font-weight: 700; color: var(--text-mute);
   letter-spacing: var(--tracking-section);
   text-transform: uppercase;
+  line-height: 1.3;
+  white-space: nowrap;
 }
 .memo-list-title-row .count {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
-  background: var(--surface); padding: 1px 7px; border-radius: 5px;
+  background: var(--surface);
+  padding: 2px 7px;
+  border-radius: 5px;
   letter-spacing: 0.02em;
+  line-height: 1.2;
+  flex-shrink: 0;
 }
 
 /* Tag filter bar */
@@ -2008,24 +2025,33 @@ body[data-theme="sunset"] {
 .sidebar .tag-expand { color: var(--text-mute); }
 
 /* Search bar — mockup 톤 */
-.memo-search-wrap { position: relative; display: flex; gap: 7px; }
+.memo-search-wrap { position: relative; display: flex; align-items: center; gap: 7px; }
 .memo-search-wrap .search-input {
   flex: 1; height: 36px;
-  padding: 0 12px 0 34px;
+  padding: 0 14px 0 36px;
   background: var(--surface2);
   border: 1px solid transparent;
   border-radius: 999px;
   color: var(--text);
-  font-size: 13px; font-family: inherit; outline: none;
+  font-size: var(--fs-sub);
+  font-family: inherit;
+  letter-spacing: var(--tracking-body);
+  outline: none;
+  line-height: 1.4;
   transition: border-color 0.15s, box-shadow 0.15s;
+}
+.memo-search-wrap .search-input::placeholder {
+  color: var(--text-mute);
+  font-weight: 500;
 }
 .memo-search-wrap .search-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
 .memo-search-wrap .search-icon {
-  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
   color: var(--text-mute); pointer-events: none;
+  font-size: 17px;
 }
 
 /* List */
@@ -2125,14 +2151,21 @@ body[data-theme="sunset"] {
   margin-bottom: 4px;
 }
 .memo-item-meta {
-  display: flex; align-items: center; gap: 6px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 5px 7px;
   margin-top: 6px;
-  font-size: 10.5px; font-weight: 600;
+  font-size: var(--fs-meta); font-weight: 600;
   color: var(--text-mute);
-  letter-spacing: 0.04em; text-transform: uppercase;
+  letter-spacing: var(--tracking-meta); text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+  min-width: 0;
 }
-.memo-item-meta .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.memo-item-meta > span { white-space: nowrap; }
+.memo-item-meta .dot {
+  width: 3px; height: 3px; border-radius: 50%;
+  background: currentColor; opacity: 0.5;
+  flex-shrink: 0;
+}
 
 /* Editor column */
 .memo-editor {
@@ -2159,16 +2192,17 @@ body[data-theme="sunset"] {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: var(--accent2);
 }
 
-/* Toolbar — mockup 톤 (bg, border-bottom-soft) */
+/* Editor Toolbar — mockup 정밀 (좌측 navigation + spacer + 우측 액션) */
 .memo-editor-toolbar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 12px 26px;
+  display: flex; align-items: center; gap: 4px;
+  padding: 14px 26px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
   background: var(--bg);
-  min-height: 50px;
+  min-height: 56px;
 }
-.memo-editor-toolbar .memo-toolbar-spacer { flex: 1; }
+.memo-editor-toolbar .memo-toolbar-spacer { flex: 1; min-width: 8px; }
+.memo-editor-toolbar > button { flex-shrink: 0; }
 .memo-back {
   display: none;
   width: 32px; height: 32px;
