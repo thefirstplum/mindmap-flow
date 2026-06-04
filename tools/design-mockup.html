@@ -183,11 +183,23 @@ body.mobile-view {
   overflow-y: auto;
 }
 body.mobile-view::before {
-  /* iPhone notch 시뮬 */
+  /* iPhone Dynamic Island 시뮬 — phone frame 표현용 (실제 PWA는 자동 처리) */
   content: '';
-  position: fixed; left: 50%; top: 88px;
-  width: 120px; height: 28px;
-  background: #000; border-radius: 0 0 16px 16px;
+  position: fixed; left: 50%; top: 86px;
+  width: 100px; height: 26px;
+  background: #000; border-radius: 16px;
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+}
+body.mobile-view::after {
+  /* Home Indicator (하단 가로 막대) */
+  content: '';
+  position: fixed; left: 50%; bottom: 38px;
+  width: 110px; height: 4px;
+  background: var(--text);
+  opacity: 0.45;
+  border-radius: 999px;
   transform: translateX(-50%);
   z-index: 200;
   pointer-events: none;
@@ -203,17 +215,18 @@ body.mobile-view .page-head .head-search,
 body.mobile-view .page-head .head-pill:not(.primary):not(.mobile-keep) { display: none; }
 body.mobile-view .page-head .sync-dot-btn { width: 30px; height: 30px; }
 body.mobile-view .page-head .head-pill.primary {
-  position: fixed; right: 32px; bottom: 70px;
+  position: fixed; right: 20px;
+  bottom: 110px;       /* bottom tabs(80px) + 여유 + Home indicator 위 */
   z-index: 50;
-  width: 56px; height: 56px;
+  width: 54px; height: 54px;
   padding: 0;
   border-radius: 50%;
   justify-content: center;
-  box-shadow: var(--shadow-3);
+  box-shadow: 0 12px 30px rgba(184, 94, 148, 0.35);
 }
 body.mobile-view .page-head .head-pill.primary span:not(.mi) { display: none; }
 body.mobile-view .memo-grid { grid-template-columns: 1fr; }
-body.mobile-view .memo-list { border-right: none; }
+body.mobile-view .memo-list { border-right: none; padding-bottom: 110px; }
 body.mobile-view .memo-editor { display: none; }   /* 모바일에선 리스트 풀스크린 */
 /* 모바일 캘린더 — 데스크탑 grid 해제하고 mob-cal만 풀폭 */
 body.mobile-view .cal-wrap {
@@ -348,7 +361,7 @@ body.dark .mob-day-stat .pill.green { color: #92D49E; }
   display: grid;
   grid-template-columns: 44px 1fr;
   border-top: 1px solid var(--border);
-  padding-bottom: 80px;
+  padding-bottom: 110px;       /* bottom tabs + safe area 확보 */
   width: 100%;
 }
 .mob-timeline .time-col,
@@ -428,26 +441,75 @@ body.mobile-view .m-hamburger { display: flex; }
 .m-bottom-tabs {
   display: none;
   position: absolute; bottom: 0; left: 0; right: 0;
-  height: 60px;
   background: var(--surface);
-  border-top: 1px solid var(--border);
-  align-items: center; justify-content: space-around;
-  padding: 6px 4px 12px;
+  border-top: 1px solid var(--border-soft);
+  /* 하단 safe-area-inset 시뮬 (iPhone Home Indicator 영역 34px) */
+  padding: 6px 4px 30px;
   z-index: 40;
+  align-items: stretch;
+  justify-content: space-around;
+  /* backdrop-blur 시뮬 — iOS 톤 */
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.78);
+}
+body.dark .m-bottom-tabs {
+  background: rgba(46, 36, 32, 0.82);
 }
 body.mobile-view .m-bottom-tabs { display: flex; }
 .m-tab-btn {
   background: none; border: none;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: column; align-items: center;
   color: var(--text-mute);
-  font-family: inherit; font-size: 10px; font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  padding: 4px 12px;
-  border-radius: 8px;
-  letter-spacing: 0.04em;
+  padding: 6px 10px 4px;
+  border-radius: 12px;
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  transition: color 0.12s;
 }
-.m-tab-btn.active { color: var(--accent); }
-.m-tab-btn.active .mi { color: var(--accent); }
+.m-tab-btn .mi {
+  font-size: 22px;
+  margin-bottom: 1px;
+  transition: transform 0.18s var(--ease);
+}
+.m-tab-btn .label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+.m-tab-btn:hover .mi { transform: translateY(-1px); }
+
+/* Active 상태 — 마젠타 + fill + 상단 dot */
+.m-tab-btn.active {
+  color: var(--accent);
+}
+.m-tab-btn.active .mi {
+  font-variation-settings: 'wght' 480, 'GRAD' -25, 'opsz' 24, 'FILL' 1;
+}
+.m-tab-btn.active::before {
+  content: '';
+  position: absolute;
+  top: -1px; left: 50%;
+  transform: translateX(-50%);
+  width: 22px; height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 3px 3px;
+}
+
+/* 5번째 더보기는 다른 컨텍스트 (avatar 톤) */
+.m-tab-btn.more .avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-3), var(--accent-2));
+  margin-bottom: 1px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: -0.02em;
+}
 
 /* =================== APP SHELL =================== */
 .app {
@@ -2289,19 +2351,24 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
   <!-- 모바일 전용 bottom tabs (mobile-view 모드에서만 표시) -->
   <div class="m-bottom-tabs">
     <button class="m-tab-btn active" data-page="memo">
-      <span class="mi">edit_note</span><span>노트</span>
+      <span class="mi">edit_note</span>
+      <span class="label">노트</span>
     </button>
     <button class="m-tab-btn" data-page="mindmap">
-      <span class="mi">account_tree</span><span>마인드맵</span>
+      <span class="mi">account_tree</span>
+      <span class="label">마인드맵</span>
     </button>
     <button class="m-tab-btn" data-page="calendar">
-      <span class="mi">calendar_month</span><span>캘린더</span>
+      <span class="mi">calendar_month</span>
+      <span class="label">캘린더</span>
     </button>
     <button class="m-tab-btn">
-      <span class="mi">task_alt</span><span>루틴</span>
+      <span class="mi">task_alt</span>
+      <span class="label">루틴</span>
     </button>
-    <button class="m-tab-btn">
-      <span class="mi">person</span><span>더보기</span>
+    <button class="m-tab-btn more">
+      <span class="avatar">M</span>
+      <span class="label">더보기</span>
     </button>
   </div>
 </div>
