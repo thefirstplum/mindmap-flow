@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MindFlow — 디자인 미리보기 (Craft Coral 톤)</title>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<!-- Rounded 변형 — Outlined보다 부드러운 둥근 끝, craft 톤에 어울림 -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200" rel="stylesheet">
 <style>
 /* =================== TOKENS — Craft Coral (라이트) =================== */
 :root {
@@ -81,9 +82,22 @@ html, body {
   font-size: 14px; line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
-.mi { font-family: 'Material Symbols Outlined'; font-size: 20px; font-weight: 400; }
-.mi-sm { font-size: 17px; }
-.mi-fill { font-variation-settings: 'FILL' 1; }
+/* Rounded + 얇은 weight (380) + 약간 음의 grade로 craft한 가볍기 */
+.mi {
+  font-family: 'Material Symbols Rounded';
+  font-size: 22px;
+  font-weight: 400;
+  font-variation-settings: 'wght' 380, 'GRAD' -25, 'opsz' 24;
+  line-height: 1;
+  vertical-align: -4px;
+}
+.mi-sm {
+  font-size: 18px;
+  font-variation-settings: 'wght' 400, 'GRAD' -25, 'opsz' 20;
+  vertical-align: -3px;
+}
+.mi-fill { font-variation-settings: 'wght' 380, 'GRAD' -25, 'opsz' 24, 'FILL' 1; }
+.mi-sm.mi-fill { font-variation-settings: 'wght' 400, 'GRAD' -25, 'opsz' 20, 'FILL' 1; }
 
 /* =================== TOP TAB BAR (미리보기 전용) =================== */
 .preview-bar {
@@ -130,6 +144,123 @@ html, body {
   cursor: pointer; color: var(--text-dim);
 }
 .theme-toggle:hover { color: var(--accent); }
+.device-toggle {
+  display: flex; gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 3px;
+  margin-right: 8px;
+}
+.device-btn {
+  background: transparent; border: none;
+  width: 30px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-mute);
+  transition: all 0.12s;
+}
+.device-btn:hover { color: var(--text); }
+.device-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+/* =================== MOBILE PREVIEW MODE =================== */
+body.mobile-view .app {
+  max-width: 390px;     /* iPhone 14/15 폭 */
+  height: 800px;
+  margin: 32px auto;
+  border: 1px solid var(--border);
+  border-radius: 38px;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(58, 46, 42, 0.25);
+  position: relative;
+}
+body.mobile-view {
+  background: linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
+  overflow-y: auto;
+}
+body.mobile-view::before {
+  /* iPhone notch 시뮬 */
+  content: '';
+  position: fixed; left: 50%; top: 88px;
+  width: 120px; height: 28px;
+  background: #000; border-radius: 0 0 16px 16px;
+  transform: translateX(-50%);
+  z-index: 200;
+  pointer-events: none;
+}
+body.mobile-view .sidebar { display: none; }
+body.mobile-view .page-head {
+  height: 90px; padding: 30px 18px 12px;
+  flex-wrap: wrap;
+}
+body.mobile-view .page-head h1 { font-size: 24px; }
+body.mobile-view .page-head .head-pill:not(.primary):not(.mobile-keep) { display: none; }
+body.mobile-view .page-head .head-pill.primary {
+  position: fixed; right: 32px; bottom: 70px;
+  z-index: 50;
+  width: 56px; height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+  box-shadow: var(--shadow-3);
+}
+body.mobile-view .page-head .head-pill.primary span:not(.mi) { display: none; }
+body.mobile-view .memo-grid { grid-template-columns: 1fr; }
+body.mobile-view .memo-list { border-right: none; }
+body.mobile-view .memo-editor { display: none; }   /* 모바일에선 리스트 풀스크린 */
+body.mobile-view .cal-wrap { grid-template-columns: 1fr; }
+body.mobile-view .cal-detail { display: none; }
+body.mobile-view .cal-main { padding: 16px 14px; }
+body.mobile-view .cal-month { font-size: 18px; }
+body.mobile-view .cal-cell { aspect-ratio: 1/1; padding: 5px 6px; }
+body.mobile-view .cal-cell .cal-day { font-size: 12px; }
+body.mobile-view .mm-toolbar { top: 14px; padding: 5px; }
+body.mobile-view .mm-toolbar .icon-btn { width: 32px; height: 32px; }
+body.mobile-view .node-action { bottom: 18px; padding: 8px 10px; }
+body.mobile-view .node-action .nab-color { width: 18px; height: 18px; }
+body.mobile-view .node-action .nab-btn { padding: 4px 6px; }
+body.mobile-view .node-action .nab-btn span:not(.mi):not(.mi-sm) { display: none; }
+body.mobile-view .editor-body { padding: 20px 22px 60px; }
+body.mobile-view .editor-title { font-size: 24px; }
+body.mobile-view .editor-content { font-size: 15px; line-height: 26px; }
+
+/* 모바일에서만 보이는 햄버거 + bottom 탭 */
+.m-hamburger {
+  display: none;
+  background: var(--surface-2); border: none;
+  width: 36px; height: 36px; border-radius: 10px;
+  align-items: center; justify-content: center;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+body.mobile-view .m-hamburger { display: flex; }
+.m-bottom-tabs {
+  display: none;
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  align-items: center; justify-content: space-around;
+  padding: 6px 4px 12px;
+  z-index: 40;
+}
+body.mobile-view .m-bottom-tabs { display: flex; }
+.m-tab-btn {
+  background: none; border: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  color: var(--text-mute);
+  font-family: inherit; font-size: 10px; font-weight: 600;
+  cursor: pointer;
+  padding: 4px 12px;
+  border-radius: 8px;
+  letter-spacing: 0.04em;
+}
+.m-tab-btn.active { color: var(--accent); }
+.m-tab-btn.active .mi { color: var(--accent); }
 
 /* =================== APP SHELL =================== */
 .app {
@@ -432,21 +563,50 @@ html, body {
   font-size: 11.5px; color: var(--text-mute);
   cursor: pointer;
 }
+/* Ruled paper lines — 사장님 보여주신 mnmo 노트북의 가로 라인 인용.
+   line-height(28px)와 정확히 정렬. 매우 옅은 살구톤. paragraph만 라인 위로,
+   헤더·리스트·blockquote·code 등은 surface 배경으로 덮어 라인 가림. */
 .editor-content {
-  font-size: 15.5px; line-height: 1.75;
+  font-size: 16px;
+  line-height: 28px;     /* ruled grid의 단위 */
   color: var(--text);
+  background-image: linear-gradient(
+    transparent calc(28px - 1px),
+    rgba(232, 213, 196, 0.55) calc(28px - 1px),
+    rgba(232, 213, 196, 0.55) 28px,
+    transparent 28px
+  );
+  background-size: 100% 28px;
+  background-position: 0 6px; /* 본문 첫 줄 baseline 정렬 */
+  padding-top: 0;
+}
+body.dark .editor-content {
+  background-image: linear-gradient(
+    transparent calc(28px - 1px),
+    rgba(245, 235, 224, 0.06) calc(28px - 1px),
+    rgba(245, 235, 224, 0.06) 28px,
+    transparent 28px
+  );
 }
 .editor-content h2 {
-  font-size: 18px; font-weight: 700;
-  margin: 28px 0 10px;
+  font-size: 19px; font-weight: 700;
+  margin: 28px 0 0;
+  padding: 14px 0 0;
   letter-spacing: -0.01em;
   color: var(--text);
+  background: var(--surface); /* ruled line 가림 */
+  line-height: 28px;
 }
-.editor-content p { margin: 0 0 14px; }
-.editor-content ul { padding-left: 22px; margin: 0 0 14px; }
-.editor-content li { margin-bottom: 4px; }
+.editor-content p { margin: 0 0 28px; }
+.editor-content p:last-child { margin-bottom: 0; }
+.editor-content ul {
+  padding-left: 22px;
+  margin: 0 0 28px;
+  background: var(--surface);
+}
+.editor-content li { margin-bottom: 0; line-height: 28px; }
 .editor-content code {
-  background: var(--surface-2);
+  background: var(--accent-glow);
   padding: 1px 6px;
   border-radius: 4px;
   font-family: ui-monospace, Menlo, monospace;
@@ -462,11 +622,12 @@ html, body {
 }
 .editor-content blockquote {
   border-left: 3px solid var(--accent-3);
-  padding: 4px 14px;
-  background: rgba(255, 132, 85, 0.06);
+  padding: 12px 16px;
+  background: rgba(255, 132, 85, 0.08);
   color: var(--text-dim);
-  margin: 14px 0;
-  border-radius: 0 6px 6px 0;
+  margin: 14px 0 28px;
+  border-radius: 0 8px 8px 0;
+  line-height: 28px;
 }
 
 /* Backlink */
@@ -824,8 +985,12 @@ html, body {
     <span class="mi mi-sm">calendar_month</span> 캘린더
   </button>
   <div class="spacer"></div>
-  <span style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin-right:10px;">Craft Coral</span>
-  <button class="theme-toggle" onclick="document.body.classList.toggle('dark')" title="다크 모드 토글">
+  <div class="device-toggle">
+    <button class="device-btn active" data-device="desktop" title="데스크탑 (1)"><span class="mi mi-sm">desktop_windows</span></button>
+    <button class="device-btn" data-device="mobile" title="모바일 (M)"><span class="mi mi-sm">smartphone</span></button>
+  </div>
+  <span style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 10px;">Craft Coral</span>
+  <button class="theme-toggle" onclick="document.body.classList.toggle('dark')" title="다크 모드 토글 (D)">
     <span class="mi mi-sm">dark_mode</span>
   </button>
 </div>
@@ -892,6 +1057,7 @@ html, body {
     <!-- ============ PAGE 1 — MEMO ============ -->
     <section class="page active" data-page="memo">
       <div class="page-head">
+        <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
         <div>
           <h1>노트</h1>
           <div class="page-sub">Notes &middot; 24 items</div>
@@ -1021,6 +1187,7 @@ html, body {
     <!-- ============ PAGE 2 — MINDMAP ============ -->
     <section class="page" data-page="mindmap">
       <div class="page-head">
+        <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
         <div>
           <h1>마인드맵</h1>
           <div class="page-sub">Mindmap &middot; Product Roadmap</div>
@@ -1134,6 +1301,7 @@ html, body {
     <!-- ============ PAGE 3 — CALENDAR ============ -->
     <section class="page" data-page="calendar">
       <div class="page-head">
+        <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
         <div>
           <h1>캘린더</h1>
           <div class="page-sub">June 2026 &middot; Week 23</div>
@@ -1266,23 +1434,62 @@ html, body {
     </section>
 
   </main>
+
+  <!-- 모바일 전용 bottom tabs (mobile-view 모드에서만 표시) -->
+  <div class="m-bottom-tabs">
+    <button class="m-tab-btn active" data-page="memo">
+      <span class="mi">edit_note</span><span>노트</span>
+    </button>
+    <button class="m-tab-btn" data-page="mindmap">
+      <span class="mi">account_tree</span><span>마인드맵</span>
+    </button>
+    <button class="m-tab-btn" data-page="calendar">
+      <span class="mi">calendar_month</span><span>캘린더</span>
+    </button>
+    <button class="m-tab-btn">
+      <span class="mi">fitness_center</span><span>루틴</span>
+    </button>
+    <button class="m-tab-btn">
+      <span class="mi">person</span><span>더보기</span>
+    </button>
+  </div>
 </div>
 
 <script>
-// 탭 전환
-document.querySelectorAll('.preview-tab').forEach(btn => {
+function switchPage(page) {
+  document.querySelectorAll('.preview-tab').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  document.querySelectorAll('.m-tab-btn').forEach(b => b.classList.toggle('active', b.dataset.page === page));
+  document.querySelectorAll('section.page').forEach(p => p.classList.toggle('active', p.dataset.page === page));
+}
+// 탭 전환 (데스크탑 + 모바일 둘 다)
+document.querySelectorAll('.preview-tab, .m-tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const page = btn.dataset.page;
-    document.querySelectorAll('.preview-tab').forEach(b => b.classList.toggle('active', b === btn));
-    document.querySelectorAll('section.page').forEach(p => p.classList.toggle('active', p.dataset.page === page));
+    if (page) switchPage(page);
   });
 });
-// 키보드: 1/2/3
+// 디바이스 토글
+document.querySelectorAll('.device-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dev = btn.dataset.device;
+    document.querySelectorAll('.device-btn').forEach(b => b.classList.toggle('active', b === btn));
+    document.body.classList.toggle('mobile-view', dev === 'mobile');
+  });
+});
+// 키보드: 1/2/3 페이지, D 다크, M 모바일 토글
 document.addEventListener('keydown', e => {
-  if (e.key === '1') document.querySelector('.preview-tab[data-page="memo"]')?.click();
-  if (e.key === '2') document.querySelector('.preview-tab[data-page="mindmap"]')?.click();
-  if (e.key === '3') document.querySelector('.preview-tab[data-page="calendar"]')?.click();
+  if (e.target.matches('input, textarea')) return;
+  if (e.key === '1') switchPage('memo');
+  if (e.key === '2') switchPage('mindmap');
+  if (e.key === '3') switchPage('calendar');
   if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('dark');
+  if (e.key === 'm' || e.key === 'M') {
+    document.body.classList.toggle('mobile-view');
+    const isM = document.body.classList.contains('mobile-view');
+    document.querySelectorAll('.device-btn').forEach(b =>
+      b.classList.toggle('active', (b.dataset.device === 'mobile') === isM)
+    );
+  }
 });
 </script>
 
