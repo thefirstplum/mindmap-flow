@@ -212,19 +212,174 @@ body.mobile-view .page-head .head-pill.primary span:not(.mi) { display: none; }
 body.mobile-view .memo-grid { grid-template-columns: 1fr; }
 body.mobile-view .memo-list { border-right: none; }
 body.mobile-view .memo-editor { display: none; }   /* 모바일에선 리스트 풀스크린 */
-body.mobile-view .cal-wrap { grid-template-columns: 1fr; }
-body.mobile-view .cal-side { display: none; }
-body.mobile-view .week-toolbar { padding: 14px 14px 10px; gap: 8px; flex-wrap: wrap; }
-body.mobile-view .week-range { font-size: 16px; }
-body.mobile-view .cat-pill-row { width: 100%; margin: 0; order: 3; }
-body.mobile-view .week-day-header { grid-template-columns: 40px repeat(7, 1fr); }
-body.mobile-view .week-body { grid-template-columns: 40px repeat(7, 1fr); }
-body.mobile-view .wdh-day-name { display: none; }
-body.mobile-view .wdh-cell { padding: 10px 2px 8px; }
-body.mobile-view .event-card { padding: 5px 6px; font-size: 10px; }
-body.mobile-view .event-card .ev-more,
-body.mobile-view .event-card .ev-status { display: none; }
-body.mobile-view .time-slot { font-size: 9px; padding: 3px 4px 0 0; }
+/* 모바일 캘린더 — 데스크탑 주간 그리드는 숨기고 별도 1일 뷰로 */
+body.mobile-view .cal-wrap > * { display: none; }
+body.mobile-view .mob-cal { display: flex; }
+
+/* === 모바일 1일 캘린더 (mobile-view에서만 표시) === */
+.mob-cal { display: none; flex-direction: column; flex: 1; background: var(--bg); overflow-y: auto; }
+
+.mob-cal-month-row {
+  display: flex; align-items: center; gap: 4px;
+  padding: 14px 18px 8px;
+}
+.mob-cal-month {
+  font-size: 17px; font-weight: 700;
+  letter-spacing: -0.02em;
+  display: flex; align-items: center; gap: 4px;
+  flex: 1;
+}
+.mob-cal-month .mi { font-size: 16px; color: var(--text-mute); }
+.mob-cal-actions { display: flex; gap: 4px; }
+.mob-icon-btn {
+  background: var(--surface-2); border: none;
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim); cursor: pointer;
+}
+
+/* 7일 슬라이더 */
+.mob-week-slider {
+  display: flex; gap: 3px;
+  padding: 6px 12px 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mob-week-slider::-webkit-scrollbar { display: none; }
+.mob-day {
+  flex: 1; min-width: 44px;
+  background: transparent;
+  border: none;
+  padding: 9px 4px 9px;
+  border-radius: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  position: relative;
+  transition: background 0.12s;
+}
+.mob-day:hover { background: var(--surface-2); }
+.mob-day .dow {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.mob-day .num {
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+}
+.mob-day.sun .dow, .mob-day.sun .num { color: var(--accent-2); }
+.mob-day.sat .dow, .mob-day.sat .num { color: var(--accent); }
+.mob-day .d-dot {
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+  margin-top: 1px;
+}
+.mob-day.active {
+  background: var(--text);
+}
+.mob-day.active .dow,
+.mob-day.active .num { color: var(--bg); }
+.mob-day.active .d-dot { background: var(--bg); }
+.mob-day.today:not(.active) .num {
+  color: var(--accent);
+}
+.mob-day.today:not(.active)::after {
+  content: '';
+  position: absolute;
+  bottom: 4px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+/* 큰 일자 헤더 */
+.mob-day-head {
+  padding: 10px 18px 16px;
+}
+.mob-day-big {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.mob-day-big .mood {
+  font-size: 20px;
+  margin-left: 8px;
+}
+.mob-day-stat {
+  display: flex; gap: 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em; text-transform: uppercase;
+  margin-top: 4px;
+}
+.mob-day-stat .pill {
+  background: var(--surface-2);
+  padding: 2px 9px;
+  border-radius: 999px;
+}
+.mob-day-stat .pill.accent { background: var(--accent-glow); color: var(--accent); }
+.mob-day-stat .pill.green { background: rgba(107, 174, 124, 0.18); color: #4F8A60; }
+body.dark .mob-day-stat .pill.green { color: #92D49E; }
+
+/* 카테고리 칩 */
+.mob-cat-row {
+  display: flex; gap: 6px;
+  padding: 4px 14px 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mob-cat-row::-webkit-scrollbar { display: none; }
+
+/* 1일 시간표 */
+.mob-timeline {
+  position: relative;
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  border-top: 1px solid var(--border);
+  padding-bottom: 80px;
+}
+.mob-timeline .time-col,
+.mob-timeline .day-col {
+  border-right: none;
+}
+.mob-timeline .day-col {
+  border-left: 1px solid var(--border-soft);
+}
+.mob-timeline .event-card {
+  left: 6px; right: 12px;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: 12px;
+}
+.mob-timeline .event-card .ev-title { font-size: 13px; }
+.mob-timeline .event-card .ev-time { font-size: 11px; }
+.mob-timeline .now-pill { left: -42px; transform: translateY(-50%); }
+.mob-timeline .now-line { left: 0; right: 0; }
+
+/* "그 외 카드형 리스트" 섹션 — 시간 없는 항목들 */
+.mob-extras { padding: 0 14px; }
+.mob-extras-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 18px 4px 10px;
+}
+.mob-extras-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.mob-extras-card .mi { color: var(--accent-3); }
+.mob-extras-card .mob-extras-title-text {
+  flex: 1; font-size: 13.5px; font-weight: 500;
+  color: var(--text);
+}
 body.mobile-view .mm-toolbar { top: 14px; padding: 5px; }
 body.mobile-view .mm-toolbar .icon-btn { width: 32px; height: 32px; }
 body.mobile-view .node-action { bottom: 18px; padding: 8px 10px; }
@@ -570,48 +725,47 @@ body.mobile-view .m-bottom-tabs { display: flex; }
   font-size: 11.5px; color: var(--text-mute);
   cursor: pointer;
 }
-/* Ruled paper lines — 사장님 보여주신 mnmo 노트북의 가로 라인 인용.
-   line-height(28px)와 정확히 정렬. 매우 옅은 살구톤. paragraph만 라인 위로,
-   헤더·리스트·blockquote·code 등은 surface 배경으로 덮어 라인 가림. */
+/* Ruled paper lines — line-height 32px로 여유 있게 (사장님 피드백).
+   라인이 글자 baseline 한참 아래로 떨어져 호흡 좋게. */
 .editor-content {
   font-size: 16px;
-  line-height: 28px;     /* ruled grid의 단위 */
+  line-height: 32px;     /* ruled grid 단위 — 28→32 여유 */
   color: var(--text);
   background-image: linear-gradient(
-    transparent calc(28px - 1px),
-    rgba(232, 213, 196, 0.55) calc(28px - 1px),
-    rgba(232, 213, 196, 0.55) 28px,
-    transparent 28px
+    transparent calc(32px - 1px),
+    rgba(232, 213, 196, 0.5) calc(32px - 1px),
+    rgba(232, 213, 196, 0.5) 32px,
+    transparent 32px
   );
-  background-size: 100% 28px;
-  background-position: 0 6px; /* 본문 첫 줄 baseline 정렬 */
+  background-size: 100% 32px;
+  background-position: 0 9px;
   padding-top: 0;
 }
 body.dark .editor-content {
   background-image: linear-gradient(
-    transparent calc(28px - 1px),
-    rgba(245, 235, 224, 0.06) calc(28px - 1px),
-    rgba(245, 235, 224, 0.06) 28px,
-    transparent 28px
+    transparent calc(32px - 1px),
+    rgba(245, 235, 224, 0.055) calc(32px - 1px),
+    rgba(245, 235, 224, 0.055) 32px,
+    transparent 32px
   );
 }
 .editor-content h2 {
   font-size: 19px; font-weight: 700;
-  margin: 28px 0 0;
-  padding: 14px 0 0;
+  margin: 32px 0 0;
+  padding: 16px 0 0;
   letter-spacing: -0.01em;
   color: var(--text);
-  background: var(--surface); /* ruled line 가림 */
-  line-height: 28px;
+  background: var(--surface);
+  line-height: 32px;
 }
-.editor-content p { margin: 0 0 28px; }
+.editor-content p { margin: 0 0 32px; }
 .editor-content p:last-child { margin-bottom: 0; }
 .editor-content ul {
   padding-left: 22px;
-  margin: 0 0 28px;
+  margin: 0 0 32px;
   background: var(--surface);
 }
-.editor-content li { margin-bottom: 0; line-height: 28px; }
+.editor-content li { margin-bottom: 0; line-height: 32px; }
 .editor-content code {
   background: var(--accent-glow);
   padding: 1px 6px;
@@ -632,9 +786,9 @@ body.dark .editor-content {
   padding: 12px 16px;
   background: rgba(255, 132, 85, 0.08);
   color: var(--text-dim);
-  margin: 14px 0 28px;
+  margin: 16px 0 32px;
   border-radius: 0 8px 8px 0;
-  line-height: 28px;
+  line-height: 32px;
 }
 
 /* Backlink */
@@ -999,23 +1153,39 @@ body.dark .day-col.weekend { background: rgba(255,255,255,0.02); }
   border-bottom: 1px solid var(--border-soft);
 }
 
-/* 이벤트 카드 (절대 위치) */
+/* 이번 주 버튼 — accent glow pill */
+.cal-today-btn {
+  background: var(--accent-glow);
+  border: none;
+  padding: 6px 14px 6px 11px;
+  border-radius: 999px;
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  color: var(--accent);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: filter 0.12s;
+  white-space: nowrap;
+}
+.cal-today-btn:hover { filter: brightness(1.05); }
+.cal-today-btn .mi { font-size: 14px; }
+
+/* 이벤트 카드 — 단순화 (border-left 얇게, hover shadow 제거) */
 .event-card {
   position: absolute;
   left: 4px; right: 4px;
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 8px 10px;
   font-size: 11.5px;
   cursor: pointer;
   overflow: hidden;
-  border-left: 3px solid;
-  transition: transform 0.12s, box-shadow 0.12s;
+  transition: filter 0.12s, background-color 0.12s;
 }
 .event-card:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-2);
+  filter: brightness(0.97);
   z-index: 3;
 }
+body.dark .event-card:hover { filter: brightness(1.15); }
 .event-card .ev-title {
   font-weight: 700;
   color: var(--text);
@@ -1048,14 +1218,35 @@ body.dark .day-col.weekend { background: rgba(255,255,255,0.02); }
 }
 body.dark .event-card .ev-status { color: #92D49E; }
 
-/* 이벤트 컬러 변형 — pastel */
-.event-card.c-magenta { background: rgba(184, 94, 148, 0.18); border-left-color: #B85E94; }
-.event-card.c-coral   { background: rgba(233, 119, 112, 0.18); border-left-color: #E97770; }
-.event-card.c-apricot { background: rgba(255, 132, 85, 0.18);  border-left-color: #FF8455; }
-.event-card.c-green   { background: rgba(107, 174, 124, 0.20); border-left-color: #6BAE7C; }
-.event-card.c-yellow  { background: rgba(226, 168, 71, 0.20);  border-left-color: #E2A847; }
-.event-card.c-blue    { background: rgba(106, 156, 198, 0.20); border-left-color: #6A9CC6; }
-.event-card.c-lavender{ background: rgba(160, 132, 198, 0.20); border-left-color: #A084C6; }
+/* 이벤트 컬러 변형 — 깔끔한 pastel only (border-left 제거, background만으로 구분) */
+.event-card.c-magenta { background: rgba(184, 94, 148, 0.16); }
+.event-card.c-magenta .ev-time, .event-card.c-magenta .ev-title { color: #8E3F70; }
+.event-card.c-coral   { background: rgba(233, 119, 112, 0.18); }
+.event-card.c-coral .ev-time, .event-card.c-coral .ev-title { color: #B0463E; }
+.event-card.c-apricot { background: rgba(255, 132, 85, 0.18); }
+.event-card.c-apricot .ev-time, .event-card.c-apricot .ev-title { color: #C45A2A; }
+.event-card.c-green   { background: rgba(107, 174, 124, 0.22); }
+.event-card.c-green .ev-time, .event-card.c-green .ev-title { color: #467558; }
+.event-card.c-yellow  { background: rgba(226, 168, 71, 0.22); }
+.event-card.c-yellow .ev-time, .event-card.c-yellow .ev-title { color: #92692B; }
+.event-card.c-blue    { background: rgba(106, 156, 198, 0.20); }
+.event-card.c-blue .ev-time, .event-card.c-blue .ev-title { color: #3D6789; }
+.event-card.c-lavender{ background: rgba(160, 132, 198, 0.20); }
+.event-card.c-lavender .ev-time, .event-card.c-lavender .ev-title { color: #644B85; }
+body.dark .event-card.c-magenta .ev-time, body.dark .event-card.c-magenta .ev-title { color: #EFB1D2; }
+body.dark .event-card.c-coral .ev-time, body.dark .event-card.c-coral .ev-title { color: #F49891; }
+body.dark .event-card.c-apricot .ev-time, body.dark .event-card.c-apricot .ev-title { color: #FFA17A; }
+body.dark .event-card.c-green .ev-time, body.dark .event-card.c-green .ev-title { color: #92D49E; }
+body.dark .event-card.c-yellow .ev-time, body.dark .event-card.c-yellow .ev-title { color: #EFC881; }
+body.dark .event-card.c-blue .ev-time, body.dark .event-card.c-blue .ev-title { color: #93BFE0; }
+body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-title { color: #BFA5DE; }
+.event-card .ev-time {
+  font-weight: 600;
+  opacity: 0.78;
+}
+.event-card .ev-title {
+  font-weight: 700 !important;
+}
 
 /* 현재 시각 marker */
 .now-line {
@@ -1268,7 +1459,7 @@ body.dark .event-card .ev-status { color: #92D49E; }
       <span class="mi mi-sm">calendar_month</span> 캘린더
     </button>
     <button class="sb-nav-btn">
-      <span class="mi mi-sm">fitness_center</span> 루틴
+      <span class="mi mi-sm">task_alt</span> 루틴
     </button>
     <button class="sb-nav-btn">
       <span class="mi mi-sm">account_balance_wallet</span> 가계부
@@ -1568,6 +1759,106 @@ body.dark .event-card .ev-status { color: #92D49E; }
       </div>
 
       <div class="cal-wrap">
+        <!-- ============ 모바일 1일 캘린더 (mobile-view에서만 표시) ============ -->
+        <div class="mob-cal">
+          <div class="mob-cal-month-row">
+            <div class="mob-cal-month">2026년 6월 <span class="mi">expand_more</span></div>
+            <div class="mob-cal-actions">
+              <button class="mob-icon-btn"><span class="mi mi-sm">search</span></button>
+              <button class="mob-icon-btn"><span class="mi mi-sm">add</span></button>
+            </div>
+          </div>
+
+          <div class="mob-week-slider">
+            <button class="mob-day sun"><span class="dow">일</span><span class="num">8</span><span class="d-dot"></span></button>
+            <button class="mob-day"><span class="dow">월</span><span class="num">9</span><span class="d-dot"></span></button>
+            <button class="mob-day"><span class="dow">화</span><span class="num">10</span></button>
+            <button class="mob-day"><span class="dow">수</span><span class="num">11</span><span class="d-dot"></span></button>
+            <button class="mob-day active today"><span class="dow">목</span><span class="num">12</span><span class="d-dot"></span></button>
+            <button class="mob-day"><span class="dow">금</span><span class="num">13</span></button>
+            <button class="mob-day sat"><span class="dow">토</span><span class="num">14</span></button>
+          </div>
+
+          <div class="mob-day-head">
+            <div class="mob-day-big">6월 12일 목요일<span class="mood">😊</span></div>
+            <div class="mob-day-stat">
+              <span class="pill accent">4 블록</span>
+              <span class="pill green">3 / 4 완료</span>
+              <span class="pill">5h 20m</span>
+            </div>
+          </div>
+
+          <div class="mob-cat-row">
+            <button class="cat-pill active"><span class="mi mi-sm mi-fill" style="font-size:13px;">check_circle</span> 전체</button>
+            <button class="cat-pill"><span class="dot" style="background:#B85E94"></span> 업무</button>
+            <button class="cat-pill"><span class="dot" style="background:#E97770"></span> 독서</button>
+            <button class="cat-pill"><span class="dot" style="background:#FF8455"></span> 운동</button>
+            <button class="cat-pill"><span class="dot" style="background:#6BAE7C"></span> 개인</button>
+          </div>
+
+          <div class="mob-timeline">
+            <div class="time-col">
+              <div class="time-slot">07</div>
+              <div class="time-slot">08</div>
+              <div class="time-slot">09</div>
+              <div class="time-slot">10</div>
+              <div class="time-slot">11</div>
+              <div class="time-slot">12</div>
+              <div class="time-slot">13</div>
+              <div class="time-slot">14</div>
+              <div class="time-slot">15</div>
+              <div class="time-slot">16</div>
+              <div class="time-slot">17</div>
+              <div class="time-slot">18</div>
+              <div class="time-slot">19</div>
+              <div class="time-slot">20</div>
+              <div class="time-slot">21</div>
+            </div>
+            <div class="day-col">
+              <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+              <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+              <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+              <div class="hour-line"></div><div class="hour-line"></div><div class="hour-line"></div>
+
+              <div class="event-card c-magenta" style="top:120px;height:90px;">
+                <div class="ev-title">팀 스탠드업 + 회고</div>
+                <div class="ev-time">09:00 — 10:30</div>
+              </div>
+              <div class="event-card c-yellow" style="top:240px;height:60px;">
+                <div class="ev-title">디자인 시스템 토큰</div>
+                <div class="ev-time">11:00 — 12:00</div>
+              </div>
+              <div class="event-card c-coral" style="top:420px;height:60px;">
+                <div class="ev-title">Refactoring 9장</div>
+                <div class="ev-time">14:00 — 15:00</div>
+                <span class="ev-status"><span class="mi mi-sm mi-fill" style="font-size:11px;">check_circle</span> 완료</span>
+              </div>
+              <div class="event-card c-apricot" style="top:750px;height:60px;">
+                <div class="ev-title">러닝 5km + 스트레칭</div>
+                <div class="ev-time">19:30 — 20:30</div>
+              </div>
+
+              <!-- 현재 시각 14:25 → 7시간 25분 → 445px -->
+              <div class="now-pill" style="top:445px;">14:25</div>
+              <div class="now-line" style="top:445px;"></div>
+            </div>
+          </div>
+
+          <div class="mob-extras">
+            <div class="mob-extras-title">이 날 노트 (2)</div>
+            <div class="mob-extras-card">
+              <span class="mi mi-sm">edit_note</span>
+              <span class="mob-extras-title-text">디자인 시스템 v2 메모</span>
+              <span class="mi mi-sm" style="color:var(--text-mute)">chevron_right</span>
+            </div>
+            <div class="mob-extras-card">
+              <span class="mi mi-sm">edit_note</span>
+              <span class="mob-extras-title-text">Refactoring 9장 정리</span>
+              <span class="mi mi-sm" style="color:var(--text-mute)">chevron_right</span>
+            </div>
+          </div>
+        </div>
+
         <!-- 좌측: 미니 월간 + 카테고리 + 요약 -->
         <aside class="cal-side">
           <div class="mini-cal-head">
@@ -1679,7 +1970,7 @@ body.dark .event-card .ev-status { color: #92D49E; }
               <button class="cat-pill"><span class="dot" style="background:#6BAE7C"></span> 개인</button>
               <button class="cat-pill"><span class="dot" style="background:#6A9CC6"></span> 약속</button>
             </div>
-            <button class="cal-today-btn" style="margin-left:0;">이번 주</button>
+            <button class="cal-today-btn"><span class="mi mi-sm">today</span> 이번 주</button>
           </div>
 
           <div class="week-grid">
@@ -1903,7 +2194,7 @@ body.dark .event-card .ev-status { color: #92D49E; }
       <span class="mi">calendar_month</span><span>캘린더</span>
     </button>
     <button class="m-tab-btn">
-      <span class="mi">fitness_center</span><span>루틴</span>
+      <span class="mi">task_alt</span><span>루틴</span>
     </button>
     <button class="m-tab-btn">
       <span class="mi">person</span><span>더보기</span>
