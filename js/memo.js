@@ -2231,6 +2231,7 @@ function _cmdActions() {
     { key: 'go-routine',   label: '루틴으로 이동',  icon: 'fitness_center', fn: () => { closeCmdPalette(); navigateTo('routine'); } },
     { key: 'sync-now',     label: '지금 동기화',    icon: 'sync',         fn: () => { closeCmdPalette(); if (typeof openSyncModal === 'function') openSyncModal(); } },
     { key: 'theme',        label: '테마 선택',      icon: 'palette',      fn: () => { closeCmdPalette(); if (typeof openThemePicker === 'function') openThemePicker(); } },
+    { key: 'ruled',        label: '메모 밑줄 켜기/끄기', icon: 'horizontal_rule', fn: () => { closeCmdPalette(); if (typeof toggleRuledLines === 'function') toggleRuledLines(); } },
     { key: 'cleanup-conflicts', label: '충돌 사본 정리', icon: 'cleaning_services', fn: () => { closeCmdPalette(); if (typeof cleanupSyncConflicts === 'function') cleanupSyncConflicts(); } },
   ];
 }
