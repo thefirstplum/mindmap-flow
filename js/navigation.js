@@ -32,6 +32,9 @@ function navigateTo(page, opts) {
 
   document.querySelectorAll('.sidebar .nav-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
+  // 모바일 하단 탭바 active 상태 동기화
+  document.querySelectorAll('.m-tab-btn[data-page]').forEach(b =>
+    b.classList.toggle('active', b.dataset.page === page));
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === 'page-' + page));
   document.getElementById('page-title').textContent = pages[page];
@@ -70,6 +73,13 @@ function navigateTo(page, opts) {
     }
   }
 }
+
+// 모바일 하단 탭바 클릭 → 페이지 전환
+document.querySelectorAll('.m-tab-btn[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigateTo(btn.dataset.page);
+  });
+});
 
 document.querySelectorAll('.sidebar .nav-btn[data-page]').forEach(btn => {
   btn.addEventListener('click', () => {
