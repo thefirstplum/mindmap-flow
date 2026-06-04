@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindFlow — 디자인 미리보기 (Craft Coral 톤)</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+<style>
+/* =================== TOKENS — Craft Coral (라이트) =================== */
+:root {
+  /* 컬러 — 이미지 톤 그대로 */
+  --bg:           #FAF3E8;   /* 크림 아이보리 (페이지 배경, 노트 종이 느낌) */
+  --bg-soft:      #F3E8D8;   /* 살짝 더 워밍 */
+  --surface:      #FFFFFF;   /* 카드/모달 흰 종이 */
+  --surface-2:   #F5EBE0;   /* 호버·서브 */
+  --surface-3:   #EBDCC8;   /* 더 깊은 호버 */
+  --border:       #E8D5C4;   /* 경계선 */
+  --border-soft:  #F0E2D0;
+
+  --text:         #3A2E2A;   /* 워밍 다크 브라운 (까만색보다 부드러움) */
+  --text-dim:     #6B5751;
+  --text-mute:    #9C8A82;
+
+  /* 시그니처 — 마젠타 (메인) + 코랄 (포인트) + 살구 (서브) */
+  --accent:       #B85E94;   /* 마젠타 (pin·active·link·primary) */
+  --accent-soft:  #D17EA9;   /* hover lighter */
+  --accent-glow:  rgba(184, 94, 148, 0.12);
+  --accent-2:    #E97770;   /* 코랄 (success·강조) */
+  --accent-3:    #FF8455;   /* 살구 오렌지 (책갈피·secondary) */
+
+  --green:        #6BAE7C;   /* 완료·체크 */
+  --yellow:       #E2A847;   /* 경고 */
+  --red:          #D45F5A;   /* 에러·delete */
+
+  /* spacing / radius */
+  --r-sm:  6px;
+  --r-md:  10px;
+  --r-lg:  14px;
+  --r-xl:  20px;
+
+  --shadow-1: 0 1px 2px rgba(58, 46, 42, 0.06);
+  --shadow-2: 0 4px 14px rgba(58, 46, 42, 0.08);
+  --shadow-3: 0 18px 50px rgba(58, 46, 42, 0.14);
+
+  --ease: cubic-bezier(0.32, 0.72, 0.16, 1);
+}
+
+/* 다크 모드 — 따뜻한 브라운 베이스 */
+body.dark {
+  --bg:           #211915;
+  --bg-soft:      #2A201B;
+  --surface:      #2E2420;
+  --surface-2:    #3A2D27;
+  --surface-3:    #4A3A33;
+  --border:       #43332D;
+  --border-soft:  #3A2D27;
+
+  --text:         #F5EBE0;
+  --text-dim:     #C7B5AC;
+  --text-mute:    #8A7B72;
+
+  --accent:       #E093BD;
+  --accent-soft:  #EFB1D2;
+  --accent-glow:  rgba(224, 147, 189, 0.18);
+  --accent-2:    #F49891;
+  --accent-3:    #FFA17A;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-2: 0 4px 14px rgba(0,0,0,0.45);
+  --shadow-3: 0 18px 50px rgba(0,0,0,0.55);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  height: 100%;
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px; line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.mi { font-family: 'Material Symbols Outlined'; font-size: 20px; font-weight: 400; }
+.mi-sm { font-size: 17px; }
+.mi-fill { font-variation-settings: 'FILL' 1; }
+
+/* =================== TOP TAB BAR (미리보기 전용) =================== */
+.preview-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 4px;
+  padding: 0 18px;
+  z-index: 100;
+  box-shadow: var(--shadow-1);
+}
+.preview-bar .brand {
+  font-weight: 800; font-size: 16px; color: var(--accent);
+  letter-spacing: -0.02em;
+  margin-right: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.preview-bar .brand-dot {
+  width: 24px; height: 24px; border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 13px;
+}
+.preview-tab {
+  background: none; border: none;
+  padding: 8px 14px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: background 0.15s, color 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.preview-tab:hover { background: var(--surface-2); color: var(--text); }
+.preview-tab.active { background: var(--accent-glow); color: var(--accent); }
+.preview-bar .spacer { flex: 1; }
+.theme-toggle {
+  background: var(--surface-2); border: 1px solid var(--border);
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-dim);
+}
+.theme-toggle:hover { color: var(--accent); }
+
+/* =================== APP SHELL =================== */
+.app {
+  display: flex;
+  height: calc(100vh - 56px);
+  margin-top: 56px;
+}
+
+/* =================== SIDEBAR (책등 메타포) =================== */
+.sidebar {
+  width: 240px;
+  background: var(--bg-soft);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  padding: 18px 14px;
+  position: relative;
+}
+.sidebar::after {
+  /* 책갈피 스트랩 — 이미지의 오렌지 띠 인용 */
+  content: '';
+  position: absolute;
+  top: 0; right: -1px;
+  width: 3px; height: 64px;
+  background: var(--accent-3);
+  border-radius: 0 0 2px 2px;
+}
+.sb-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 8px 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 14px;
+}
+.sb-logo {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-weight: 800; font-size: 18px;
+  box-shadow: var(--shadow-2);
+}
+.sb-name {
+  font-weight: 700; font-size: 15px; color: var(--text);
+  letter-spacing: -0.01em;
+}
+.sb-sub {
+  font-size: 10.5px; color: var(--text-mute);
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.sb-nav-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 10px;
+  background: none; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text-dim);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  margin-bottom: 2px;
+  text-align: left;
+  width: 100%;
+  transition: background 0.12s, color 0.12s;
+}
+.sb-nav-btn:hover { background: var(--surface-2); color: var(--text); }
+.sb-nav-btn.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sb-nav-btn.active .mi { color: var(--accent); }
+.sb-sep {
+  height: 1px; background: var(--border);
+  margin: 14px 4px;
+}
+.sb-section-title {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 8px 6px;
+}
+.tag-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-dim);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.tag-row:hover { background: var(--surface-2); color: var(--text); }
+.tag-row.active { background: var(--accent-glow); color: var(--accent); font-weight: 600; }
+.tag-hash { color: var(--text-mute); font-weight: 600; }
+.tag-row.active .tag-hash { color: var(--accent); }
+.tag-count {
+  margin-left: auto;
+  font-size: 11px; color: var(--text-mute);
+  background: var(--surface);
+  padding: 0 6px; border-radius: 5px;
+  min-width: 18px; text-align: center;
+}
+.tag-row.active .tag-count {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* =================== MAIN CONTENT =================== */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.page-head {
+  height: 70px;
+  padding: 0 28px;
+  display: flex; align-items: center; gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.page-head h1 {
+  font-family: 'Inter', sans-serif;
+  font-size: 22px; font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.page-head .page-sub {
+  font-size: 11px; color: var(--text-mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 2px;
+}
+.page-head .spacer { flex: 1; }
+.head-pill {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.head-pill:hover { border-color: var(--accent); color: var(--accent); }
+.head-pill.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+.head-pill.primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+
+/* page wrap */
+.page { display: none; flex: 1; overflow: hidden; }
+.page.active { display: flex; flex-direction: column; }
+
+/* =================== PAGE 1 — MEMO =================== */
+.memo-grid { flex: 1; display: grid; grid-template-columns: 320px 1fr; min-height: 0; }
+.memo-list {
+  border-right: 1px solid var(--border);
+  background: var(--bg-soft);
+  overflow-y: auto;
+}
+.memo-list-head {
+  padding: 16px 18px 12px;
+  display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-soft);
+  position: sticky; top: 0; z-index: 1;
+}
+.memo-list-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.memo-list-count {
+  background: var(--surface); color: var(--text-dim);
+  font-size: 11px; font-weight: 700;
+  padding: 1px 7px; border-radius: 5px;
+  margin-left: auto;
+}
+.search-wrap {
+  padding: 8px 14px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.search {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  font-family: inherit; font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239C8A82' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+}
+.search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+
+.memo-item {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-soft);
+  cursor: pointer;
+  position: relative;
+  display: flex; align-items: flex-start; gap: 10px;
+  transition: background 0.12s;
+}
+.memo-item:hover { background: var(--surface-2); }
+.memo-item.active {
+  background: var(--accent-glow);
+}
+.memo-item.active::before {
+  content: ''; position: absolute;
+  left: 0; top: 12px; bottom: 12px; width: 3px;
+  background: var(--accent); border-radius: 0 3px 3px 0;
+}
+.memo-item-type {
+  margin-top: 2px;
+  color: var(--accent-3);
+}
+.memo-item.mindmap-item .memo-item-type { color: var(--accent); }
+.memo-item-body { flex: 1; min-width: 0; }
+.memo-item-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.memo-item-preview {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  margin-bottom: 6px;
+}
+.memo-item-meta {
+  font-size: 10.5px;
+  color: var(--text-mute);
+  display: flex; align-items: center; gap: 6px;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  font-weight: 600;
+}
+.memo-item-meta .dot { width: 3px; height: 3px; background: currentColor; border-radius: 50%; opacity: 0.6; }
+.pin-icon {
+  color: var(--accent-3);
+}
+
+/* Editor */
+.memo-editor {
+  flex: 1;
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  overflow-y: auto;
+}
+.editor-toolbar {
+  padding: 14px 36px;
+  display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--surface);
+}
+.spacer { flex: 1; }
+.icon-btn {
+  background: none; border: none;
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.12s, color 0.12s;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--accent); }
+.icon-btn.danger:hover { color: var(--red); background: rgba(212, 95, 90, 0.12); }
+
+.editor-body { padding: 28px 48px 80px; max-width: 760px; }
+.editor-title {
+  width: 100%;
+  font-family: inherit;
+  font-size: 30px; font-weight: 700;
+  color: var(--text);
+  border: none; background: transparent;
+  outline: none;
+  letter-spacing: -0.025em;
+  padding: 0; margin-bottom: 8px;
+}
+.editor-meta {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.editor-meta .dot { width: 3px; height: 3px; background: currentColor; border-radius: 50%; opacity: 0.6; }
+.editor-tags {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 28px;
+}
+.tag-chip {
+  background: var(--accent-glow);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px; font-weight: 600;
+}
+.tag-chip.coral { background: rgba(233, 119, 112, 0.12); color: var(--accent-2); }
+.tag-add {
+  background: transparent; border: 1px dashed var(--border);
+  padding: 3px 10px; border-radius: 999px;
+  font-size: 11.5px; color: var(--text-mute);
+  cursor: pointer;
+}
+.editor-content {
+  font-size: 15.5px; line-height: 1.75;
+  color: var(--text);
+}
+.editor-content h2 {
+  font-size: 18px; font-weight: 700;
+  margin: 28px 0 10px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.editor-content p { margin: 0 0 14px; }
+.editor-content ul { padding-left: 22px; margin: 0 0 14px; }
+.editor-content li { margin-bottom: 4px; }
+.editor-content code {
+  background: var(--surface-2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: var(--accent);
+}
+.editor-content .wikilink {
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 0 5px; border-radius: 4px;
+  font-weight: 500;
+  text-decoration: none;
+}
+.editor-content blockquote {
+  border-left: 3px solid var(--accent-3);
+  padding: 4px 14px;
+  background: rgba(255, 132, 85, 0.06);
+  color: var(--text-dim);
+  margin: 14px 0;
+  border-radius: 0 6px 6px 0;
+}
+
+/* Backlink */
+.backlink-panel {
+  margin-top: 32px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  border-left: 3px solid var(--accent);
+}
+.backlink-header {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.backlink-item {
+  background: var(--surface);
+  padding: 9px 12px;
+  border-radius: 8px;
+  margin-bottom: 4px;
+  border-left: 3px solid var(--accent-2);
+  cursor: pointer;
+}
+.backlink-item:hover { background: var(--bg-soft); }
+.backlink-title {
+  font-size: 13px; font-weight: 600;
+  color: var(--text);
+}
+.backlink-snippet {
+  font-size: 11.5px; color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* =================== PAGE 2 — MINDMAP =================== */
+.mm-wrap {
+  flex: 1;
+  display: flex;
+  background: var(--bg-soft);
+}
+.mm-canvas {
+  flex: 1; position: relative;
+  background-image:
+    radial-gradient(circle, rgba(184, 94, 148, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+  overflow: hidden;
+}
+.mm-toolbar {
+  position: absolute;
+  top: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px;
+  display: flex; gap: 4px;
+  box-shadow: var(--shadow-2);
+  border: 1px solid var(--border);
+}
+.mm-toolbar .icon-btn { width: 34px; height: 34px; border-radius: 999px; }
+.mm-toolbar .icon-btn.primary {
+  background: var(--accent); color: #fff;
+}
+.mm-toolbar .icon-btn.primary:hover { background: var(--accent-soft); color: #fff; }
+.mm-toolbar .sep { width: 1px; background: var(--border); margin: 4px 4px; }
+
+/* 노드들 — SVG로 시뮬레이션 */
+.mm-svg { width: 100%; height: 100%; }
+
+/* 노드 액션바 */
+.node-action {
+  position: absolute;
+  bottom: 28px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--shadow-3);
+  border: 1px solid var(--border);
+}
+.nab-colors { display: flex; gap: 6px; }
+.nab-color {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  position: relative;
+}
+.nab-color.active { border-color: var(--text); }
+.nab-color::after {
+  content: ''; position: absolute; inset: -3px;
+  border-radius: 50%; border: 1px solid transparent;
+}
+.nab-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+.nab-btn {
+  background: transparent; border: none;
+  padding: 5px 10px;
+  border-radius: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 10px; font-weight: 600;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.nab-btn:hover { background: var(--surface-2); color: var(--text); }
+.nab-btn.danger:hover { color: var(--red); background: rgba(212, 95, 90, 0.1); }
+
+/* =================== PAGE 3 — CALENDAR =================== */
+.cal-wrap {
+  flex: 1; display: grid;
+  grid-template-columns: 1fr 380px;
+  background: var(--bg);
+  overflow: hidden;
+}
+.cal-main {
+  padding: 24px 32px;
+  overflow-y: auto;
+}
+.cal-toolbar {
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 22px;
+}
+.cal-nav { background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px; border-radius: 50%; }
+.cal-nav:hover { color: var(--accent); background: var(--surface-2); }
+.cal-month {
+  font-size: 22px; font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.cal-today-btn {
+  margin-left: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.cal-today-btn:hover { color: var(--accent); border-color: var(--accent); }
+.cal-weekdays {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.cal-weekdays > span {
+  text-align: center;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.cal-weekdays > span.sun { color: var(--accent-2); }
+.cal-weekdays > span.sat { color: var(--accent); }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.cal-cell {
+  aspect-ratio: 1.05/1;
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: 8px 9px;
+  cursor: pointer;
+  position: relative;
+  display: flex; flex-direction: column;
+  border: 1px solid transparent;
+  transition: border-color 0.12s;
+}
+.cal-cell:hover { border-color: var(--border); }
+.cal-cell.today { background: var(--accent-glow); }
+.cal-cell.today .cal-day { color: var(--accent); font-weight: 700; }
+.cal-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.cal-cell.other-month { opacity: 0.45; background: var(--bg-soft); }
+.cal-day {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.cal-cell.sun .cal-day { color: var(--accent-2); }
+.cal-cell.sat .cal-day { color: var(--accent); }
+.cal-dots {
+  display: flex; gap: 3px; flex-wrap: wrap; margin-top: auto;
+}
+.cal-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+}
+.cal-dot.tb { background: var(--accent); }
+.cal-dot.j  { background: var(--accent-2); }
+.cal-dot.n  { background: var(--accent-3); }
+.cal-mood { font-size: 16px; margin-top: 2px; }
+
+/* Detail panel */
+.cal-detail {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.cal-detail-head {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.cal-detail-date {
+  font-size: 24px; font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.cal-detail-dow {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-top: 4px;
+}
+.cal-summary {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px 24px;
+  background: var(--bg-soft);
+  border-bottom: 1px solid var(--border);
+}
+.cal-summary-stat {
+  text-align: center;
+}
+.cal-summary-stat .v {
+  font-size: 18px; font-weight: 700;
+  color: var(--accent);
+}
+.cal-summary-stat .l {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-top: 2px;
+}
+.cal-section {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.cal-sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.cal-sec-head .mi { font-size: 14px; color: var(--accent); }
+.cal-add-btn {
+  background: var(--surface-2); border: none;
+  padding: 4px 10px; border-radius: 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: inherit;
+}
+.cal-add-btn:hover { background: var(--accent-glow); }
+.tb-item {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 10px;
+  border-left: 3px solid var(--accent);
+}
+.tb-item.done {
+  opacity: 0.6;
+}
+.tb-item.done .tb-title { text-decoration: line-through; }
+.tb-check {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.tb-check.checked { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tb-time {
+  font-size: 11px; font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.tb-title { font-size: 13px; flex: 1; color: var(--text); }
+.tb-item.coral { border-left-color: var(--accent-2); }
+.tb-item.coral .tb-time { color: var(--accent-2); }
+.tb-item.apricot { border-left-color: var(--accent-3); }
+.tb-item.apricot .tb-time { color: var(--accent-3); }
+
+.cal-mood-row { display: flex; gap: 6px; margin-bottom: 12px; }
+.cal-mood-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.cal-mood-btn.active { border-color: var(--accent); background: var(--accent-glow); }
+.cal-journal {
+  width: 100%;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font-family: inherit; font-size: 13px;
+  color: var(--text);
+  resize: vertical; min-height: 80px;
+  outline: none;
+}
+.cal-journal:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+.cal-note-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  margin-bottom: 2px;
+}
+.cal-note-item:hover { background: var(--surface-2); }
+.cal-note-item .mi { color: var(--accent-3); font-size: 16px; }
+.cal-note-title { font-size: 13px; color: var(--text); }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-soft); }
+
+/* RESPONSIVE — 모바일 단순 안내 */
+@media (max-width: 900px) {
+  .sidebar { display: none; }
+  .memo-grid, .cal-wrap { grid-template-columns: 1fr; }
+  .memo-list { max-height: 40vh; }
+  .editor-body { padding: 20px 22px 60px; }
+  .cal-detail { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 미리보기 탭 바 -->
+<div class="preview-bar">
+  <div class="brand"><div class="brand-dot">M</div> MindFlow Preview</div>
+  <button class="preview-tab active" data-page="memo">
+    <span class="mi mi-sm">edit_note</span> 메모
+  </button>
+  <button class="preview-tab" data-page="mindmap">
+    <span class="mi mi-sm">account_tree</span> 마인드맵
+  </button>
+  <button class="preview-tab" data-page="calendar">
+    <span class="mi mi-sm">calendar_month</span> 캘린더
+  </button>
+  <div class="spacer"></div>
+  <span style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin-right:10px;">Craft Coral</span>
+  <button class="theme-toggle" onclick="document.body.classList.toggle('dark')" title="다크 모드 토글">
+    <span class="mi mi-sm">dark_mode</span>
+  </button>
+</div>
+
+<div class="app">
+  <!-- ============ SIDEBAR (모든 페이지 공유) ============ -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo">M</div>
+      <div>
+        <div class="sb-name">MindFlow</div>
+        <div class="sb-sub">Daily Notebook</div>
+      </div>
+    </div>
+    <button class="sb-nav-btn active">
+      <span class="mi mi-sm">edit_note</span> 노트
+    </button>
+    <button class="sb-nav-btn">
+      <span class="mi mi-sm">calendar_month</span> 캘린더
+    </button>
+    <button class="sb-nav-btn">
+      <span class="mi mi-sm">fitness_center</span> 루틴
+    </button>
+    <button class="sb-nav-btn">
+      <span class="mi mi-sm">account_balance_wallet</span> 가계부
+    </button>
+    <div class="sb-sep"></div>
+    <div class="sb-section-title">전체 노트</div>
+    <div class="tag-row active">
+      <span class="tag-hash" style="visibility:hidden;">#</span>
+      <span>모든 노트</span>
+      <span class="tag-count">24</span>
+    </div>
+    <div class="tag-row">
+      <span class="tag-hash" style="visibility:hidden;">#</span>
+      <span>태그 없음</span>
+      <span class="tag-count">5</span>
+    </div>
+    <div class="sb-section-title" style="margin-top:8px;">태그</div>
+    <div class="tag-row">
+      <span class="tag-hash">#</span>
+      <span>work</span>
+      <span class="tag-count">8</span>
+    </div>
+    <div class="tag-row" style="padding-left:22px;">
+      <span class="tag-hash">#</span>
+      <span>meeting</span>
+      <span class="tag-count">3</span>
+    </div>
+    <div class="tag-row">
+      <span class="tag-hash">#</span>
+      <span>idea</span>
+      <span class="tag-count">6</span>
+    </div>
+    <div class="tag-row">
+      <span class="tag-hash">#</span>
+      <span>journal</span>
+      <span class="tag-count">12</span>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ PAGE 1 — MEMO ============ -->
+    <section class="page active" data-page="memo">
+      <div class="page-head">
+        <div>
+          <h1>노트</h1>
+          <div class="page-sub">Notes &middot; 24 items</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="head-pill"><span class="mi mi-sm">search</span> ⌘K</button>
+        <button class="head-pill"><span class="mi mi-sm">cloud_done</span> 동기화됨</button>
+        <button class="head-pill primary"><span class="mi mi-sm">add</span> 새 노트</button>
+      </div>
+      <div class="memo-grid">
+        <div class="memo-list">
+          <div class="memo-list-head">
+            <span class="memo-list-title">최근 수정</span>
+            <span class="memo-list-count">24</span>
+          </div>
+          <div class="search-wrap">
+            <input class="search" placeholder="검색…  tag:work · is:pinned">
+          </div>
+          <div class="memo-item active">
+            <span class="mi mi-sm memo-item-type">edit_note</span>
+            <div class="memo-item-body">
+              <div class="memo-item-title">2026 Q2 OKR — 사용자 경험 깊이</div>
+              <div class="memo-item-preview">분기 목표는 "사용자가 매일 30분 이상 머무는 앱"이 되는 것. 이를 위한 5가지 실험 가설…</div>
+              <div class="memo-item-meta">
+                <span>5분 전</span><span class="dot"></span><span>342자</span><span class="dot"></span><span>읽기 2분</span>
+              </div>
+            </div>
+            <span class="mi mi-sm mi-fill pin-icon">push_pin</span>
+          </div>
+          <div class="memo-item mindmap-item">
+            <span class="mi mi-sm memo-item-type">account_tree</span>
+            <div class="memo-item-body">
+              <div class="memo-item-title">제품 로드맵 마인드맵</div>
+              <div class="memo-item-preview">노드 32개 · 연결 41개</div>
+              <div class="memo-item-meta">
+                <span>오늘 10:32</span><span class="dot"></span><span>마인드맵</span>
+              </div>
+            </div>
+          </div>
+          <div class="memo-item">
+            <span class="mi mi-sm memo-item-type">edit_note</span>
+            <div class="memo-item-body">
+              <div class="memo-item-title">팀 미팅 정리 — 5/29</div>
+              <div class="memo-item-preview">참석: 정현, 민지, 동현 · 안건: 백링크 기능 출시 일정, 모바일 long-press UX 회고…</div>
+              <div class="memo-item-meta">
+                <span>2일 전</span><span class="dot"></span><span>815자</span><span class="dot"></span><span>읽기 4분</span>
+              </div>
+            </div>
+          </div>
+          <div class="memo-item">
+            <span class="mi mi-sm memo-item-type">edit_note</span>
+            <div class="memo-item-body">
+              <div class="memo-item-title">독서 노트 — 좋은 코드 나쁜 코드</div>
+              <div class="memo-item-preview">3장 코드품질의 척도 — 가독성·유지보수성·테스트 가능성이 진짜 본질…</div>
+              <div class="memo-item-meta">
+                <span>3일 전</span><span class="dot"></span><span>1,204자</span>
+              </div>
+            </div>
+          </div>
+          <div class="memo-item">
+            <span class="mi mi-sm memo-item-type">edit_note</span>
+            <div class="memo-item-body">
+              <div class="memo-item-title">레시피 — 토마토 파스타 (한 그릇)</div>
+              <div class="memo-item-preview">스파게티 100g · 토마토 2개 · 마늘 2쪽 · 올리브오일 2큰술 · 바질 한 줌…</div>
+              <div class="memo-item-meta">
+                <span>5월 28일</span><span class="dot"></span><span>520자</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="memo-editor">
+          <div class="editor-toolbar">
+            <button class="icon-btn"><span class="mi mi-sm">chevron_left</span></button>
+            <div class="spacer"></div>
+            <button class="icon-btn" title="드로잉"><span class="mi mi-sm">brush</span></button>
+            <button class="icon-btn" title="이미지"><span class="mi mi-sm">image</span></button>
+            <button class="icon-btn" title="파일"><span class="mi mi-sm">attach_file</span></button>
+            <button class="icon-btn" title="히스토리"><span class="mi mi-sm">history</span></button>
+            <button class="icon-btn danger" title="삭제"><span class="mi mi-sm">delete</span></button>
+          </div>
+          <div class="editor-body">
+            <input class="editor-title" value="2026 Q2 OKR — 사용자 경험 깊이">
+            <div class="editor-meta">
+              <span>수정 5분 전</span><span class="dot"></span>
+              <span>작성 3일 전</span><span class="dot"></span>
+              <span>342자</span><span class="dot"></span>
+              <span>읽기 2분</span><span class="dot"></span>
+              <span>태그 3</span>
+            </div>
+            <div class="editor-tags">
+              <span class="tag-chip">#work</span>
+              <span class="tag-chip">#work/planning</span>
+              <span class="tag-chip coral">#q2-2026</span>
+              <button class="tag-add">+ 태그</button>
+            </div>
+            <div class="editor-content">
+              <h2>분기 목표</h2>
+              <p>2분기 OKR의 핵심은 "사용자가 매일 30분 이상 머무는 앱"이 되는 것. <a class="wikilink">[[제품 로드맵]]</a>의 마지막 분기 회고에서 정한 방향성이다.</p>
+              <h2>5가지 실험 가설</h2>
+              <ul>
+                <li>위키링크 + 백링크 자동 발견 → 노트 사이 연결성 강화</li>
+                <li>마인드맵 노드 ↔ 메모 양방향 → 시각·텍스트 통합</li>
+                <li>데일리노트는 캘린더로 흡수 (역할 중복 제거 — <code>cfb470c</code> revert)</li>
+                <li>⌘K 명령 팔레트로 검색·이동·액션 통합</li>
+                <li>iOS PWA 인스턴트 업데이트로 옛 버전 갇힘 해소</li>
+              </ul>
+              <h2>측정 지표</h2>
+              <blockquote>주간 활성 사용자(WAU) 중 일 평균 사용 시간 30분 이상 비율을 25%로 끌어올린다.</blockquote>
+            </div>
+            <div class="backlink-panel">
+              <div class="backlink-header"><span class="mi mi-sm">north_east</span> 이 노트를 참조하는 노트 2</div>
+              <div class="backlink-item">
+                <div class="backlink-title">제품 로드맵</div>
+                <div class="backlink-snippet">… Q2 OKR의 분기 목표(<span style="color:var(--accent);">[[2026 Q2 OKR]]</span>)와 연동…</div>
+              </div>
+              <div class="backlink-item">
+                <div class="backlink-title">팀 미팅 정리 — 5/29</div>
+                <div class="backlink-snippet">… 결정 사항: <span style="color:var(--accent);">[[2026 Q2 OKR]]</span> 의 #4 ⌘K 우선…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE 2 — MINDMAP ============ -->
+    <section class="page" data-page="mindmap">
+      <div class="page-head">
+        <div>
+          <h1>마인드맵</h1>
+          <div class="page-sub">Mindmap &middot; Product Roadmap</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="head-pill"><span class="mi mi-sm">fit_screen</span> 화면 맞춤</button>
+        <button class="head-pill"><span class="mi mi-sm">link</span> 메모 연결</button>
+        <button class="head-pill primary"><span class="mi mi-sm">add</span> 노드</button>
+      </div>
+      <div class="mm-wrap">
+        <div class="mm-canvas">
+          <svg class="mm-svg" viewBox="0 0 1200 760" preserveAspectRatio="xMidYMid meet">
+            <!-- edges -->
+            <g stroke-width="2.2" fill="none" opacity="0.55">
+              <line x1="600" y1="380" x2="320" y2="200" stroke="#B85E94"/>
+              <line x1="600" y1="380" x2="880" y2="200" stroke="#B85E94"/>
+              <line x1="600" y1="380" x2="320" y2="560" stroke="#B85E94"/>
+              <line x1="600" y1="380" x2="880" y2="560" stroke="#B85E94"/>
+              <line x1="320" y1="200" x2="120" y2="120" stroke="#E97770"/>
+              <line x1="320" y1="200" x2="120" y2="280" stroke="#E97770"/>
+              <line x1="880" y1="200" x2="1080" y2="140" stroke="#FF8455"/>
+              <line x1="880" y1="560" x2="1080" y2="620" stroke="#FF8455"/>
+            </g>
+            <!-- central node -->
+            <g>
+              <rect x="490" y="345" width="220" height="70" rx="16" fill="#B85E94"/>
+              <rect x="490" y="345" width="220" height="70" rx="16" fill="url(#g1)" opacity="0.9"/>
+              <text x="600" y="389" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="700" font-size="18">제품 로드맵</text>
+            </g>
+            <!-- left up -->
+            <g>
+              <rect x="220" y="170" width="200" height="60" rx="14" fill="#E97770"/>
+              <text x="320" y="207" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="15">PKM 강화</text>
+              <circle cx="240" cy="190" r="9" fill="#fff"/>
+              <text x="240" y="194" text-anchor="middle" font-size="11" fill="#E97770">📝</text>
+            </g>
+            <!-- right up -->
+            <g>
+              <rect x="780" y="170" width="200" height="60" rx="14" fill="#FF8455"/>
+              <text x="880" y="207" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="15">모바일 UX</text>
+            </g>
+            <!-- left bot -->
+            <g>
+              <rect x="220" y="530" width="200" height="60" rx="14" fill="#6BAE7C"/>
+              <text x="320" y="567" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="15">동기화 안정성</text>
+            </g>
+            <!-- right bot (selected) -->
+            <g>
+              <rect x="780" y="525" width="200" height="70" rx="14" fill="#B85E94" stroke="#fff" stroke-width="2.5"/>
+              <text x="880" y="567" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="700" font-size="15">디자인 시스템</text>
+              <!-- 연결 handle -->
+              <circle cx="996" cy="560" r="13" fill="#fff" stroke="#B85E94" stroke-width="2.5"/>
+              <line x1="991" y1="560" x2="1001" y2="560" stroke="#B85E94" stroke-width="2.4" stroke-linecap="round"/>
+              <line x1="996" y1="555" x2="996" y2="565" stroke="#B85E94" stroke-width="2.4" stroke-linecap="round"/>
+            </g>
+            <!-- far left -->
+            <g>
+              <rect x="40" y="95" width="160" height="50" rx="12" fill="#D17EA9"/>
+              <text x="120" y="126" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="13">위키링크 [[]]</text>
+            </g>
+            <g>
+              <rect x="40" y="255" width="160" height="50" rx="12" fill="#D17EA9"/>
+              <text x="120" y="286" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="13">백링크 패널</text>
+            </g>
+            <!-- far right -->
+            <g>
+              <rect x="1000" y="115" width="160" height="50" rx="12" fill="#FFAA7F"/>
+              <text x="1080" y="146" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="13">long-press</text>
+            </g>
+            <g>
+              <rect x="1000" y="595" width="160" height="50" rx="12" fill="#FFAA7F"/>
+              <text x="1080" y="626" text-anchor="middle" fill="#fff" font-family="Inter" font-weight="600" font-size="13">햅틱 피드백</text>
+            </g>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity="0.12"/>
+                <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+          </svg>
+
+          <!-- 상단 컴팩트 툴바 -->
+          <div class="mm-toolbar">
+            <button class="icon-btn primary" title="새 노드"><span class="mi mi-sm">add</span></button>
+            <div class="sep"></div>
+            <button class="icon-btn" title="화면 맞춤"><span class="mi mi-sm">fit_screen</span></button>
+            <button class="icon-btn" title="초기화"><span class="mi mi-sm">restart_alt</span></button>
+            <div class="sep"></div>
+            <button class="icon-btn" title="메뉴"><span class="mi mi-sm">more_horiz</span></button>
+          </div>
+
+          <!-- 노드 액션바 (선택된 노드용) -->
+          <div class="node-action">
+            <div class="nab-colors">
+              <span class="nab-color" style="background:#B85E94" title="마젠타"></span>
+              <span class="nab-color active" style="background:#E97770" title="코랄"></span>
+              <span class="nab-color" style="background:#FF8455" title="살구"></span>
+              <span class="nab-color" style="background:#6BAE7C" title="그린"></span>
+              <span class="nab-color" style="background:#E2A847" title="옐로우"></span>
+            </div>
+            <div class="nab-sep"></div>
+            <button class="nab-btn"><span class="mi mi-sm">edit</span><span>수정</span></button>
+            <button class="nab-btn"><span class="mi mi-sm">link</span><span>연결</span></button>
+            <button class="nab-btn"><span class="mi mi-sm">description</span><span>메모</span></button>
+            <button class="nab-btn danger"><span class="mi mi-sm">delete</span><span>삭제</span></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PAGE 3 — CALENDAR ============ -->
+    <section class="page" data-page="calendar">
+      <div class="page-head">
+        <div>
+          <h1>캘린더</h1>
+          <div class="page-sub">June 2026 &middot; Week 23</div>
+        </div>
+        <div class="spacer"></div>
+        <button class="head-pill"><span class="mi mi-sm">search</span> 일정 검색</button>
+        <button class="head-pill primary"><span class="mi mi-sm">add</span> 일정 추가</button>
+      </div>
+
+      <div class="cal-wrap">
+        <div class="cal-main">
+          <div class="cal-toolbar">
+            <button class="cal-nav"><span class="mi">chevron_left</span></button>
+            <div class="cal-month">June 2026</div>
+            <button class="cal-nav"><span class="mi">chevron_right</span></button>
+            <button class="cal-today-btn">오늘</button>
+          </div>
+          <div class="cal-weekdays">
+            <span class="sun">SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span class="sat">SAT</span>
+          </div>
+          <div class="cal-grid">
+            <!-- 6주 × 7일 = 42 -->
+            <div class="cal-cell other-month sun"><div class="cal-day">31</div></div>
+            <div class="cal-cell"><div class="cal-day">1</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
+            <div class="cal-cell"><div class="cal-day">2</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span></div></div>
+            <div class="cal-cell"><div class="cal-day">3</div></div>
+            <div class="cal-cell today"><div class="cal-day">4</div><div class="cal-mood">😊</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span><span class="cal-dot n"></span></div></div>
+            <div class="cal-cell"><div class="cal-day">5</div><div class="cal-dots"><span class="cal-dot n"></span></div></div>
+            <div class="cal-cell sat"><div class="cal-day">6</div></div>
+
+            <div class="cal-cell sun"><div class="cal-day">7</div></div>
+            <div class="cal-cell"><div class="cal-day">8</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
+            <div class="cal-cell"><div class="cal-day">9</div></div>
+            <div class="cal-cell"><div class="cal-day">10</div><div class="cal-mood">🥲</div></div>
+            <div class="cal-cell"><div class="cal-day">11</div></div>
+            <div class="cal-cell selected"><div class="cal-day">12</div><div class="cal-dots"><span class="cal-dot tb"></span><span class="cal-dot j"></span></div></div>
+            <div class="cal-cell sat"><div class="cal-day">13</div></div>
+
+            <div class="cal-cell sun"><div class="cal-day">14</div></div>
+            <div class="cal-cell"><div class="cal-day">15</div></div>
+            <div class="cal-cell"><div class="cal-day">16</div><div class="cal-dots"><span class="cal-dot tb"></span></div></div>
+            <div class="cal-cell"><div class="cal-day">17</div></div>
+            <div class="cal-cell"><div class="cal-day">18</div></div>
+            <div class="cal-cell"><div class="cal-day">19</div><div class="cal-mood">😍</div></div>
+            <div class="cal-cell sat"><div class="cal-day">20</div></div>
+
+            <div class="cal-cell sun"><div class="cal-day">21</div></div>
+            <div class="cal-cell"><div class="cal-day">22</div></div>
+            <div class="cal-cell"><div class="cal-day">23</div></div>
+            <div class="cal-cell"><div class="cal-day">24</div></div>
+            <div class="cal-cell"><div class="cal-day">25</div></div>
+            <div class="cal-cell"><div class="cal-day">26</div></div>
+            <div class="cal-cell sat"><div class="cal-day">27</div></div>
+
+            <div class="cal-cell sun"><div class="cal-day">28</div></div>
+            <div class="cal-cell"><div class="cal-day">29</div></div>
+            <div class="cal-cell"><div class="cal-day">30</div></div>
+            <div class="cal-cell other-month"><div class="cal-day">1</div></div>
+            <div class="cal-cell other-month"><div class="cal-day">2</div></div>
+            <div class="cal-cell other-month"><div class="cal-day">3</div></div>
+            <div class="cal-cell other-month sat"><div class="cal-day">4</div></div>
+          </div>
+        </div>
+
+        <aside class="cal-detail">
+          <div class="cal-detail-head">
+            <div class="cal-detail-date">6월 12일</div>
+            <div class="cal-detail-dow">금요일 &middot; Week 24</div>
+          </div>
+          <div class="cal-summary">
+            <div class="cal-summary-stat"><div class="v">4</div><div class="l">Blocks</div></div>
+            <div class="cal-summary-stat"><div class="v">5h 20m</div><div class="l">Planned</div></div>
+            <div class="cal-summary-stat"><div class="v">3/4</div><div class="l">Done</div></div>
+          </div>
+          <div class="cal-section">
+            <div class="cal-sec-head">
+              <span><span class="mi">schedule</span> 타임블록</span>
+              <button class="cal-add-btn">+ 추가</button>
+            </div>
+            <div class="tb-item done">
+              <button class="tb-check checked"><span class="mi mi-sm">check</span></button>
+              <span class="tb-time">09:00 — 10:30</span>
+              <span class="tb-title">팀 스탠드업 + 회고</span>
+            </div>
+            <div class="tb-item">
+              <button class="tb-check"></button>
+              <span class="tb-time">11:00 — 12:00</span>
+              <span class="tb-title">디자인 시스템 토큰 정의</span>
+            </div>
+            <div class="tb-item coral done">
+              <button class="tb-check checked" style="background:var(--accent-2);border-color:var(--accent-2);"><span class="mi mi-sm">check</span></button>
+              <span class="tb-time">14:00 — 15:00</span>
+              <span class="tb-title">독서 — Refactoring 9장</span>
+            </div>
+            <div class="tb-item apricot">
+              <button class="tb-check"></button>
+              <span class="tb-time">19:30 — 20:30</span>
+              <span class="tb-title">러닝 5km + 스트레칭</span>
+            </div>
+          </div>
+          <div class="cal-section">
+            <div class="cal-sec-head">
+              <span><span class="mi">favorite</span> 감정일기</span>
+            </div>
+            <div class="cal-mood-row">
+              <button class="cal-mood-btn">😴</button>
+              <button class="cal-mood-btn">🥲</button>
+              <button class="cal-mood-btn">😐</button>
+              <button class="cal-mood-btn active">😊</button>
+              <button class="cal-mood-btn">😍</button>
+              <button class="cal-mood-btn">🔥</button>
+            </div>
+            <textarea class="cal-journal" placeholder="오늘 하루를 기록해보세요…">오랜만에 정리되는 느낌. 디자인 토큰 잡으면서 머릿속이 단순해졌다.</textarea>
+          </div>
+          <div class="cal-section" style="border-bottom:none;">
+            <div class="cal-sec-head">
+              <span><span class="mi">edit_note</span> 이 날 수정한 노트 (2)</span>
+            </div>
+            <div class="cal-note-item">
+              <span class="mi mi-sm">edit_note</span>
+              <span class="cal-note-title">디자인 시스템 v2 메모</span>
+            </div>
+            <div class="cal-note-item">
+              <span class="mi mi-sm">edit_note</span>
+              <span class="cal-note-title">Refactoring 9장 정리</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// 탭 전환
+document.querySelectorAll('.preview-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const page = btn.dataset.page;
+    document.querySelectorAll('.preview-tab').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('section.page').forEach(p => p.classList.toggle('active', p.dataset.page === page));
+  });
+});
+// 키보드: 1/2/3
+document.addEventListener('keydown', e => {
+  if (e.key === '1') document.querySelector('.preview-tab[data-page="memo"]')?.click();
+  if (e.key === '2') document.querySelector('.preview-tab[data-page="mindmap"]')?.click();
+  if (e.key === '3') document.querySelector('.preview-tab[data-page="calendar"]')?.click();
+  if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('dark');
+});
+</script>
+
+</body>
+</html>
