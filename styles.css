@@ -731,16 +731,18 @@ body[data-theme="sunset"] {
 }
 .swipe-row.swiped .swipe-action { opacity: 1; pointer-events: auto; }
 
-/* ── Panel collapse / reopen ── */
+/* ── Panel collapse / reopen — mockup 톤 (28x28 원형) ── */
 .panel-collapse-btn {
-  width: 22px; height: 22px;
+  width: 28px; height: 28px;
   background: transparent; border: none;
   color: var(--text-mute);
-  border-radius: 5px;
+  border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: all 0.12s;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-.panel-collapse-btn:hover { background: var(--surface3); color: var(--text); }
+.panel-collapse-btn:hover { background: var(--surface2); color: var(--accent); }
 .panel-collapse-btn svg { width: 14px; height: 14px; }
 .panel-reopen-btn {
   display: none;
@@ -763,7 +765,7 @@ body[data-theme="sunset"] {
 .mindmap-page.list-collapsed   .panel-reopen-btn,
 .journal-page.list-collapsed   .panel-reopen-btn { display: flex; }
 
-/* ── Generic icon button (mockup 톤) ── */
+/* ── Generic icon button (mockup 톤 — 34x34 둥근 사각형, hover accent) ── */
 .memo-icon-btn {
   width: 34px; height: 34px;
   background: transparent;
@@ -774,9 +776,27 @@ body[data-theme="sunset"] {
   flex-shrink: 0;
   transition: background 0.12s, color 0.12s;
   cursor: pointer;
+  padding: 0;
+  font-family: inherit;
 }
+.memo-icon-btn .mi { font-size: 19px; }
 .memo-icon-btn:hover { background: var(--surface2); color: var(--accent); }
+.memo-icon-btn:active { transform: scale(0.95); }
 .memo-icon-btn.danger:hover { background: rgba(212, 95, 90, 0.12); color: var(--red); }
+
+/* memo-back: 좌상단 뒤로 버튼 — 모바일에서만 표시 */
+.memo-back {
+  display: none;
+  width: 34px; height: 34px;
+  background: transparent; border: none;
+  color: var(--text-dim);
+  border-radius: 8px;
+  font-size: 22px;
+  cursor: pointer; padding: 0;
+  align-items: center; justify-content: center;
+  font-family: inherit;
+}
+.memo-back:hover { background: var(--surface2); color: var(--accent); }
 
 /* ── Folder status (sync modal) ── */
 .folder-status {
@@ -1795,24 +1815,40 @@ body[data-theme="sunset"] {
 .memo-item.active .note-type-badge,
 .memo-item.is-pinned .note-type-badge { color: var(--accent); }
 
-/* New-note creation row — 새 메모 / 마인드맵 (two split buttons) */
-.note-create-row { display: flex; gap: 7px; }
+/* New-note creation row — 새 메모 / 마인드맵 (mockup primary CTA + ghost) */
+.note-create-row { display: flex; gap: 8px; margin-top: 4px; }
 .note-create-btn {
   flex: 1; height: 36px;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text); font-size: 12.5px; font-weight: 600;
-  cursor: pointer; -webkit-tap-highlight-color: transparent;
-  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: var(--fs-sub); font-weight: 700;
+  letter-spacing: var(--tracking-body);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, transform 0.08s;
+  font-family: inherit;
 }
-.note-create-btn:hover { background: var(--surface3); border-color: var(--accent); }
+.note-create-btn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .note-create-btn:active { transform: scale(0.97); }
 .note-create-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.note-create-btn .mi { font-size: 17px; }
 .note-create-btn.primary {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  padding-left: 12px;
 }
-.note-create-btn.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+.note-create-btn.primary:hover {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  color: #fff;
+}
 
 .memo-list {
   width: 260px;
@@ -4058,38 +4094,51 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
    §  MEMO — 정렬 / 고정
    ──────────────────────────────────────────────────────────────── */
 #memo-tag-bar { display: flex; flex-direction: column; }
-.memo-sort-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px 8px; }
+.memo-sort-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 16px 10px;
+  border-bottom: 1px solid var(--border-light);
+}
 
-/* Note-type filter — segmented control next to the sort button */
+/* Note-type filter — segmented control (mockup capsule) */
 .note-type-seg {
   display: inline-flex; flex-shrink: 0;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
   overflow: hidden;
-  background: var(--surface2);
+  background: var(--surface);
+  padding: 2px;
+  gap: 2px;
 }
 .note-type-seg button {
   background: transparent; border: none;
-  border-right: 1px solid var(--border);
-  padding: 5px 10px;
-  font-size: 11px; font-weight: 600;
-  color: var(--text-dim); cursor: pointer;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: var(--fs-meta); font-weight: 700;
+  letter-spacing: var(--tracking-meta); text-transform: uppercase;
+  color: var(--text-mute); cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background .12s, color .12s;
+  font-family: inherit;
 }
-.note-type-seg button:last-child { border-right: none; }
-.note-type-seg button.active { background: var(--accent); color: #fff; }
-.note-type-seg button:hover:not(.active) { background: var(--surface3); color: var(--text); }
+.note-type-seg button.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.note-type-seg button:hover:not(.active) { color: var(--text); }
 .memo-sort-btn {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 7px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text-dim); font-size: 11.5px; font-weight: 600; cursor: pointer;
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--text-dim); font-size: var(--fs-meta); font-weight: 700;
+  letter-spacing: var(--tracking-meta); text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
   -webkit-tap-highlight-color: transparent;
-  transition: background .12s, transform .08s, color .12s;
+  transition: background .12s, transform .08s, color .12s, border-color .12s;
 }
 .memo-sort-btn:active { transform: scale(0.94); }
-.memo-sort-btn:hover { background: var(--surface3); color: var(--text); }
+.memo-sort-btn:hover { color: var(--accent); border-color: var(--accent); }
 
 .memo-pin-btn {
   flex-shrink: 0; width: 28px; height: 28px;
