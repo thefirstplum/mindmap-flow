@@ -37,9 +37,11 @@ button { cursor: pointer; font-family: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
 
-/* Serif for editor surfaces */
+/* 본문 폰트 — mockup과 통일 (Crimson Pro 세리프 → Inter sans, 한 톤) */
 .bear-editor, .memo-editor textarea, .markdown-body, .memo-editor-header input {
-  font-family: 'Crimson Pro', 'Lora', Georgia, 'Times New Roman', serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
+               'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+  letter-spacing: -0.005em;
 }
 
 /* ────────────────────────────────────────────────────────────────
