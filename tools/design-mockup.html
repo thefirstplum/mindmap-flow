@@ -368,42 +368,45 @@ html, body {
   color: var(--accent);
   box-shadow: var(--shadow-1);
 }
-/* 테마 드롭다운 */
+/* 테마 픽커 — palette 아이콘 + popup (실제 앱 헤더 위치) */
 .theme-dd {
   position: relative;
+  display: inline-block;
 }
-.theme-dd-btn {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  padding: 6px 10px 6px 12px;
-  border-radius: 10px;
-  font-family: inherit; font-size: 12px; font-weight: 700;
-  color: var(--text);
-  cursor: pointer;
-  display: flex; align-items: center; gap: 6px;
-}
-.theme-dd-btn:hover { border-color: var(--accent); }
-.theme-dd-btn .swatch {
-  width: 12px; height: 12px;
+.theme-trigger {
+  background: transparent; border: none;
+  width: 32px; height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-3));
-  flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-mute);
+  transition: background 0.12s, color 0.12s;
+}
+.theme-trigger:hover { background: var(--surface-2); color: var(--accent); }
+.theme-trigger .mi {
+  font-variation-settings: 'wght' 400, 'GRAD' -25, 'opsz' 20;
 }
 .theme-dd-menu {
   display: none;
   position: absolute;
-  top: calc(100% + 6px); right: 0;
+  top: calc(100% + 8px); right: 0;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 6px;
+  border-radius: 14px;
+  padding: 8px;
   z-index: 300;
-  min-width: 220px;
+  min-width: 240px;
   box-shadow: var(--shadow-3);
   max-height: 70vh;
   overflow-y: auto;
 }
 .theme-dd.open .theme-dd-menu { display: block; }
+/* 모바일에선 우상단에서 안 잘리게 살짝 좁게 */
+body.mobile-view .theme-dd-menu {
+  right: -8px;
+  min-width: 220px;
+  max-height: 60vh;
+}
 .theme-dd-item {
   background: transparent; border: none;
   padding: 8px 10px;
@@ -1948,14 +1951,7 @@ body.charcoal .event-card.c-lavender .ev-time { color: #C4B8DD; }
     <button class="device-btn active" data-device="desktop" title="데스크탑 (1)"><span class="mi mi-sm">desktop_windows</span></button>
     <button class="device-btn" data-device="mobile" title="모바일 (M)"><span class="mi mi-sm">smartphone</span></button>
   </div>
-  <div class="theme-dd" id="theme-dd">
-    <button class="theme-dd-btn" onclick="document.getElementById('theme-dd').classList.toggle('open')">
-      <span class="swatch"></span>
-      <span id="theme-label">Solarized Light</span>
-      <span class="mi mi-sm">expand_more</span>
-    </button>
-    <div class="theme-dd-menu" id="theme-dd-menu"></div>
-  </div>
+  <span id="theme-label" style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;">Solarized Light</span>
 </div>
 
 <div class="app">
@@ -2032,6 +2028,12 @@ body.charcoal .event-card.c-lavender .ev-time { color: #C4B8DD; }
           <span class="kbd">⌘K</span>
         </div>
         <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <div class="theme-dd" data-theme-dd>
+          <button class="theme-trigger" onclick="toggleThemeDd(this)" title="테마 선택">
+            <span class="mi mi-sm">palette</span>
+          </button>
+          <div class="theme-dd-menu" data-theme-menu></div>
+        </div>
         <button class="head-pill primary"><span class="mi">add</span><span class="label">새 노트</span></button>
       </div>
       <div class="memo-grid">
@@ -2167,6 +2169,12 @@ body.charcoal .event-card.c-lavender .ev-time { color: #C4B8DD; }
         </div>
         <button class="head-pill"><span class="mi">fit_screen</span> 화면 맞춤</button>
         <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <div class="theme-dd" data-theme-dd>
+          <button class="theme-trigger" onclick="toggleThemeDd(this)" title="테마 선택">
+            <span class="mi mi-sm">palette</span>
+          </button>
+          <div class="theme-dd-menu" data-theme-menu></div>
+        </div>
         <button class="head-pill primary"><span class="mi">add</span><span class="label">노드</span></button>
       </div>
       <div class="mm-wrap">
@@ -2285,6 +2293,12 @@ body.charcoal .event-card.c-lavender .ev-time { color: #C4B8DD; }
           <span class="kbd">⌘K</span>
         </div>
         <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <div class="theme-dd" data-theme-dd>
+          <button class="theme-trigger" onclick="toggleThemeDd(this)" title="테마 선택">
+            <span class="mi mi-sm">palette</span>
+          </button>
+          <div class="theme-dd-menu" data-theme-menu></div>
+        </div>
         <button class="head-pill primary"><span class="mi">add</span><span class="label">일정</span></button>
       </div>
 
@@ -2798,44 +2812,56 @@ function setTheme(key) {
   }
   const cls = THEME_CLASS[key];
   if (cls) document.body.classList.add(cls);
-  // 라벨/swatch 갱신
+  // 라벨 갱신 (preview-bar의 표지)
   const t = THEMES.find(x => x.key === key);
   if (t) {
-    document.getElementById('theme-label').textContent = t.label;
-    const sw = document.querySelector('.theme-dd-btn .swatch');
-    if (sw) sw.style.background = `linear-gradient(135deg, ${t.dots[1]}, ${t.dots[2]})`;
+    const lbl = document.getElementById('theme-label');
+    if (lbl) lbl.textContent = t.label;
   }
-  // 메뉴 active 갱신
+  // 모든 드롭다운 메뉴 active 갱신
   document.querySelectorAll('.theme-dd-item').forEach(b => b.classList.toggle('active', b.dataset.theme === key));
-  // 드롭다운 닫기
-  document.getElementById('theme-dd').classList.remove('open');
+  // 모든 드롭다운 닫기
+  document.querySelectorAll('[data-theme-dd]').forEach(dd => dd.classList.remove('open'));
 }
 
-// 드롭다운 메뉴 빌드 (sectioned)
-const menu = document.getElementById('theme-dd-menu');
-for (const t of THEMES) {
-  if (t.section) {
-    const h = document.createElement('div');
-    h.className = 'theme-dd-section';
-    h.textContent = t.section;
-    menu.appendChild(h);
-    continue;
+// 드롭다운 메뉴 빌드 — 모든 인스턴스(페이지마다)에 동일 메뉴 채우기
+function buildThemeMenu(menuEl) {
+  menuEl.innerHTML = '';
+  for (const t of THEMES) {
+    if (t.section) {
+      const h = document.createElement('div');
+      h.className = 'theme-dd-section';
+      h.textContent = t.section;
+      menuEl.appendChild(h);
+      continue;
+    }
+    const btn = document.createElement('button');
+    btn.className = 'theme-dd-item';
+    btn.dataset.theme = t.key;
+    btn.innerHTML = `<span class="dots">
+      <span class="dot" style="background:${t.dots[0]}"></span>
+      <span class="dot" style="background:${t.dots[1]}"></span>
+      <span class="dot" style="background:${t.dots[2]}"></span>
+    </span><span>${t.label}</span>`;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); setTheme(t.key); });
+    menuEl.appendChild(btn);
   }
-  const btn = document.createElement('button');
-  btn.className = 'theme-dd-item';
-  btn.dataset.theme = t.key;
-  btn.innerHTML = `<span class="dots">
-    <span class="dot" style="background:${t.dots[0]}"></span>
-    <span class="dot" style="background:${t.dots[1]}"></span>
-    <span class="dot" style="background:${t.dots[2]}"></span>
-  </span><span>${t.label}</span>`;
-  btn.addEventListener('click', () => setTheme(t.key));
-  menu.appendChild(btn);
 }
-// 외부 클릭 시 드롭다운 닫기
+document.querySelectorAll('[data-theme-menu]').forEach(buildThemeMenu);
+
+// 드롭다운 토글 — palette 버튼 클릭
+function toggleThemeDd(btn) {
+  const dd = btn.closest('[data-theme-dd]');
+  const isOpen = dd.classList.contains('open');
+  // 다른 드롭다운 모두 닫기
+  document.querySelectorAll('[data-theme-dd]').forEach(d => d.classList.remove('open'));
+  if (!isOpen) dd.classList.add('open');
+}
+// 외부 클릭 시 닫기
 document.addEventListener('click', (e) => {
-  const dd = document.getElementById('theme-dd');
-  if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+  if (!e.target.closest('[data-theme-dd]')) {
+    document.querySelectorAll('[data-theme-dd]').forEach(d => d.classList.remove('open'));
+  }
 });
 
 // 키보드: 1/2/3 페이지, L/D/C 테마 (퀵), M 모바일, T 테마 드롭다운
