@@ -2229,7 +2229,33 @@ body[data-theme="sunset"] {
 .markdown-body ul, .markdown-body ol { padding-left: 24px; margin: 9px 0; }
 .markdown-body li  { margin: 4px 0; }
 .markdown-body li.task { list-style: none; margin-left: -18px; }
-.markdown-body li.task input { margin-right: 7px; vertical-align: -2px; }
+/* 뷰 모드 체크박스 — 라이브 모드와 통일된 둥근 사각형 + accent */
+.markdown-body li.task input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 18px; height: 18px;
+  border: 1.8px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  margin-right: 8px;
+  vertical-align: -3px;
+  cursor: default;
+  position: relative;
+  flex-shrink: 0;
+}
+.markdown-body li.task input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.markdown-body li.task input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  font-size: 12px; font-weight: 800;
+  line-height: 1;
+}
+.markdown-body li.task.done { color: var(--text-mute); }
+.markdown-body li.task.done del { color: var(--text-mute); }
 .markdown-body blockquote {
   border-left: 3px solid var(--accent);
   padding: 7px 14px; color: var(--text-dim);
