@@ -2153,7 +2153,7 @@ body[data-theme="sunset"] {
 .markdown-body h4 { font-size: 15px; font-weight: 600; margin: 12px 0 7px; }
 .markdown-body p  { margin: 9px 0; }
 .markdown-body code {
-  background: var(--surface2); color: var(--code-color);
+  background: var(--accent-glow); color: var(--md-code, var(--code-color));
   padding: 2px 5px; border-radius: 4px;
   font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 0.88em;
 }
@@ -2165,7 +2165,8 @@ body[data-theme="sunset"] {
 .markdown-body strong  { color: var(--text); font-weight: 700; }
 .markdown-body em      { font-style: italic; color: var(--text-dim); }
 .markdown-body del     { color: var(--text-mute); }
-.markdown-body a       { color: var(--accent2); text-decoration: underline; }
+.markdown-body a       { color: var(--md-link, var(--accent2)); text-decoration: underline; }
+.markdown-body mark    { background: var(--md-highlight, #FFF59D); color: inherit; padding: 0 3px; border-radius: 3px; }
 .markdown-body ul, .markdown-body ol { padding-left: 24px; margin: 9px 0; }
 .markdown-body li  { margin: 4px 0; }
 .markdown-body li.task { list-style: none; margin-left: -18px; }
@@ -2228,9 +2229,38 @@ body[data-theme="sunset"] {
   padding: 0; max-width: 100%; margin: 0;
   width: 100%; height: 100%; overflow: hidden; flex: 1;
 }
-#memo-live-editor .cm-editor { height: 100%; background: transparent; font-size: 16.5px; }
+#memo-live-editor .cm-editor {
+  height: 100%; background: transparent;
+  font-size: 16px;
+  line-height: 32px;     /* ruled grid 단위 — mnmo 노트 톤 */
+}
 /* Align body text with title/meta/tags (all use 26px side padding) */
-#memo-live-editor .cm-content { padding: 8px 26px 80px; }
+/* Ruled paper lines — 32px 간격 가로 라인, 매우 옅은 살구톤 */
+#memo-live-editor .cm-content {
+  padding: 9px 26px 80px;
+  background-image: linear-gradient(
+    transparent calc(32px - 1px),
+    rgba(232, 213, 196, 0.45) calc(32px - 1px),
+    rgba(232, 213, 196, 0.45) 32px,
+    transparent 32px
+  );
+  background-size: 100% 32px;
+  background-position: 0 9px;
+}
+body[data-theme="dark"] #memo-live-editor .cm-content,
+body[data-theme="charcoal"] #memo-live-editor .cm-content,
+body[data-theme="dracula"] #memo-live-editor .cm-content,
+body[data-theme="gotham"] #memo-live-editor .cm-content,
+body[data-theme="forest"] #memo-live-editor .cm-content,
+body[data-theme="ocean"] #memo-live-editor .cm-content,
+body[data-theme="sunset"] #memo-live-editor .cm-content {
+  background-image: linear-gradient(
+    transparent calc(32px - 1px),
+    rgba(245, 235, 224, 0.05) calc(32px - 1px),
+    rgba(245, 235, 224, 0.05) 32px,
+    transparent 32px
+  );
+}
 #memo-live-editor .cm-scroller {
   overflow-y: auto;
   /* Prevent scroll chaining: when at top/bottom, don't pass scroll to body
