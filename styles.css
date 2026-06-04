@@ -1368,11 +1368,10 @@ body[data-theme="sunset"] {
 .mm-list-backdrop.show { display: block; }
 
 .mindmap-toolbar {
-  height: 60px;
   background: var(--surface);
   border-bottom: 1px solid var(--border-light);
   display: flex; align-items: center;
-  padding: 0 28px; gap: 6px;
+  padding: 14px 36px; gap: 8px;
   overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
 }
 .mindmap-toolbar > button { flex-shrink: 0; }
@@ -1381,7 +1380,7 @@ body[data-theme="sunset"] {
 /* Mindmap tags row — below the toolbar */
 .mm-tags-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-  padding: 8px 18px; min-height: 25px;
+  padding: 10px 36px 12px; min-height: 25px;
   background: var(--bg);
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
@@ -2195,12 +2194,11 @@ body[data-theme="sunset"] {
 
 /* Editor Toolbar — mockup 정밀 (밝은 surface 배경, 호흡 있는 padding) */
 .memo-editor-toolbar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 14px 28px;
+  display: flex; align-items: center; gap: 8px;
+  padding: 14px 36px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
   background: var(--surface);
-  min-height: 60px;
 }
 .memo-editor-toolbar .memo-toolbar-spacer { flex: 1; min-width: 8px; }
 .memo-editor-toolbar > button { flex-shrink: 0; }
@@ -2250,7 +2248,7 @@ body[data-theme="sunset"] {
 
 /* Editor header + meta — 통일된 토큰 + 정밀 정렬 */
 .memo-editor-header {
-  padding: 24px 26px 8px;
+  padding: 28px 48px 8px;
   display: flex; align-items: center; gap: 12px; flex-shrink: 0;
 }
 .memo-editor-header input {
@@ -2264,11 +2262,11 @@ body[data-theme="sunset"] {
 }
 .memo-editor-header input::placeholder { color: var(--text-mute); font-weight: 600; }
 .memo-meta {
-  padding: 6px 26px 18px;
+  padding: 0 48px 14px;
   color: var(--text-mute);
   font-size: var(--fs-meta);
   font-weight: 600;
-  letter-spacing: var(--tracking-meta);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   flex-shrink: 0;
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
@@ -2286,7 +2284,7 @@ body[data-theme="sunset"] {
 /* Tags row — accent-glow capsule (mockup) */
 .memo-tags-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-  padding: 0 26px 18px; min-height: 26px;
+  padding: 0 48px 28px; min-height: 26px;
 }
 .memo-tag-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -2480,7 +2478,9 @@ body[data-theme="sunset"] {
 }
 /* Ruled paper lines — cm-line 각 줄 끝에 직접 border (글자 baseline 정렬) */
 #memo-live-editor .cm-content {
-  padding: 12px 26px 80px;
+  padding: 0 48px 80px;
+  max-width: 808px;
+  font-size: 16px;
 }
 #memo-live-editor .cm-line {
   min-height: 32px;
