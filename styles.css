@@ -2478,6 +2478,42 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 #memo-live-editor .cm-cursor { border-left-color: var(--accent) !important; border-left-width: 2px; }
 #memo-live-editor .cm-gutters { display: none; }
 .cm-img-wrap { display: block; line-height: 0; margin: 4px 0; }
+
+/* === CM6 Live Render Widgets (사장님 A안 — Obsidian Live Preview 스타일) === */
+/* 위키링크 — 커서 안 닿은 줄에서 칩으로 렌더 */
+.cm-wikilink-w {
+  display: inline-block;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 0 6px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.12s;
+  vertical-align: baseline;
+}
+.cm-wikilink-w:hover { filter: brightness(1.1); text-decoration: underline; }
+
+/* 체크박스 — 커서 안 닿은 줄에서 둥근 사각형으로 렌더 */
+.cm-checkbox-w {
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: #fff;
+  font-size: 11px; font-weight: 800;
+  vertical-align: -3px;
+  cursor: pointer;
+  user-select: none;
+  margin-right: 1px;
+}
+.cm-checkbox-w.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
 .cm-md-img {
   max-width: 100%; border-radius: 6px; display: block;
   cursor: text; transition: opacity 0.15s;
