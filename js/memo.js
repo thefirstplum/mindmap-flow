@@ -2347,4 +2347,28 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// =================== WEB LINK CLICK IN BEAR EDITOR ===================
+// CM6 안의 텍스트에서 https?:// URL을 클릭하면 새 탭 열기.
+// Cmd/Ctrl + click: 어떤 위치든 그 줄에 URL 있으면 열기
+// 일반 click: 명시적 [text](url) 마크다운 링크 또는 표시된 wikilink는 자동
+const URL_RE = /https?:\/\/[^\s<>"')\]]+/;
+document.addEventListener('click', (e) => {
+  // markdown-body 안의 a 태그는 기본 동작 (target=_blank)
+  if (e.target.closest('.markdown-body a, .wikilink')) return;
+  // CM6 라이브 에디터 안에서만
+  const liveEl = e.target.closest('#memo-live-editor');
+  if (!liveEl) return;
+  // Cmd/Ctrl + click 시 — 클릭된 줄 또는 단어 안의 URL 찾기
+  if (!(e.metaKey || e.ctrlKey)) return;
+  const line = e.target.closest('.cm-line, [data-line]');
+  if (!line) return;
+  const text = line.textContent || '';
+  const m = text.match(URL_RE);
+  if (m) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(m[0], '_blank', 'noopener,noreferrer');
+  }
+}, true);  // capture phase — CM6 cursor 동작 전에 잡기
+
 
