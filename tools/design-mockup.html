@@ -560,6 +560,11 @@ body.dark .m-bottom-tabs {
   border-color: rgba(67, 51, 45, 0.7);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
 }
+body.charcoal .m-bottom-tabs {
+  background: rgba(14, 16, 19, 0.88);    /* 깊은 차콜 (베이스보다 더 어둡게) */
+  border-color: rgba(58, 64, 73, 0.7);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
 body.mobile-view .m-bottom-tabs { display: flex; }
 
 .m-tab-btn {
@@ -1518,17 +1523,34 @@ body.dark .event-card.c-green .ev-time, body.dark .event-card.c-green .ev-title 
 body.dark .event-card.c-yellow .ev-time, body.dark .event-card.c-yellow .ev-title { color: #EFC881; }
 body.dark .event-card.c-blue .ev-time, body.dark .event-card.c-blue .ev-title { color: #93BFE0; }
 body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-title { color: #BFA5DE; }
-/* Charcoal: 이벤트 카드 텍스트 가독성 — 컬러별 분기 없이 따뜻한 라이트 톤 통일 */
-body.charcoal .event-card .ev-title { color: #ECE7DE !important; }
-body.charcoal .event-card .ev-time { color: #B8B2A6 !important; }
-/* Charcoal 이벤트 배경: 마젠타/코랄 톤은 어색 → muted 톤으로 */
-body.charcoal .event-card.c-magenta  { background: rgba(184, 152, 102, 0.20); }  /* 머스타드 */
-body.charcoal .event-card.c-coral    { background: rgba(199, 118, 112, 0.18); }  /* 옅은 적갈 */
-body.charcoal .event-card.c-apricot  { background: rgba(201, 167, 124, 0.22); }  /* 모래 */
-body.charcoal .event-card.c-green    { background: rgba(143, 166, 142, 0.22); }  /* 세이지 */
-body.charcoal .event-card.c-yellow   { background: rgba(200, 176, 122, 0.22); }  /* 차분 옐로우 */
-body.charcoal .event-card.c-blue     { background: rgba(138, 166, 189, 0.20); }  /* 블루 그레이 */
-body.charcoal .event-card.c-lavender { background: rgba(168, 159, 191, 0.18); }  /* 차분 라벤더 */
+/* Charcoal: 이벤트 카드 — 컬러 카테고리 7색 유지하되 톤은 charcoal 톤에 맞게 옅고 부드럽게 */
+body.charcoal .event-card.c-magenta  { background: rgba(199, 127, 168, 0.14); }
+body.charcoal .event-card.c-magenta .ev-title,
+body.charcoal .event-card.c-magenta .ev-time { color: #E0B0CC; }
+
+body.charcoal .event-card.c-coral    { background: rgba(213, 132, 124, 0.15); }
+body.charcoal .event-card.c-coral .ev-title,
+body.charcoal .event-card.c-coral .ev-time { color: #E8A89E; }
+
+body.charcoal .event-card.c-apricot  { background: rgba(201, 167, 124, 0.17); }
+body.charcoal .event-card.c-apricot .ev-title,
+body.charcoal .event-card.c-apricot .ev-time { color: #E5C599; }
+
+body.charcoal .event-card.c-green    { background: rgba(143, 166, 142, 0.17); }
+body.charcoal .event-card.c-green .ev-title,
+body.charcoal .event-card.c-green .ev-time { color: #B5C9AC; }
+
+body.charcoal .event-card.c-yellow   { background: rgba(200, 176, 122, 0.18); }
+body.charcoal .event-card.c-yellow .ev-title,
+body.charcoal .event-card.c-yellow .ev-time { color: #E5D499; }
+
+body.charcoal .event-card.c-blue     { background: rgba(138, 166, 189, 0.15); }
+body.charcoal .event-card.c-blue .ev-title,
+body.charcoal .event-card.c-blue .ev-time { color: #B0C9DD; }
+
+body.charcoal .event-card.c-lavender { background: rgba(168, 159, 191, 0.15); }
+body.charcoal .event-card.c-lavender .ev-title,
+body.charcoal .event-card.c-lavender .ev-time { color: #C4B8DD; }
 .event-card .ev-time {
   font-weight: 600;
   opacity: 0.78;
