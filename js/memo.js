@@ -968,11 +968,20 @@ function bearRenderLine(text) {
   if (!text) return '';
   const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-  // Block-level: headers, bullets, quote
+  // Block-level: headers, task list (체크박스), bullets, quote
   let m;
   if (m = text.match(/^(#{1,3}) (.*)$/)) {
     const level = m[1].length;
     return `<span class="md-marker">${m[1]} </span><span class="md-h${level}">${bearInline(esc(m[2]))}</span>`;
+  }
+  // Task list: '- [ ]', '- []', '- [x]', '- [X]' — bullet보다 먼저 매칭
+  if (m = text.match(/^([-*+]) \[( ?|x|X)\] (.*)$/)) {
+    const checked = m[2].toLowerCase() === 'x';
+    const box = checked
+      ? '<span class="md-task-box checked" data-md="">✓</span>'
+      : '<span class="md-task-box" data-md=""></span>';
+    const bodyCls = checked ? 'md-task-done' : '';
+    return `${box}<span class="md-marker md-list-marker">${esc(m[1])} [${m[2]}] </span><span class="${bodyCls}">${bearInline(esc(m[3]))}</span>`;
   }
   if (m = text.match(/^([-*+]) (.*)$/)) {
     return `<span class="md-bullet" data-md="">•</span><span class="md-marker md-list-marker">${esc(m[1])} </span>${bearInline(esc(m[2]))}`;
