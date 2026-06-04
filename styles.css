@@ -391,22 +391,22 @@ body[data-theme="sunset"] {
 .icon { width: 22px; height: 22px; flex-shrink: 0; }
 .icon-sm { width: 18px; height: 18px; flex-shrink: 0; }
 
-/* ── Material Symbols (icon font) ── */
-/* Use as <span class="mi">menu</span> — name is the Material Symbols id */
+/* ── Material Symbols Rounded — craft 톤 (얇은 weight + GRAD -25) ── */
 .mi {
-  font-family: 'Material Symbols Outlined';
+  font-family: 'Material Symbols Rounded';
   font-weight: normal; font-style: normal;
   font-size: 22px; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
   white-space: nowrap; direction: ltr;
-  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-variation-settings: 'FILL' 0, 'wght' 380, 'GRAD' -25, 'opsz' 24;
   font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
   user-select: none; flex-shrink: 0;
 }
-.mi-sm { font-size: 18px; }
+.mi-sm { font-size: 18px; font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' -25, 'opsz' 20; }
 .mi-lg { font-size: 26px; }
-.mi-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+.mi-fill { font-variation-settings: 'FILL' 1, 'wght' 380, 'GRAD' -25, 'opsz' 24; }
+.mi-sm.mi-fill { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' -25, 'opsz' 20; }
 
 /* ────────────────────────────────────────────────────────────────
    §6  HEADER
@@ -455,24 +455,38 @@ body[data-theme="sunset"] {
 }
 .header-spacer { flex: 1; }
 .header-btn {
-  height: 34px;
+  height: 32px;
   padding: 0 9px;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 50%;
   color: var(--text-dim);
   font-size: 13px; font-weight: 500;
+  min-width: 32px;
   display: inline-flex; align-items: center; gap: 6px;
   cursor: pointer;
   transition: background 0.12s, color 0.12s;
   white-space: nowrap;
 }
-.header-btn:hover { background: var(--surface3); color: var(--text); }
+.header-btn:hover { background: var(--surface2); color: var(--accent); }
 .header-btn .icon-sm { width: 19px; height: 19px; }
 .header-btn.primary { background: var(--accent); color: #fff; }
 .header-btn.primary:hover { background: var(--accent2); }
+/* sync-pill는 라벨이 있어서 border-radius 999px로 따로 */
+.header-btn.sync-pill { border-radius: 999px; min-width: 0; }
 
-/* Sync pill */
+/* Sync pill — mockup 톤 (작은 dot 버튼) */
+.sync-pill {
+  height: 32px;
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  gap: 7px;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.sync-pill:hover { background: var(--surface3); }
 .sync-pill .sync-dot {
   width: 7px; height: 7px; border-radius: 50%;
   background: var(--text-mute); flex-shrink: 0;
