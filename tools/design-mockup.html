@@ -8,68 +8,120 @@
 <!-- Rounded 변형 — Outlined보다 부드러운 둥근 끝, craft 톤에 어울림 -->
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200" rel="stylesheet">
 <style>
-/* =================== TOKENS — Craft Coral (라이트) =================== */
+/* =================== TOKENS — Craft Coral × Solarized (Bear 영감) =================== */
 :root {
-  /* 컬러 — 이미지 톤 그대로 */
-  --bg:           #FAF3E8;   /* 크림 아이보리 (페이지 배경, 노트 종이 느낌) */
-  --bg-soft:      #F3E8D8;   /* 살짝 더 워밍 */
-  --surface:      #FFFFFF;   /* 카드/모달 흰 종이 */
-  --surface-2:   #F5EBE0;   /* 호버·서브 */
-  --surface-3:   #EBDCC8;   /* 더 깊은 호버 */
-  --border:       #E8D5C4;   /* 경계선 */
-  --border-soft:  #F0E2D0;
+  /* 배경: Solarized base3(#FDF6E3) / base2(#EEE8D5) 기반 — Bear Light 검증 톤 */
+  --bg:           #FDF6E3;   /* 크림 아이보리 (Solarized base3) */
+  --bg-soft:      #F4ECD8;   /* 살짝 더 워밍 */
+  --surface:      #FFFCF2;   /* 가장 밝은 종이 (카드/모달) */
+  --surface-2:    #EEE8D5;   /* Solarized base2 — 호버·서브 */
+  --surface-3:    #E1D9C0;   /* 깊은 호버 */
+  --border:       #E0D6BD;
+  --border-soft:  #EDE3CC;
 
-  --text:         #3A2E2A;   /* 워밍 다크 브라운 (까만색보다 부드러움) */
-  --text-dim:     #6B5751;
-  --text-mute:    #9C8A82;
+  /* 텍스트: Solarized base01(#586E75) — 검정 대신 차분한 슬레이트 그레이 */
+  --text:         #4A4540;   /* 살짝 워밍 슬레이트 — Solarized + 노트 톤 합성 */
+  --text-dim:     #7A7068;
+  --text-mute:    #ADA294;
 
-  /* 시그니처 — 마젠타 (메인) + 코랄 (포인트) + 살구 (서브) */
+  /* 시그니처 — 마젠타 + 코랄 + 살구 (mnmo 노트북 톤 유지) */
   --accent:       #B85E94;   /* 마젠타 (pin·active·link·primary) */
-  --accent-soft:  #D17EA9;   /* hover lighter */
+  --accent-soft:  #D17EA9;
   --accent-glow:  rgba(184, 94, 148, 0.12);
-  --accent-2:    #E97770;   /* 코랄 (success·강조) */
-  --accent-3:    #FF8455;   /* 살구 오렌지 (책갈피·secondary) */
+  --accent-2:     #E97770;   /* 코랄 */
+  --accent-3:     #D2832E;   /* 살구 살짝 다운 (Solarized orange #cb4b16와 yellow #b58900 사이) */
 
-  --green:        #6BAE7C;   /* 완료·체크 */
-  --yellow:       #E2A847;   /* 경고 */
-  --red:          #D45F5A;   /* 에러·delete */
+  /* Bear-style markdown 강조 컬러 — 마크다운 다양성 */
+  --md-code:      #2AA198;   /* Solarized cyan — 인라인 코드 */
+  --md-link:      #268BD2;   /* Solarized blue — 외부 링크 */
+  --md-highlight: #FFF59D;   /* Material yellow — ==강조== 배경 */
+  --md-tag:       #859900;   /* Solarized green — 보조 태그 */
 
-  /* spacing / radius */
+  --green:        #859900;   /* Solarized green */
+  --yellow:       #B58900;   /* Solarized yellow */
+  --red:          #DC322F;   /* Solarized red */
+
   --r-sm:  6px;
   --r-md:  10px;
   --r-lg:  14px;
   --r-xl:  20px;
 
-  --shadow-1: 0 1px 2px rgba(58, 46, 42, 0.06);
-  --shadow-2: 0 4px 14px rgba(58, 46, 42, 0.08);
-  --shadow-3: 0 18px 50px rgba(58, 46, 42, 0.14);
+  --shadow-1: 0 1px 2px rgba(58, 46, 42, 0.05);
+  --shadow-2: 0 4px 14px rgba(58, 46, 42, 0.07);
+  --shadow-3: 0 18px 50px rgba(58, 46, 42, 0.12);
 
   --ease: cubic-bezier(0.32, 0.72, 0.16, 1);
 }
 
-/* 다크 모드 — 따뜻한 브라운 베이스 */
-body.dark {
-  --bg:           #211915;
-  --bg-soft:      #2A201B;
-  --surface:      #2E2420;
-  --surface-2:    #3A2D27;
-  --surface-3:    #4A3A33;
-  --border:       #43332D;
-  --border-soft:  #3A2D27;
+/* Charcoal — 깊은 차콜 + 회색 베이스 (Bear Charcoal 톤 정확히) */
+body.charcoal {
+  --bg:           #1B1E22;   /* 깊은 차콜 (거의 무채색) */
+  --bg-soft:      #232730;
+  --surface:      #2A2E36;
+  --surface-2:    #353A44;
+  --surface-3:    #404750;
+  --border:       #3C4250;
+  --border-soft:  #2D333D;
 
-  --text:         #F5EBE0;
-  --text-dim:     #C7B5AC;
-  --text-mute:    #8A7B72;
+  --text:         #D6D2CB;   /* 따뜻한 회색 (Bear charcoal 텍스트) */
+  --text-dim:     #9C988F;
+  --text-mute:    #6B6862;
+
+  /* 액센트는 차분하게 살아있는 톤 — 핫핑크 X, 차분한 마젠타 */
+  --accent:       #C77FA8;   /* 차분 마젠타 — 회색 기반에 옅게 */
+  --accent-soft:  #DCA3C0;
+  --accent-glow:  rgba(199, 127, 168, 0.16);
+  --accent-2:     #D49580;   /* 차분한 코랄 (회색 톤 살짝) */
+  --accent-3:     #C9A77C;   /* 차분한 살구·황금 */
+
+  /* markdown 톤도 차분하게 */
+  --md-code:      #7DAFA8;
+  --md-link:      #8FB5DA;
+  --md-highlight: rgba(220, 220, 220, 0.14);
+  --md-tag:       #A8B575;
+
+  --green:        #98A55F;
+  --yellow:       #C8B07A;
+  --red:          #D26B68;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.45);
+  --shadow-2: 0 4px 14px rgba(0,0,0,0.5);
+  --shadow-3: 0 18px 50px rgba(0,0,0,0.6);
+}
+
+/* 다크 모드 — Solarized Dark 베이스(#002B36) + 따뜻한 노트 톤 합성 */
+body.dark {
+  --bg:           #1B2027;   /* Solarized base03보다 살짝 워밍 */
+  --bg-soft:      #232932;
+  --surface:      #2A323D;   /* Solarized base02 +α */
+  --surface-2:    #324050;
+  --surface-3:    #3D4B5C;
+  --border:       #3A4A5C;
+  --border-soft:  #2E3A47;
+
+  /* 텍스트: Solarized base1(#93A1A1) — 차분한 라이트 슬레이트 */
+  --text:         #C3CBCB;   /* base1보다 살짝 밝게 가독성 ↑ */
+  --text-dim:     #93A1A1;   /* base1 정확 */
+  --text-mute:    #6E7E85;
 
   --accent:       #E093BD;
   --accent-soft:  #EFB1D2;
   --accent-glow:  rgba(224, 147, 189, 0.18);
-  --accent-2:    #F49891;
-  --accent-3:    #FFA17A;
+  --accent-2:     #F49891;
+  --accent-3:     #F0B264;
 
-  --shadow-1: 0 1px 2px rgba(0,0,0,0.4);
-  --shadow-2: 0 4px 14px rgba(0,0,0,0.45);
-  --shadow-3: 0 18px 50px rgba(0,0,0,0.55);
+  --md-code:      #4DCFC6;   /* 다크에선 cyan 더 밝게 */
+  --md-link:      #5DAEEE;
+  --md-highlight: rgba(255, 245, 157, 0.25);
+  --md-tag:       #B5C342;
+
+  --green:        #B5C342;
+  --yellow:       #E8C758;
+  --red:          #F45E5B;
+
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.35);
+  --shadow-2: 0 4px 14px rgba(0,0,0,0.4);
+  --shadow-3: 0 18px 50px rgba(0,0,0,0.5);
 }
 
 * { box-sizing: border-box; }
@@ -162,6 +214,20 @@ html, body {
 }
 .device-btn:hover { color: var(--text); }
 .device-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+.theme-btn {
+  background: transparent; border: none;
+  width: 30px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text-mute);
+  transition: all 0.12s;
+}
+.theme-btn:hover { color: var(--text); }
+.theme-btn.active {
   background: var(--surface);
   color: var(--accent);
   box-shadow: var(--shadow-1);
@@ -1621,10 +1687,12 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
     <button class="device-btn active" data-device="desktop" title="데스크탑 (1)"><span class="mi mi-sm">desktop_windows</span></button>
     <button class="device-btn" data-device="mobile" title="모바일 (M)"><span class="mi mi-sm">smartphone</span></button>
   </div>
-  <span style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 10px;">Craft Coral</span>
-  <button class="theme-toggle" onclick="document.body.classList.toggle('dark')" title="다크 모드 토글 (D)">
-    <span class="mi mi-sm">dark_mode</span>
-  </button>
+  <span id="theme-label" style="font-size:11px;color:var(--text-mute);letter-spacing:0.08em;text-transform:uppercase;font-weight:600;margin:0 8px;">Solarized Light</span>
+  <div class="device-toggle">
+    <button class="theme-btn active" data-theme="light" title="라이트 (L)"><span class="mi mi-sm">light_mode</span></button>
+    <button class="theme-btn" data-theme="dark" title="다크 (D)"><span class="mi mi-sm">dark_mode</span></button>
+    <button class="theme-btn" data-theme="charcoal" title="차콜 (C)"><span class="mi mi-sm">contrast</span></button>
+  </div>
 </div>
 
 <div class="app">
@@ -2427,13 +2495,32 @@ document.querySelectorAll('.device-btn').forEach(btn => {
     document.body.classList.toggle('mobile-view', dev === 'mobile');
   });
 });
-// 키보드: 1/2/3 페이지, D 다크, M 모바일 토글
+// 테마 토글 (light/dark/charcoal)
+const THEME_LABELS = {
+  light: 'Solarized Light',
+  dark: 'Solarized Dark',
+  charcoal: 'Charcoal'
+};
+function setTheme(theme) {
+  document.body.classList.remove('dark', 'charcoal');
+  if (theme === 'dark') document.body.classList.add('dark');
+  else if (theme === 'charcoal') document.body.classList.add('charcoal');
+  document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === theme));
+  const lbl = document.getElementById('theme-label');
+  if (lbl) lbl.textContent = THEME_LABELS[theme];
+}
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', () => setTheme(btn.dataset.theme));
+});
+// 키보드: 1/2/3 페이지, L/D/C 테마, M 모바일
 document.addEventListener('keydown', e => {
   if (e.target.matches('input, textarea')) return;
   if (e.key === '1') switchPage('memo');
   if (e.key === '2') switchPage('mindmap');
   if (e.key === '3') switchPage('calendar');
-  if (e.key === 'd' || e.key === 'D') document.body.classList.toggle('dark');
+  if (e.key === 'l' || e.key === 'L') setTheme('light');
+  if (e.key === 'd' || e.key === 'D') setTheme('dark');
+  if (e.key === 'c' || e.key === 'C') setTheme('charcoal');
   if (e.key === 'm' || e.key === 'M') {
     document.body.classList.toggle('mobile-view');
     const isM = document.body.classList.contains('mobile-view');
