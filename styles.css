@@ -448,11 +448,21 @@ body[data-theme="sunset"] {
   color: #fff; flex-shrink: 0;
   font-weight: 800;
 }
-.header > div:not(.header-icon):not(.header-spacer):not(.theme-dd) {
-  display: flex; flex-direction: column;
+/* page-head-title (mockup) — h1 + chip 한 줄 */
+.page-head-title {
+  display: flex; align-items: center; gap: 10px;
   min-width: 0;
-  justify-content: center;
 }
+.meta-chip {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  background: var(--surface2);
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.meta-chip:empty { display: none; }
 /* Hamburger — opens the sidebar drawer on mobile (hidden on desktop) */
 .header-menu-btn {
   display: none;
@@ -473,15 +483,103 @@ body[data-theme="sunset"] {
   margin: 0;
   line-height: 1.15;
 }
-.header .subtitle {
+.header .subtitle { display: none; }  /* mockup: 부제 제거 */
+
+/* head-search (mockup ⌘K chip) */
+.head-search {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface2);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
   color: var(--text-mute);
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  letter-spacing: var(--tracking-meta);
-  text-transform: uppercase;
-  margin-top: 2px;
-  line-height: 1.2;
+  min-width: 220px;
+  cursor: text;
+  transition: border-color 0.12s, background 0.12s;
+  font-family: inherit;
 }
+.head-search:hover { border-color: var(--border); background: var(--surface); }
+.head-search .mi { font-size: 16px; color: var(--text-mute); }
+.head-search .placeholder { flex: 1; text-align: left; }
+.head-search .kbd {
+  margin-left: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 10.5px;
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* head-pill — 새 노트/노드 등 헤더 액션 */
+.head-pill {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-dim);
+  display: inline-flex; align-items: center; gap: 5px;
+  cursor: pointer;
+  transition: all 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.head-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+.head-pill .mi { font-size: 15px; }
+.head-pill.primary {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  padding: 6px 14px 6px 10px;
+}
+.head-pill.primary:hover {
+  background: var(--accent2);
+  border-color: var(--accent2);
+  color: #fff;
+}
+
+/* sync-dot-btn (mockup: 아이콘 + 작은 상태 dot) */
+.sync-dot-btn {
+  background: transparent; border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-mute);
+  position: relative;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.sync-dot-btn:hover { background: var(--surface2); color: var(--text); }
+.sync-dot-btn .sync-dot {
+  position: absolute;
+  top: 5px; right: 5px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--text-mute);
+  border: 2px solid var(--bg);
+  transition: background 0.25s;
+}
+.sync-dot-btn.synced  .sync-dot { background: var(--green); }
+.sync-dot-btn.syncing .sync-dot { background: var(--orange); animation: syncpulse 1.2s ease-in-out infinite; }
+.sync-dot-btn.error   .sync-dot { background: var(--red); }
+.sync-dot-btn.offline .sync-dot { background: var(--text-mute); }
+/* sync-dot-btn은 cloud_done 아이콘 자리 — 아이콘이 없으면 작은 cloud dot 자체로 */
+.sync-dot-btn::before {
+  content: 'cloud_done';
+  font-family: 'Material Symbols Rounded';
+  font-size: 19px;
+  font-variation-settings: "FILL" 0, "wght" 380, "GRAD" -25, "opsz" 24;
+  color: inherit;
+}
+.sync-dot-btn .sync-label { display: none; }
 .header-spacer { flex: 1; }
 .header-btn {
   height: 32px;
@@ -1348,8 +1446,47 @@ body[data-theme="sunset"] {
 .mindmap-item:hover .mm-menu-btn { display: flex; }
 .mm-menu-btn:hover { background: var(--surface3); color: var(--text); }
 
-.mm-canvas-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.mm-canvas-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
 .mm-canvas-area { flex: 1; position: relative; overflow: hidden; }
+
+/* mockup (3.png) — 마인드맵 상단 toolbar는 floating capsule */
+.mm-canvas-wrap > .memo-editor-toolbar {
+  position: absolute;
+  top: 18px; left: 50%; transform: translateX(-50%);
+  width: auto; min-width: 0;
+  z-index: 5;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 6px 10px;
+  gap: 4px;
+  box-shadow: 0 10px 28px -10px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.mm-canvas-wrap > .memo-editor-toolbar .memo-toolbar-spacer,
+.mm-canvas-wrap > .memo-editor-toolbar .memo-back { display: none !important; }
+.mm-canvas-wrap > .memo-editor-toolbar .panel-reopen-btn { margin-right: 0; }
+.mm-canvas-wrap > .memo-editor-toolbar .memo-icon-btn {
+  width: 32px; height: 32px;
+}
+.mm-canvas-wrap > .memo-editor-toolbar .memo-icon-btn:hover {
+  background: var(--accent-glow); color: var(--accent);
+}
+/* "+ 노드" 버튼 강조 (accent fill) */
+.mm-canvas-wrap > .memo-editor-toolbar .memo-icon-btn.primary {
+  background: var(--accent); color: #fff;
+}
+.mm-canvas-wrap > .memo-editor-toolbar .memo-icon-btn.primary:hover {
+  background: var(--accent2);
+}
+/* 모바일 — 캡슐 위치/사이즈 살짝 줄이고 좌우 padding 좁힘 */
+@media (max-width: 768px) {
+  .mm-canvas-wrap > .memo-editor-toolbar {
+    top: 10px; padding: 5px 8px; gap: 3px;
+  }
+  .mm-canvas-wrap > .memo-editor-toolbar .memo-icon-btn { width: 30px; height: 30px; }
+}
 
 .mm-list-toggle {
   display: none;
