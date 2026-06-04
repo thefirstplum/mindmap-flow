@@ -101,6 +101,9 @@ function md2html(md) {
   // Strikethrough
   s = s.replace(/~~([^~\n]+)~~/g, '<del>$1</del>');
 
+  // Highlight (Obsidian-style ==강조==)
+  s = s.replace(/==([^=\n]+)==/g, '<mark>$1</mark>');
+
   // Inline code
   s = s.replace(/`([^`\n]+)`/g, '<code>$1</code>');
 
