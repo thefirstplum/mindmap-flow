@@ -1368,11 +1368,11 @@ body[data-theme="sunset"] {
 .mm-list-backdrop.show { display: block; }
 
 .mindmap-toolbar {
-  height: 56px;
-  background: var(--bg);
+  height: 60px;
+  background: var(--surface);
   border-bottom: 1px solid var(--border-light);
   display: flex; align-items: center;
-  padding: 0 26px; gap: 4px;
+  padding: 0 28px; gap: 6px;
   overflow-x: auto; scrollbar-width: none; flex-shrink: 0;
 }
 .mindmap-toolbar > button { flex-shrink: 0; }
@@ -2167,10 +2167,11 @@ body[data-theme="sunset"] {
   flex-shrink: 0;
 }
 
-/* Editor column */
+/* Editor column — 본문은 bg, toolbar는 surface로 시각 분리 */
 .memo-editor {
   flex: 1; display: flex; flex-direction: column;
-  min-width: 0; background: var(--bg);
+  min-width: 0;
+  background: var(--bg);
 }
 .memo-editor-empty {
   flex: 1; display: flex; flex-direction: column;
@@ -2192,14 +2193,14 @@ body[data-theme="sunset"] {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace; color: var(--accent2);
 }
 
-/* Editor Toolbar — mockup 정밀 (좌측 navigation + spacer + 우측 액션) */
+/* Editor Toolbar — mockup 정밀 (밝은 surface 배경, 호흡 있는 padding) */
 .memo-editor-toolbar {
-  display: flex; align-items: center; gap: 4px;
-  padding: 14px 26px;
+  display: flex; align-items: center; gap: 6px;
+  padding: 14px 28px;
   border-bottom: 1px solid var(--border-light);
   flex-shrink: 0;
-  background: var(--bg);
-  min-height: 56px;
+  background: var(--surface);
+  min-height: 60px;
 }
 .memo-editor-toolbar .memo-toolbar-spacer { flex: 1; min-width: 8px; }
 .memo-editor-toolbar > button { flex-shrink: 0; }
@@ -4221,14 +4222,17 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
 }
 .note-type-seg button {
   background: transparent; border: none;
-  padding: 5px 12px;
+  padding: 5px 14px;
   border-radius: 999px;
-  font-size: var(--fs-meta); font-weight: 700;
-  letter-spacing: var(--tracking-meta); text-transform: uppercase;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  line-height: 1.3;
   color: var(--text-mute); cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition: background .12s, color .12s;
   font-family: inherit;
+  flex-shrink: 0;
 }
 .note-type-seg button.active {
   background: var(--accent-glow);
@@ -4237,15 +4241,22 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
 .note-type-seg button:hover:not(.active) { color: var(--text); }
 .memo-sort-btn {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 6px 12px; border-radius: 999px;
+  padding: 6px 14px;
+  border-radius: 999px;
   border: 1px solid var(--border); background: var(--surface);
-  color: var(--text-dim); font-size: var(--fs-meta); font-weight: 700;
-  letter-spacing: var(--tracking-meta); text-transform: uppercase;
+  color: var(--text-dim);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.04em;
+  /* 한국어는 uppercase 무의미하지만 영문/숫자는 적용. 텍스트 깨짐 방지 위해 nowrap */
+  white-space: nowrap;
+  line-height: 1.3;
   cursor: pointer;
   font-family: inherit;
+  flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   transition: background .12s, transform .08s, color .12s, border-color .12s;
 }
+.memo-sort-btn .mi { font-size: 14px; line-height: 1; }
 .memo-sort-btn:active { transform: scale(0.94); }
 .memo-sort-btn:hover { color: var(--accent); border-color: var(--accent); }
 
