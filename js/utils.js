@@ -660,7 +660,13 @@ if (
 }
 
 function applySettings() {
-  // Show/hide ledger nav button
+  // 메모 ruled lines on/off — body 클래스로 토글 (CSS에서 .no-ruled로 라인 숨김)
+  // 기본값 true (라인 켜짐). settings.ruledLines === false면 끔.
+  document.body.classList.toggle('no-ruled', appSettings.ruledLines === false);
+  const ruledToggle = document.getElementById('setting-ruled-lines');
+  if (ruledToggle) ruledToggle.checked = appSettings.ruledLines !== false;
+
+  // 가계부 nav 표시·숨김
   const ledgerNav = document.querySelector('[data-page="ledger"]');
   if (ledgerNav) {
     ledgerNav.style.display = appSettings.ledgerEnabled ? '' : 'none';
@@ -682,6 +688,16 @@ function applySettings() {
   // Toggle visibility of the ledger-specific settings group
   const ledgerGroup = document.getElementById('settings-ledger-group');
   if (ledgerGroup) ledgerGroup.style.display = appSettings.ledgerEnabled ? '' : 'none';
+}
+
+// 메모 ruled lines 토글 — ⌘K 액션 + 동기화 모달 토글에서 호출
+function toggleRuledLines() {
+  appSettings.ruledLines = appSettings.ruledLines === false;
+  save('settings', appSettings);
+  applySettings();
+  if (typeof toast === 'function') {
+    toast(appSettings.ruledLines === false ? '메모 밑줄 끔' : '메모 밑줄 켬', 'success');
+  }
 }
 
 function saveLedgerMethods() {

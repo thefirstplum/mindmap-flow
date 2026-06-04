@@ -2405,35 +2405,30 @@ body[data-theme="sunset"] {
 #memo-live-editor .cm-editor {
   height: 100%; background: transparent;
   font-size: 16px;
-  line-height: 32px;     /* ruled grid 단위 — mnmo 노트 톤 */
+  line-height: 32px;
 }
-/* Align body text with title/meta/tags (all use 26px side padding) */
-/* Ruled paper lines — 32px 간격 가로 라인, 매우 옅은 살구톤 */
+/* Ruled paper lines — cm-line 각 줄 끝에 직접 border (글자 baseline 정렬) */
 #memo-live-editor .cm-content {
-  padding: 9px 26px 80px;
-  background-image: linear-gradient(
-    transparent calc(32px - 1px),
-    rgba(232, 213, 196, 0.45) calc(32px - 1px),
-    rgba(232, 213, 196, 0.45) 32px,
-    transparent 32px
-  );
-  background-size: 100% 32px;
-  background-position: 0 9px;
+  padding: 12px 26px 80px;
 }
-body[data-theme="dark"] #memo-live-editor .cm-content,
-body[data-theme="charcoal"] #memo-live-editor .cm-content,
-body[data-theme="dracula"] #memo-live-editor .cm-content,
-body[data-theme="gotham"] #memo-live-editor .cm-content,
-body[data-theme="forest"] #memo-live-editor .cm-content,
-body[data-theme="ocean"] #memo-live-editor .cm-content,
-body[data-theme="sunset"] #memo-live-editor .cm-content {
-  background-image: linear-gradient(
-    transparent calc(32px - 1px),
-    rgba(245, 235, 224, 0.05) calc(32px - 1px),
-    rgba(245, 235, 224, 0.05) 32px,
-    transparent 32px
-  );
+#memo-live-editor .cm-line {
+  min-height: 32px;
+  line-height: 32px;
+  padding: 0 2px;
+  border-bottom: 1px solid rgba(232, 213, 196, 0.45);
 }
+/* 다크 테마 — 매우 옅게 */
+body[data-theme="dark"] #memo-live-editor .cm-line,
+body[data-theme="charcoal"] #memo-live-editor .cm-line,
+body[data-theme="dracula"] #memo-live-editor .cm-line,
+body[data-theme="gotham"] #memo-live-editor .cm-line,
+body[data-theme="forest"] #memo-live-editor .cm-line,
+body[data-theme="ocean"] #memo-live-editor .cm-line,
+body[data-theme="sunset"] #memo-live-editor .cm-line {
+  border-bottom-color: rgba(245, 235, 224, 0.06);
+}
+/* 설정에서 ruled lines off일 때 */
+body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 #memo-live-editor .cm-scroller {
   overflow-y: auto;
   /* Prevent scroll chaining: when at top/bottom, don't pass scroll to body
