@@ -311,6 +311,19 @@ body.mobile-view .page-head .head-pill.primary .mi {
   font-size: 26px;
   font-variation-settings: 'wght' 440, 'GRAD' 0, 'opsz' 24;
 }
+/* Charcoal: FAB 그림자도 머스타드 톤으로 */
+body.charcoal.mobile-view .page-head .head-pill.primary {
+  box-shadow:
+    0 14px 30px rgba(184, 152, 102, 0.28),
+    0 6px 12px rgba(184, 152, 102, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+}
+body.charcoal.mobile-view .page-head .head-pill.primary:hover {
+  box-shadow:
+    0 18px 36px rgba(184, 152, 102, 0.34),
+    0 8px 16px rgba(184, 152, 102, 0.20),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.10);
+}
 body.mobile-view .page-head .head-pill.primary .label { display: none; }
 body.mobile-view .memo-grid { grid-template-columns: 1fr; }
 body.mobile-view .memo-list { border-right: none; padding-bottom: 120px; }
@@ -596,6 +609,13 @@ body.dark .m-tab-btn.active {
     rgba(224, 147, 189, 0.20) 0%,
     rgba(244, 152, 145, 0.16) 55%,
     rgba(255, 161, 122, 0.18) 100%);
+}
+/* Charcoal: 머스타드 → 세이지 → 모래 (마젠타 X) */
+body.charcoal .m-tab-btn.active {
+  background: linear-gradient(115deg,
+    rgba(184, 152, 102, 0.26) 0%,    /* 머스타드 */
+    rgba(143, 166, 142, 0.20) 60%,   /* 세이지 */
+    rgba(201, 167, 124, 0.18) 100%); /* 모래 */
 }
 
 /* 더보기 = 작은 avatar 톤 */
@@ -1471,6 +1491,10 @@ body.dark .event-card:hover { filter: brightness(1.15); }
   letter-spacing: 0.02em;
 }
 body.dark .event-card .ev-status { color: #92D49E; }
+body.charcoal .event-card .ev-status {
+  background: rgba(143, 166, 142, 0.22);    /* 세이지 글로우 */
+  color: #B8C9B0;
+}
 
 /* 이벤트 컬러 변형 — 깔끔한 pastel only (border-left 제거, background만으로 구분) */
 .event-card.c-magenta { background: rgba(184, 94, 148, 0.16); }
@@ -1494,6 +1518,17 @@ body.dark .event-card.c-green .ev-time, body.dark .event-card.c-green .ev-title 
 body.dark .event-card.c-yellow .ev-time, body.dark .event-card.c-yellow .ev-title { color: #EFC881; }
 body.dark .event-card.c-blue .ev-time, body.dark .event-card.c-blue .ev-title { color: #93BFE0; }
 body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-title { color: #BFA5DE; }
+/* Charcoal: 이벤트 카드 텍스트 가독성 — 컬러별 분기 없이 따뜻한 라이트 톤 통일 */
+body.charcoal .event-card .ev-title { color: #ECE7DE !important; }
+body.charcoal .event-card .ev-time { color: #B8B2A6 !important; }
+/* Charcoal 이벤트 배경: 마젠타/코랄 톤은 어색 → muted 톤으로 */
+body.charcoal .event-card.c-magenta  { background: rgba(184, 152, 102, 0.20); }  /* 머스타드 */
+body.charcoal .event-card.c-coral    { background: rgba(199, 118, 112, 0.18); }  /* 옅은 적갈 */
+body.charcoal .event-card.c-apricot  { background: rgba(201, 167, 124, 0.22); }  /* 모래 */
+body.charcoal .event-card.c-green    { background: rgba(143, 166, 142, 0.22); }  /* 세이지 */
+body.charcoal .event-card.c-yellow   { background: rgba(200, 176, 122, 0.22); }  /* 차분 옐로우 */
+body.charcoal .event-card.c-blue     { background: rgba(138, 166, 189, 0.20); }  /* 블루 그레이 */
+body.charcoal .event-card.c-lavender { background: rgba(168, 159, 191, 0.18); }  /* 차분 라벤더 */
 .event-card .ev-time {
   font-weight: 600;
   opacity: 0.78;
