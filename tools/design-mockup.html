@@ -194,11 +194,14 @@ body.mobile-view::before {
 }
 body.mobile-view .sidebar { display: none; }
 body.mobile-view .page-head {
-  height: 90px; padding: 30px 18px 12px;
+  height: 76px; padding: 26px 14px 10px;
   flex-wrap: wrap;
+  gap: 8px;
 }
-body.mobile-view .page-head h1 { font-size: 24px; }
+body.mobile-view .page-head h1 { font-size: 22px; }
+body.mobile-view .page-head .head-search,
 body.mobile-view .page-head .head-pill:not(.primary):not(.mobile-keep) { display: none; }
+body.mobile-view .page-head .sync-dot-btn { width: 30px; height: 30px; }
 body.mobile-view .page-head .head-pill.primary {
   position: fixed; right: 32px; bottom: 70px;
   z-index: 50;
@@ -549,41 +552,113 @@ body.mobile-view .m-bottom-tabs { display: flex; }
 
 /* =================== MAIN CONTENT =================== */
 .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+/* 상단 페이지 헤더 — 모든 페이지 통일 (사장님 정리 요청) */
 .page-head {
-  height: 70px;
-  padding: 0 28px;
-  display: flex; align-items: center; gap: 16px;
+  height: 64px;
+  padding: 0 22px;
+  display: flex; align-items: center; gap: 12px;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
 }
+.page-head-title {
+  display: flex; align-items: center; gap: 10px;
+}
 .page-head h1 {
   font-family: 'Inter', sans-serif;
-  font-size: 22px; font-weight: 700;
+  font-size: 20px; font-weight: 700;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
 }
-.page-head .page-sub {
-  font-size: 11px; color: var(--text-mute);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  margin-top: 2px;
+.page-head .meta-chip {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+  background: var(--surface-2);
+  padding: 3px 8px;
+  border-radius: 6px;
 }
 .page-head .spacer { flex: 1; }
-.head-pill {
+
+/* 검색 input — head 위 일관된 자리 */
+.head-search {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--text-mute);
+  min-width: 200px;
+  cursor: text;
+  transition: border-color 0.12s, background 0.12s;
+}
+.head-search:hover { border-color: var(--border); background: var(--surface); }
+.head-search .mi { font-size: 16px; color: var(--text-mute); }
+.head-search .kbd {
+  margin-left: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  padding: 7px 14px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  font-size: 10.5px;
+  font-family: ui-monospace, Menlo, monospace;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* head-pill — 일관 사이즈, 액션 ghost */
+.head-pill {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 6px 12px;
   border-radius: 999px;
+  font-family: inherit;
   font-size: 12px; font-weight: 600;
   color: var(--text-dim);
-  display: flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 5px;
   cursor: pointer;
   transition: all 0.12s;
+  white-space: nowrap;
 }
-.head-pill:hover { border-color: var(--accent); color: var(--accent); }
+.head-pill:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+.head-pill .mi { font-size: 15px; }
 .head-pill.primary {
   background: var(--accent); color: #fff; border-color: var(--accent);
+  padding: 6px 14px 6px 10px;
 }
-.head-pill.primary:hover { background: var(--accent-soft); border-color: var(--accent-soft); }
+.head-pill.primary:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-soft);
+  color: #fff;
+}
+
+/* 동기화 상태 dot only */
+.sync-dot-btn {
+  background: transparent; border: none;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-mute);
+  position: relative;
+  transition: background 0.12s;
+}
+.sync-dot-btn:hover { background: var(--surface-2); color: var(--text); }
+.sync-dot-btn::after {
+  content: '';
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  background: #6BAE7C;   /* 동기화됨 그린 */
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+.sync-dot-btn.syncing::after { background: var(--accent-3); }
+.sync-dot-btn.error::after { background: var(--red); }
 
 /* page wrap */
 .page { display: none; flex: 1; overflow: hidden; }
@@ -1520,14 +1595,18 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
     <section class="page active" data-page="memo">
       <div class="page-head">
         <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
-        <div>
+        <div class="page-head-title">
           <h1>노트</h1>
-          <div class="page-sub">Notes &middot; 24 items</div>
+          <span class="meta-chip">24</span>
         </div>
         <div class="spacer"></div>
-        <button class="head-pill"><span class="mi mi-sm">search</span> ⌘K</button>
-        <button class="head-pill"><span class="mi mi-sm">cloud_done</span> 동기화됨</button>
-        <button class="head-pill primary"><span class="mi mi-sm">add</span> 새 노트</button>
+        <div class="head-search">
+          <span class="mi">search</span>
+          <span>메모, 태그, 액션 검색…</span>
+          <span class="kbd">⌘K</span>
+        </div>
+        <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <button class="head-pill primary"><span class="mi">add</span> 새 노트</button>
       </div>
       <div class="memo-grid">
         <div class="memo-list">
@@ -1650,14 +1729,19 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
     <section class="page" data-page="mindmap">
       <div class="page-head">
         <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
-        <div>
+        <div class="page-head-title">
           <h1>마인드맵</h1>
-          <div class="page-sub">Mindmap &middot; Product Roadmap</div>
+          <span class="meta-chip">제품 로드맵</span>
         </div>
         <div class="spacer"></div>
-        <button class="head-pill"><span class="mi mi-sm">fit_screen</span> 화면 맞춤</button>
-        <button class="head-pill"><span class="mi mi-sm">link</span> 메모 연결</button>
-        <button class="head-pill primary"><span class="mi mi-sm">add</span> 노드</button>
+        <div class="head-search">
+          <span class="mi">search</span>
+          <span>노드 검색…</span>
+          <span class="kbd">⌘K</span>
+        </div>
+        <button class="head-pill"><span class="mi">fit_screen</span> 화면 맞춤</button>
+        <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <button class="head-pill primary"><span class="mi">add</span> 노드</button>
       </div>
       <div class="mm-wrap">
         <div class="mm-canvas">
@@ -1764,13 +1848,18 @@ body.dark .event-card.c-lavender .ev-time, body.dark .event-card.c-lavender .ev-
     <section class="page" data-page="calendar">
       <div class="page-head">
         <button class="m-hamburger"><span class="mi mi-sm">menu</span></button>
-        <div>
+        <div class="page-head-title">
           <h1>캘린더</h1>
-          <div class="page-sub">June 2026 &middot; Week 23</div>
+          <span class="meta-chip">6월 · 23주차</span>
         </div>
         <div class="spacer"></div>
-        <button class="head-pill"><span class="mi mi-sm">search</span> 일정 검색</button>
-        <button class="head-pill primary"><span class="mi mi-sm">add</span> 일정 추가</button>
+        <div class="head-search">
+          <span class="mi">search</span>
+          <span>일정 검색…</span>
+          <span class="kbd">⌘K</span>
+        </div>
+        <button class="sync-dot-btn" title="동기화됨"><span class="mi mi-sm">cloud_done</span></button>
+        <button class="head-pill primary"><span class="mi">add</span> 일정</button>
       </div>
 
       <div class="cal-wrap">
