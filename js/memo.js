@@ -2348,6 +2348,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// =================== CM6 체크박스 토글 핸들러 ===================
+// CM6 widget에서 호출 — pos는 '[' 위치, checked는 새 상태
+window._cmToggleCheckbox = function(pos, checked) {
+  if (!window._cm6View) return;
+  const view = window._cm6View;
+  const newText = checked ? '[x]' : '[ ]';
+  view.dispatch({
+    changes: { from: pos, to: pos + 3, insert: newText }
+  });
+  // 메모 본문은 updateListener를 통해 자동 저장됨
+};
+
 // =================== WEB LINK CLICK IN BEAR EDITOR ===================
 // CM6 안의 텍스트에서 https?:// URL을 클릭하면 새 탭 열기.
 // Cmd/Ctrl + click: 어떤 위치든 그 줄에 URL 있으면 열기
