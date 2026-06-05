@@ -453,6 +453,79 @@ body[data-theme="sunset"] {
   color: #fff; flex-shrink: 0;
   font-weight: 800;
 }
+/* 우측 햄버거 — 노트/마인드맵 페이지에서만 표시. 클릭 시 태그 드로어 */
+.header-tag-btn {
+  display: none;
+  width: 36px; height: 36px;
+  background: transparent; border: none;
+  color: var(--text);
+  border-radius: 8px;
+  align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer; padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s;
+}
+.header-tag-btn:hover { background: var(--surface3); }
+.header-tag-btn:active { background: var(--surface3); transform: scale(0.92); }
+.header-tag-btn .mi { font-size: 22px; }
+/* 노트/마인드맵 페이지일 때만 우측 햄버거 노출 — 모바일 전용 (데스크탑은 사이드바 상시) */
+@media (max-width: 768px) {
+  body.page-memo .header-tag-btn,
+  body.page-mindmap .header-tag-btn { display: inline-flex; }
+}
+
+/* 태그 드로어 — 우측 슬라이드, 클릭한 페이지의 태그 트리만 표시 */
+.tag-drawer-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.36);
+  z-index: 260;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.tag-drawer-overlay.show { display: block; }
+.tag-drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 280px;
+  max-width: 84vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border-light);
+  box-shadow: -16px 0 40px -12px rgba(0,0,0,0.18);
+  z-index: 261;
+  transform: translateX(100%);
+  transition: transform 0.26s cubic-bezier(0.32,0.72,0.16,1);
+  display: flex; flex-direction: column;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bot);
+}
+.tag-drawer.show { transform: translateX(0); }
+.tag-drawer-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-light);
+  flex-shrink: 0;
+}
+.tag-drawer-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.tag-drawer-close {
+  width: 30px; height: 30px;
+  background: transparent; border: none;
+  color: var(--text-dim);
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  transition: background .12s;
+}
+.tag-drawer-close:hover { background: var(--surface3); }
+.tag-drawer-body {
+  flex: 1; overflow-y: auto;
+  padding: 6px 4px;
+}
+/* 드로어 안에선 사이드바와 동일 스타일 적용을 위해 .sidebar-tags 클래스 활용 */
+
 /* page-head-title (mockup) — h1 + chip 한 줄 */
 .page-head-title {
   display: flex; align-items: center; gap: 10px;

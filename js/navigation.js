@@ -56,6 +56,39 @@ window.headerPrimaryAction = function() {
   const a = headerActions[currentPage];
   if (a && typeof a.fn === 'function') a.fn();
 };
+// 태그 드로어 — 노트/마인드맵 페이지에서 우측 햄버거 클릭 시
+window.toggleTagDrawer = function() {
+  const drawer = document.getElementById('tag-drawer');
+  const overlay = document.getElementById('tag-drawer-overlay');
+  if (!drawer) return;
+  const open = drawer.classList.contains('show');
+  if (open) { closeTagDrawer(); return; }
+  // 사이드바의 태그 트리(#memo-tag-bar)를 드로어로 미러
+  const src = document.getElementById('memo-tag-bar');
+  const body = document.getElementById('tag-drawer-body');
+  if (src && body) {
+    body.innerHTML = '';
+    const clone = src.cloneNode(true);
+    clone.removeAttribute('id'); // 중복 방지
+    body.appendChild(clone);
+  }
+  overlay?.classList.add('show');
+  drawer.classList.add('show');
+  // 클릭 후 자동 닫기 (한 번만 등록)
+  if (!body.__tagDrawerHandlerAttached) {
+    body.addEventListener('click', (e) => {
+      if (e.target.closest('.tag-row, .tag-tree-header')) {
+        setTimeout(closeTagDrawer, 120);
+      }
+    });
+    body.__tagDrawerHandlerAttached = true;
+  }
+};
+window.closeTagDrawer = function() {
+  document.getElementById('tag-drawer')?.classList.remove('show');
+  document.getElementById('tag-drawer-overlay')?.classList.remove('show');
+};
+
 window.openCommandPalette = window.openCommandPalette || (function() {
   // ⌘K 명령 팔레트 진입점이 다른 파일에 있을 수 있으니 fallback
   return function() {
@@ -89,6 +122,9 @@ function navigateTo(page, opts) {
   document.getElementById('page-title').textContent = pages[page];
   currentPage = page;
   applyHeaderForPage(page);
+  // body에 페이지별 클래스 — 헤더 우측 햄버거(태그 드로어) 노출 조건 등
+  Object.keys(pages).forEach(p => document.body.classList.remove('page-' + p));
+  document.body.classList.add('page-' + page);
 
   // memo/mindmap 분리: 페이지 진입 시 노트 타입 필터 강제
   if (page === 'mindmap') {
