@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260605e">
+<link rel="stylesheet" href="styles.css?v=20260605f">
 </head>
 <body>
 <div class="app">
@@ -155,6 +155,10 @@
       <!-- ===== NOTES PAGE (memo + mindmap unified) ===== -->
       <div class="page active" id="page-memo">
         <div class="memo-page" id="memo-page">
+          <!-- 패널 닫힌 상태에서 다시 열기 — 메모/마인드맵/empty 어떤 상태든 일관 -->
+          <button class="memo-list-reopen-floating" onclick="togglePanel('memo-page')" title="목록 열기" aria-label="목록 열기">
+            <span class="mi mi-sm">chevron_right</span>
+          </button>
           <div class="memo-list">
             <div class="memo-list-header">
               <div class="memo-list-title-row">
@@ -163,7 +167,7 @@
                 <button class="panel-collapse-btn" onclick="showNoteCreateMenu(this)" title="새 노트" aria-label="새 노트" style="margin-left:auto;">
                   <span class="mi mi-sm">add</span>
                 </button>
-                <button class="panel-collapse-btn" onclick="toggleMemoSelectMode()" title="여러 개 선택" aria-label="여러 개 선택" style="margin-left:3px;">
+                <button class="panel-collapse-btn" id="memo-select-toggle-btn" onclick="toggleMemoSelectMode()" title="여러 개 선택" aria-label="여러 개 선택" style="margin-left:3px;">
                   <span class="mi mi-sm">checklist</span>
                 </button>
                 <button class="panel-collapse-btn" onclick="togglePanel('memo-page')" title="목록 닫기" aria-label="목록 닫기" style="margin-left:3px;">
@@ -646,7 +650,7 @@
 <script src="js/navigation.js?v=20260605a" defer></script>
 <script src="js/mindmap.js?v=20260605c" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
-<script src="js/memo.js?v=20260605e" defer></script>
+<script src="js/memo.js?v=20260605f" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->
 <div class="m-bottom-tabs" id="m-bottom-tabs">
   <button class="m-tab-btn active" data-page="memo" aria-label="노트">
