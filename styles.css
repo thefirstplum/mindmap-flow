@@ -3443,21 +3443,22 @@ body[data-theme="charcoal"] .m-bottom-tabs {
 /* ── Mobile ≤ 768px ── */
 @media (max-width: 768px) {
 
-  /* App shell — schedule 패턴: viewport 풀폭, safe-area는 헤더·fixed bar에서 처리 */
-  .app { flex-direction: column; padding: 0; }
+  /* App shell — schedule 패턴: body bg가 노치 영역 채우고, .app은 safe-area 안에 */
+  .app {
+    flex-direction: column;
+    padding-top: var(--safe-top);  /* ⬅ 상단 노치는 .app(=body bg)에서 처리, 헤더는 노치 아래 */
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
   .main {
     order: 1;
     padding-top: 0;
     padding-bottom: 0;
     background: var(--bg);
   }
-  /* 헤더가 노치(상단 safe-area) 직접 처리 — 더 이상 .main padding-top에 의존 안 함 */
-  .header {
-    padding-top: var(--safe-top);
-    /* height에 safe-top 더해서 시각적 헤더 사이즈는 그대로 유지 */
-    height: calc(50px + var(--safe-top));
-  }
-  /* 하단 floating tab에 가려지지 않도록 스크롤 가능 영역 자체에 여백 */
+  /* 헤더는 본래 사이즈 그대로 — 노치 영역은 .app padding으로 처리 */
+  .header { height: 50px; padding-top: 0; }
+  /* 하단 fixed bar에 가려지지 않도록 스크롤 가능 영역 자체에 여백 */
   .cal-mobile { padding-bottom: calc(100px + var(--safe-bot)) !important; }
 
   /* Header */
@@ -4318,6 +4319,13 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
   .cal-today-btn { padding: 4px 10px; font-size: 11px; }
   .cal-today-btn .label-text { display: none; }
   .week-range { font-size: 16px; }
+  /* 모바일 cal-mobile 안 토글 — 풀폭 + 살짝 큰 padding */
+  .cal-mobile .mob-cal-mode-seg {
+    margin: 4px 14px 10px;
+    width: calc(100% - 28px);
+    justify-content: center;
+  }
+  .cal-mobile .mob-cal-mode-seg button { flex: 1; padding: 6px 8px; font-size: 12px; }
 }
 
 .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }
