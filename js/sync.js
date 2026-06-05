@@ -130,6 +130,8 @@ function openSyncModal() {
   updateFolderStatus();
   refreshBackupList();
   refreshStorageUsage();
+  // Google Calendar 섹션 상태 동기화
+  if (typeof renderGCalSection === 'function') renderGCalSection();
   if (!isFsApiSupported()) {
     const folderEl = document.getElementById('folder-status');
     if (folderEl) {
