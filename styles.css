@@ -901,13 +901,27 @@ body.tag-drawer-open .header-tag-btn {
   font-size: 14px;
   outline: none;
   transition: border-color 0.15s;
+  font-family: inherit;
+  line-height: 1.3;
+}
+/* iOS Safari의 native time·date input이 다른 input보다 시각적으로 더 길어 보이던 문제 */
+.modal input[type="time"],
+.modal input[type="date"],
+.modal input[type="datetime-local"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 38px;             /* 다른 input과 동일한 높이 보장 */
+  padding: 0 13px;          /* native control은 vertical padding 무시 → height로 통제 */
+  text-align: left;
+  min-height: 0;
 }
 .modal input:focus, .modal select:focus, .modal textarea:focus {
   border-color: var(--accent);
 }
 .modal textarea { resize: vertical; min-height: 70px; }
-.modal .time-row-input { display: flex; gap: 10px; }
-.modal .time-row-input > div { flex: 1; }
+/* 시작/종료 — grid로 정확히 1:1 균등 분할 (flex보다 안정) */
+.modal .time-row-input { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.modal .time-row-input > div { min-width: 0; }
 .modal-actions {
   display: flex; gap: 8px;
   margin-top: 22px; justify-content: flex-end;
