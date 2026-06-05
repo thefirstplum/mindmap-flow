@@ -163,6 +163,7 @@ const THEMES_META = [
   { key: 'book',       label: '책 (Book)',         dots: ['#F4ECD8', '#7C5C3A', '#A8784C'] },
   { key: 'handwritten',label: '손글씨 (꾸꾸꾹)',     dots: ['#FDF8EE', '#B36B5A', '#D89A6B'] },
   { section: '다크' },
+  { key: 'midnight',   label: 'Midnight',        dots: ['#0E0E10', '#5B8DEF', '#A78BFA'] },
   { key: 'dracula',    label: 'Dracula',         dots: ['#282A36', '#FF79C6', '#BD93F9'] },
   { key: 'gotham',     label: 'Gotham',          dots: ['#0A1019', '#4A8FD4', '#95C8E8'] },
   { key: 'forest',     label: 'Forest',          dots: ['#1A2620', '#79B36F', '#C9A85C'] },
