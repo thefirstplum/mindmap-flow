@@ -934,13 +934,16 @@ document.addEventListener('click', e => {
   if (!e.target.closest('#mm-color-popup') && !e.target.closest('#mm-color-btn')) closeMmColorPicker();
 });
 
-// Palette shown in the node action bar — 사장님 요청: 색상 줄임 (11 → 5개 대표)
+// Palette shown in the node action bar — 사장님 요청: 8개
 const NAB_COLORS = [
   { c: '#d33682', l: '마젠타' },
   { c: '#cb4b16', l: '오렌지' },
   { c: '#b58900', l: '옐로우' },
   { c: '#859900', l: '그린' },
+  { c: '#2aa198', l: '시안' },
   { c: '#268bd2', l: '블루' },
+  { c: '#7c3aed', l: '퍼플' },
+  { c: '#475569', l: '슬레이트' },
 ];
 
 function initNodeActionBar() {
