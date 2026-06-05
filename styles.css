@@ -13,6 +13,7 @@
 }
 html, body {
   height: 100%; overflow: hidden; overscroll-behavior: none;
+  background: var(--bg);  /* iOS Safari에서 .app 밖 영역(safe-area·홈바)에도 색 채움 */
 }
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
@@ -281,6 +282,10 @@ body[data-theme="sunset"] {
 .app {
   display: flex;
   height: 100dvh;
+  /* iOS Safari fallback — 일부 버전에서 100dvh가 짧게 잡혀 하단에 빈 공간 */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  background: var(--bg);
   padding-top: var(--safe-top);
   padding-left: var(--safe-left);
   padding-right: var(--safe-right);
