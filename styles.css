@@ -2468,14 +2468,14 @@ body[data-theme="sunset"] {
 .memo-editor textarea {
   flex: 1; padding: 22px 26px;
   background: transparent; border: none; color: var(--text);
-  font-size: 17px; line-height: 1.85; outline: none; resize: none;
+  font-size: 16px; line-height: 1.85; outline: none; resize: none;
 }
 .memo-editor textarea::placeholder { color: var(--text-mute); }
 
 /* Markdown preview */
 .markdown-body {
   flex: 1; padding: 22px 26px;
-  overflow-y: auto; font-size: 15px; line-height: 1.75;
+  overflow-y: auto; font-size: 14px; line-height: 1.75;
   color: var(--text);
   -webkit-user-select: text; user-select: text;
 }
@@ -2546,7 +2546,7 @@ body[data-theme="sunset"] {
 .bear-editor {
   flex: 1; padding: 22px 26px;
   background: transparent; color: var(--text);
-  outline: none; font-size: 16.5px; line-height: 1.78;
+  outline: none; font-size: 15.5px; line-height: 1.78;
   overflow-y: auto;
   -webkit-user-select: text; user-select: text;
   white-space: pre-wrap; word-wrap: break-word;
@@ -2617,7 +2617,7 @@ body[data-theme="sunset"] {
 #memo-live-editor .cm-content {
   padding: 0 48px 80px;
   max-width: 808px;
-  font-size: 16px;
+  font-size: 15px;
 }
 #memo-live-editor .cm-line {
   min-height: 32px;
