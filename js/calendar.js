@@ -374,16 +374,28 @@ function _gcalEventsInRange(dayStart, dayEnd) {
 // 캘린더 모드 변경 — 토글 클릭 핸들러
 function setCalendarModeAndRefresh(mode) {
   if (typeof window.gcal === 'undefined') return;
-  // 토글 활성 표시
+  // 토글 활성 표시 (데스크탑·모바일 둘 다)
   document.querySelectorAll('.cal-mode-seg button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
   window.gcal.setMode(mode);
+  // 'google'/'all' 모드 + 연동 꺼져있으면 자동으로 켜기 (사용자가 명시적으로 누른 의도)
+  if ((mode === 'google' || mode === 'all') && !window.gcal.enabled) {
+    window.gcal.setEnabled(true);
+  }
   if ((mode === 'google' || mode === 'all') && window.gcal.enabled) {
+    // 인증 없으면 자동 토큰 요청까지 시도
+    if (typeof driveClient !== 'undefined' && !driveClient.hasValidToken()) {
+      toast('Google 인증 중...', 'info');
+      driveClient.ensureToken().then(() => {
+        refreshGCalEventsForVisibleWeek();
+      }).catch(() => {
+        toast('Google 동기화 버튼을 한번 눌러 연결해주세요', 'error');
+        renderCalendar();
+      });
+      return;
+    }
     refreshGCalEventsForVisibleWeek();
-  } else if (mode === 'google' && !window.gcal.enabled) {
-    toast('먼저 동기화 모달에서 Google Calendar 연동을 켜주세요', 'info');
-    renderCalendar();
   } else {
     renderCalendar();
   }
@@ -396,6 +408,11 @@ async function refreshGCalEventsForVisibleWeek() {
     return;
   }
   try {
+    // 캘린더 목록 / 선택된 ids가 없으면 자동 fetch (모바일 첫 진입 케이스)
+    // — 데스크탑 localStorage와 별도라 모바일 처음엔 비어있음
+    if (window.gcal.selectedIds.length === 0) {
+      await window.gcal.fetchCalendarList();
+    }
     const start = new Date(calWeekStart);
     start.setHours(0, 0, 0, 0);
     const end = _calAddDays(calWeekStart, 7);
@@ -405,8 +422,10 @@ async function refreshGCalEventsForVisibleWeek() {
     console.warn('[GCal] week fetch failed:', e);
     if (e.status === 401 || e.status === 403) {
       toast('Google 인증이 만료됐어요. 동기화 버튼을 눌러주세요', 'error');
+    } else if (e.status === 404) {
+      toast('Calendar API가 활성화 안 됐어요 (Cloud Console 확인)', 'error');
     } else {
-      toast('Google 일정 가져오기 실패', 'error');
+      toast('Google 일정 가져오기 실패: ' + (e.message || ''), 'error');
     }
   }
   renderCalendar();
@@ -627,6 +646,16 @@ function _renderMobileCal() {
   const _pad = n => String(n).padStart(2, '0');
   const weekLabel = `${_pad(calWeekStart.getMonth()+1)}.${_pad(calWeekStart.getDate())} — ${_pad(wsEnd.getDate())}`;
 
+  // 모바일에도 모드 토글 — 데스크탑과 동일 (사장님 보고: 모바일에서 Google 일정 안 나옴 원인)
+  const _curMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
+  const modeSeg = `
+    <div class="cal-mode-seg mob-cal-mode-seg" id="mob-cal-mode-seg" role="tablist">
+      <button ${_curMode==='all'?'class="active"':''} data-mode="all" onclick="setCalendarModeAndRefresh('all')">전체</button>
+      <button ${_curMode==='mine'?'class="active"':''} data-mode="mine" onclick="setCalendarModeAndRefresh('mine')">내 일정</button>
+      <button ${_curMode==='google'?'class="active"':''} data-mode="google" onclick="setCalendarModeAndRefresh('google')">Google</button>
+    </div>
+  `;
+
   el.innerHTML = `
     <div class="mob-cal-month-row">
       <button class="mob-week-nav" onclick="calPrevWeek()" aria-label="이전 주">
@@ -643,6 +672,7 @@ function _renderMobileCal() {
         <span class="mi mi-sm">today</span>
       </button>
     </div>
+    ${modeSeg}
     ${slider}
     ${head}
     <div class="mob-timeline">${timeCol}${dayCol}</div>
