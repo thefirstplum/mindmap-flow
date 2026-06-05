@@ -83,7 +83,21 @@ function navigateTo(page, opts) {
     }
   }
 
-  if (page === 'calendar') { renderCalendar(); renderCalDetail(); }
+  if (page === 'calendar') {
+    renderCalendar();
+    renderCalDetail();
+    // Google 모드면 보이는 주 일정 자동 fetch
+    if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
+      if (typeof refreshGCalEventsForVisibleWeek === 'function') refreshGCalEventsForVisibleWeek();
+    }
+    // 토글 UI 활성 표시 복원
+    if (typeof window.gcal !== 'undefined') {
+      const mode = window.gcal.mode;
+      document.querySelectorAll('.cal-mode-seg button').forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === mode);
+      });
+    }
+  }
   if (page === 'routine' && typeof renderRoutinePage === 'function') renderRoutinePage();
   if (page === 'memo' || page === 'mindmap') {
     // The notes page hosts the mindmap canvas — if a mindmap note is open,
