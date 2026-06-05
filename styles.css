@@ -1941,7 +1941,27 @@ body[data-theme="sunset"] {
 /* ────────────────────────────────────────────────────────────────
    §10  MEMO / EDITOR
    ──────────────────────────────────────────────────────────────── */
-.memo-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; }
+.memo-page { display: flex; flex-direction: row; width: 100%; height: 100%; overflow: hidden; position: relative; }
+
+/* list-collapsed 상태에서 페이지 좌측에 다시 열기 floating 버튼 — 어떤 상태에서도 일관되게 보임 */
+.memo-list-reopen-floating {
+  display: none;
+  position: absolute;
+  top: 14px; left: 14px;
+  z-index: 30;
+  width: 32px; height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  color: var(--text-dim);
+  align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -8px rgba(0,0,0,0.14);
+  transition: background .12s, color .12s, transform .08s;
+}
+.memo-list-reopen-floating:hover { background: var(--accent-glow); color: var(--accent); }
+.memo-list-reopen-floating:active { transform: scale(0.94); }
+.memo-page.list-collapsed .memo-list-reopen-floating { display: inline-flex; }
 
 /* ── Unified notes page: detail pane swaps text-editor ↔ mindmap canvas ── */
 #mm-canvas-wrap { display: none; }
@@ -2237,30 +2257,135 @@ body[data-theme="sunset"] {
   background: var(--accent2);
   border-color: var(--accent2);
 }
+/* 선택 모드 toolbar — 정렬바·헤더와 동일 톤 (capsule + bg-soft) */
 .memo-select-bar {
   display: flex; gap: 6px; align-items: center;
-  padding: 8px 12px;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
+  padding: 8px 14px 9px;
+  background: var(--bg-soft, var(--surface2));
+  border-bottom: 1px solid var(--border-light);
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.memo-select-bar::-webkit-scrollbar { display: none; }
 .memo-select-count {
-  font-size: 12px; font-weight: 600; color: var(--text);
-  margin-right: auto;
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-glow);
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  margin-right: 4px;
+  white-space: nowrap;
 }
 .memo-select-btn {
-  font-size: 12px; padding: 6px 10px;
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 700;
+  padding: 5px 10px;
   border: 1px solid var(--border);
   background: var(--surface);
-  color: var(--text);
-  border-radius: 6px;
+  color: var(--text-dim);
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: 1.3;
   cursor: pointer;
-  transition: background 0.12s;
+  font-family: inherit;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, color .12s, border-color .12s, transform .08s;
 }
-.memo-select-btn:hover { background: var(--surface3); }
-.memo-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.memo-select-btn.danger { color: var(--red); border-color: var(--red); }
-.memo-select-btn.danger:hover { background: var(--red); color: #fff; }
+.memo-select-btn .mi { font-size: 13px; line-height: 1; }
+.memo-select-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--surface); }
+.memo-select-btn:active { transform: scale(0.94); }
+.memo-select-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.memo-select-btn:disabled:hover { color: var(--text-dim); border-color: var(--border); }
+.memo-select-btn.danger { color: var(--red); border-color: rgba(212,95,90,0.45); }
+.memo-select-btn.danger:hover { background: var(--red); color: #fff; border-color: var(--red); }
+
+/* 선택 모드 진입 버튼 — active 상태일 때 accent 강조 */
+.panel-collapse-btn.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.panel-collapse-btn.active:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+
+/* + 새 노트 액션 시트 — 메모/마인드맵 분기 (confirm 대신 깔끔한 sheet) */
+.note-create-sheet-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.34);
+  z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.note-create-sheet-overlay.show { opacity: 1; pointer-events: auto; }
+.note-create-sheet {
+  background: var(--surface);
+  border-radius: 18px;
+  padding: 18px 16px 14px;
+  width: min(360px, calc(100% - 32px));
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 20px 60px -20px rgba(0,0,0,0.32);
+  transform: scale(0.96);
+  transition: transform .18s;
+  border: 1px solid var(--border-light);
+}
+.note-create-sheet-overlay.show .note-create-sheet { transform: scale(1); }
+.note-create-sheet-title {
+  font-size: 11px; font-weight: 700;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0 6px 6px;
+}
+.note-create-sheet-btn {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background .12s, border-color .12s, transform .08s;
+}
+.note-create-sheet-btn:hover { background: var(--accent-glow); border-color: var(--accent); }
+.note-create-sheet-btn:active { transform: scale(0.98); }
+.note-create-sheet-btn .mi {
+  font-size: 24px; color: var(--accent);
+  flex-shrink: 0;
+}
+.note-create-sheet-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.note-create-sheet-text .ncs-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.note-create-sheet-text .ncs-sub {
+  font-size: 11.5px; color: var(--text-mute);
+  letter-spacing: 0.02em;
+}
+.note-create-sheet-cancel {
+  margin-top: 4px;
+  padding: 11px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-mute);
+  font-size: 13px; font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s;
+}
+.note-create-sheet-cancel:hover { background: var(--surface3); color: var(--text); }
 
 /* Mobile: bigger touch targets for bulk select toolbar */
 @media (max-width: 768px) {
