@@ -1,5 +1,6 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
-const pages = { memo: '노트', mindmap: '마인드맵', calendar: '캘린더', routine: '루틴', ledger: '가계부', journal: '감정일기' };
+// 루틴 제거 (2026-06-05 사장님 결정)
+const pages = { memo: '노트', mindmap: '마인드맵', calendar: '캘린더', ledger: '가계부', journal: '감정일기' };
 
 // Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
 const headerActions = {
@@ -27,7 +28,6 @@ const headerActions = {
     }
     if (typeof openTbModal === 'function') openTbModal('add');
   } },
-  routine:  { label: '루틴',        fn: () => (typeof openRoutineModal === 'function' && openRoutineModal()) },
   journal:  { label: '오늘',        fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
   ledger:   { label: '추가',        fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
 };
@@ -37,7 +37,6 @@ const headerSearchPlaceholder = {
   memo:     '메모, 태그, 액션 검색…',
   mindmap:  '마인드맵 검색…',
   calendar: '일정 검색…',
-  routine:  '루틴 검색…',
   journal:  '일기 검색…',
   ledger:   '거래 검색…',
 };
@@ -120,7 +119,6 @@ function navigateTo(page, opts) {
       });
     }
   }
-  if (page === 'routine' && typeof renderRoutinePage === 'function') renderRoutinePage();
   if (page === 'memo' || page === 'mindmap') {
     // The notes page hosts the mindmap canvas — if a mindmap note is open,
     // its canvas needs a resize once this page becomes visible.
