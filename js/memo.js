@@ -177,6 +177,11 @@ function cycleMemoSort() {
 function setNoteTypeFilter(t) {
   noteTypeFilter = t;
   save('note_type_filter', t);
+  // 페이지 자동 연동 — '마인드맵' 누르면 마인드맵 페이지, '메모'/'전체' 누르면 노트 페이지
+  if (typeof navigateTo === 'function') {
+    if (t === 'mindmap' && currentPage !== 'mindmap') { navigateTo('mindmap'); return; }
+    if ((t === 'memo' || t === 'all') && currentPage === 'mindmap') { navigateTo('memo'); return; }
+  }
   renderMemoList();
 }
 
@@ -200,37 +205,15 @@ function togglePinNote(type, id, ev) {
 // Back-compat alias for text memos
 function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
-// "+ 새 노트" — 메모/마인드맵 분기 액션 시트 (취소 가능)
+// "+ 새 노트" — 현재 페이지 컨텍스트에 맞춰 바로 생성 (마인드맵 페이지 분리됨)
+// 사장님 결정: 사이드바 nav에 마인드맵 메뉴 분리 → 페이지가 곧 타입이므로
+// confirm/sheet 불필요. 메모 페이지 → 메모, 마인드맵 페이지 → 마인드맵.
 function showNoteCreateMenu(anchor) {
-  // 이미 떠있으면 닫기
-  const existing = document.getElementById('note-create-sheet');
-  if (existing) { existing.remove(); return; }
-  const overlay = document.createElement('div');
-  overlay.id = 'note-create-sheet';
-  overlay.className = 'note-create-sheet-overlay';
-  overlay.innerHTML = `
-    <div class="note-create-sheet" onclick="event.stopPropagation()">
-      <div class="note-create-sheet-title">새로 만들기</div>
-      <button class="note-create-sheet-btn" onclick="_chooseNoteCreate('memo')">
-        <span class="mi">edit_note</span>
-        <div class="note-create-sheet-text">
-          <div class="ncs-title">메모</div>
-          <div class="ncs-sub">텍스트 + 마크다운</div>
-        </div>
-      </button>
-      <button class="note-create-sheet-btn" onclick="_chooseNoteCreate('mindmap')">
-        <span class="mi">account_tree</span>
-        <div class="note-create-sheet-text">
-          <div class="ncs-title">마인드맵</div>
-          <div class="ncs-sub">노드·연결 다이어그램</div>
-        </div>
-      </button>
-      <button class="note-create-sheet-cancel" onclick="_closeNoteCreateSheet()">취소</button>
-    </div>
-  `;
-  overlay.addEventListener('click', e => { if (e.target === overlay) _closeNoteCreateSheet(); });
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.classList.add('show'));
+  if (typeof currentPage !== 'undefined' && currentPage === 'mindmap') {
+    if (typeof createMindmap === 'function') createMindmap();
+    return;
+  }
+  if (typeof createMemo === 'function') createMemo();
 }
 window.showNoteCreateMenu = showNoteCreateMenu;
 

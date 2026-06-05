@@ -1,18 +1,20 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
-const pages = { memo: '노트', calendar: '캘린더', routine: '루틴', ledger: '가계부', journal: '감정일기' };
+const pages = { memo: '노트', mindmap: '마인드맵', calendar: '캘린더', routine: '루틴', ledger: '가계부', journal: '감정일기' };
 
 // Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
 const headerActions = {
-  memo:     { label: '새 노트',  fn: () => (typeof showNoteCreateMenu === 'function' ? showNoteCreateMenu(document.getElementById('header-action-pill')) : (typeof createMemo === 'function' && createMemo())) },
-  calendar: { label: '일정',     fn: () => (typeof openTbModal === 'function' && openTbModal('add')) },
-  routine:  { label: '루틴',     fn: () => (typeof openRoutineModal === 'function' && openRoutineModal()) },
-  journal:  { label: '오늘',     fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
-  ledger:   { label: '추가',     fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
+  memo:     { label: '새 메모',     fn: () => (typeof createMemo === 'function' && createMemo()) },
+  mindmap:  { label: '새 마인드맵', fn: () => (typeof createMindmap === 'function' && createMindmap()) },
+  calendar: { label: '일정',        fn: () => (typeof openTbModal === 'function' && openTbModal('add')) },
+  routine:  { label: '루틴',        fn: () => (typeof openRoutineModal === 'function' && openRoutineModal()) },
+  journal:  { label: '오늘',        fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
+  ledger:   { label: '추가',        fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
 };
 
 // Header search-pill placeholder per page
 const headerSearchPlaceholder = {
   memo:     '메모, 태그, 액션 검색…',
+  mindmap:  '마인드맵 검색…',
   calendar: '일정 검색…',
   routine:  '루틴 검색…',
   journal:  '일기 검색…',
@@ -60,15 +62,30 @@ function navigateTo(page, opts) {
   // 모바일 하단 탭바 active 상태 동기화
   document.querySelectorAll('.m-tab-btn[data-page]').forEach(b =>
     b.classList.toggle('active', b.dataset.page === page));
+  // memo·mindmap은 같은 DOM(#page-memo)를 공유 — 필터·헤더만 분기
+  const domPage = (page === 'mindmap') ? 'memo' : page;
   document.querySelectorAll('.page').forEach(p =>
-    p.classList.toggle('active', p.id === 'page-' + page));
+    p.classList.toggle('active', p.id === 'page-' + domPage));
   document.getElementById('page-title').textContent = pages[page];
   currentPage = page;
   applyHeaderForPage(page);
 
+  // memo/mindmap 분리: 페이지 진입 시 노트 타입 필터 강제
+  if (page === 'mindmap') {
+    if (typeof noteTypeFilter !== 'undefined' && noteTypeFilter !== 'mindmap') {
+      noteTypeFilter = 'mindmap';
+      try { localStorage.setItem('mindflow_note_type_filter', JSON.stringify('mindmap')); } catch {}
+    }
+  } else if (page === 'memo') {
+    if (typeof noteTypeFilter !== 'undefined' && noteTypeFilter === 'mindmap') {
+      noteTypeFilter = 'memo';
+      try { localStorage.setItem('mindflow_note_type_filter', JSON.stringify('memo')); } catch {}
+    }
+  }
+
   if (page === 'calendar') { renderCalendar(); renderCalDetail(); }
   if (page === 'routine' && typeof renderRoutinePage === 'function') renderRoutinePage();
-  if (page === 'memo') {
+  if (page === 'memo' || page === 'mindmap') {
     // The notes page hosts the mindmap canvas — if a mindmap note is open,
     // its canvas needs a resize once this page becomes visible.
     if (typeof resizeCanvas === 'function') requestAnimationFrame(resizeCanvas);
