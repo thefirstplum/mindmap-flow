@@ -282,13 +282,12 @@ body[data-theme="sunset"] {
 .app {
   display: flex;
   height: 100dvh;
-  /* iOS Safari fallback — 일부 버전에서 100dvh가 짧게 잡혀 하단에 빈 공간 */
+  /* iOS Safari fallback */
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: var(--bg);
-  padding-top: var(--safe-top);
-  padding-left: var(--safe-left);
-  padding-right: var(--safe-right);
+  /* safe-area padding은 .app에서 하지 않음 — schedule 패턴.
+     body/html 배경이 노치까지 채우고, 헤더·fixed bar가 자체 safe-area 처리. */
 }
 .main {
   flex: 1;
@@ -3458,13 +3457,19 @@ body[data-theme="charcoal"] .m-tab-btn.active {
 /* ── Mobile ≤ 768px ── */
 @media (max-width: 768px) {
 
-  /* App shell — schedule 앱처럼 하단까지 본문 확장 (safe-area는 내부 스크롤 영역이 처리) */
+  /* App shell — schedule 패턴: viewport 풀폭, safe-area는 헤더·fixed bar에서 처리 */
   .app { flex-direction: column; padding: 0; }
   .main {
     order: 1;
-    padding-top: var(--safe-top);
-    padding-bottom: 0;  /* ⬅ 사장님 보고: 하단까지 영역 확장 — padding-bottom 제거 */
+    padding-top: 0;
+    padding-bottom: 0;
     background: var(--bg);
+  }
+  /* 헤더가 노치(상단 safe-area) 직접 처리 — 더 이상 .main padding-top에 의존 안 함 */
+  .header {
+    padding-top: var(--safe-top);
+    /* height에 safe-top 더해서 시각적 헤더 사이즈는 그대로 유지 */
+    height: calc(50px + var(--safe-top));
   }
   /* 하단 floating tab에 가려지지 않도록 스크롤 가능 영역 자체에 여백 */
   .cal-mobile { padding-bottom: calc(100px + var(--safe-bot)) !important; }
