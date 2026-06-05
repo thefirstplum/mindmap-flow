@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260605z">
+<link rel="stylesheet" href="styles.css?v=20260606a">
 </head>
 <body>
 <div class="app">
@@ -195,8 +195,8 @@
       <div class="page active" id="page-memo">
         <div class="memo-page" id="memo-page">
           <!-- 패널 닫힌 상태에서 다시 열기 — 메모/마인드맵/empty 어떤 상태든 일관 -->
-          <button class="memo-list-reopen-floating" onclick="togglePanel('memo-page')" title="목록 열기" aria-label="목록 열기">
-            <span class="mi mi-sm">chevron_right</span>
+          <button class="memo-list-reopen-floating" onclick="_reopenMemoList()" title="목록 열기" aria-label="목록 열기">
+            <span class="mi mi-sm">chevron_left</span>
           </button>
           <div class="memo-list">
             <div class="memo-list-header">
@@ -720,7 +720,7 @@
 <script src="js/navigation.js?v=20260605v" defer></script>
 <script src="js/mindmap.js?v=20260605c" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
-<script src="js/memo.js?v=20260605f" defer></script>
+<script src="js/memo.js?v=20260606a" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->
 <div class="m-bottom-tabs" id="m-bottom-tabs">
   <button class="m-tab-btn active" data-page="memo" aria-label="노트">

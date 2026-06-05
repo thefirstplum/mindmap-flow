@@ -205,6 +205,21 @@ function togglePinNote(type, id, ev) {
 // Back-compat alias for text memos
 function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
+// Floating reopen — 데스크탑(list-collapsed)·모바일(show-editor) 둘 다 처리
+window._reopenMemoList = function() {
+  const page = document.getElementById('memo-page');
+  if (!page) return;
+  if (page.classList.contains('show-editor')) {
+    // 모바일 — 메모/마인드맵 슬라이드 인 상태 → 리스트로
+    if (typeof backToList === 'function') { backToList(); return; }
+    page.classList.remove('show-editor');
+  } else if (page.classList.contains('list-collapsed')) {
+    // 데스크탑 — 패널 닫힌 상태 → 다시 열기
+    if (typeof togglePanel === 'function') togglePanel('memo-page');
+    else page.classList.remove('list-collapsed');
+  }
+};
+
 // "+ 새 노트" — 현재 페이지 컨텍스트에 맞춰 바로 생성 (마인드맵 페이지 분리됨)
 // 사장님 결정: 사이드바 nav에 마인드맵 메뉴 분리 → 페이지가 곧 타입이므로
 // confirm/sheet 불필요. 메모 페이지 → 메모, 마인드맵 페이지 → 마인드맵.

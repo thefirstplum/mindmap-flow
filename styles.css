@@ -2135,7 +2135,21 @@ body.tag-drawer-open .header-tag-btn {
 }
 .memo-list-reopen-floating:hover { background: var(--accent-glow); color: var(--accent); }
 .memo-list-reopen-floating:active { transform: scale(0.94); }
-.memo-page.list-collapsed .memo-list-reopen-floating { display: inline-flex; }
+/* 데스크탑(list-collapsed) + 모바일(show-editor, 메모/마인드맵 슬라이드 인) 둘 다 노출 */
+.memo-page.list-collapsed .memo-list-reopen-floating,
+.memo-page.show-editor .memo-list-reopen-floating { display: inline-flex; }
+
+/* 인라인 .panel-reopen-btn / .memo-back은 .memo-page에서 hide
+   (.memo-list-reopen-floating으로 단일화 — 사장님 보고: 데스크탑 2개 / 모바일 없음) */
+.memo-page .memo-editor .panel-reopen-btn,
+.memo-page .memo-editor .memo-back,
+.memo-page #mm-canvas-wrap > .memo-editor-toolbar .panel-reopen-btn,
+.memo-page #mm-canvas-wrap > .memo-editor-toolbar .memo-back { display: none !important; }
+
+@media (max-width: 768px) {
+  /* 모바일 — memo-editor / mm-canvas-wrap이 슬라이드 인이라 floating을 그 위로 */
+  .memo-list-reopen-floating { z-index: 50; top: 10px; left: 10px; }
+}
 
 /* ── Unified notes page: detail pane swaps text-editor ↔ mindmap canvas ── */
 #mm-canvas-wrap { display: none; }
