@@ -163,6 +163,17 @@ function navigateTo(page, opts) {
   }
 
   if (page === 'calendar') {
+    // 페이지 진입 시 오래된 selectedKey면 today로 자동 리셋 (사장님 보고: 모바일에서 5월로 나옴)
+    if (typeof calSelectedKey !== 'undefined' && typeof dateKey === 'function') {
+      const todayK = dateKey(new Date());
+      if (calSelectedKey !== todayK && typeof calGoToday === 'function') {
+        // 선택일이 이번 주에 안 들어있으면(다른 주를 보고 있던 거면) today로 이동
+        const sel = new Date(calSelectedKey);
+        const ws = (typeof calWeekStart !== 'undefined') ? calWeekStart : sel;
+        const we = (typeof _calAddDays === 'function') ? _calAddDays(ws, 6) : new Date(ws.getTime() + 6*86400000);
+        if (sel < ws || sel > we) calGoToday();
+      }
+    }
     renderCalendar();
     renderCalDetail();
     // 'google' 또는 '전체' 모드면 보이는 주 일정 자동 fetch

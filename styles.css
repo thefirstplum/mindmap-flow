@@ -3285,7 +3285,7 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: calc(60px + var(--safe-bot));
+  height: calc(52px + var(--safe-bot));  /* 60 → 52 (사장님 보고: schedule보다 여백 높음) */
   padding: 0 4px var(--safe-bot);  /* 안쪽 컨텐츠는 safe 영역 위로 */
   background: var(--surface);
   border-top: 1px solid var(--border-light);
@@ -3317,21 +3317,21 @@ body[data-theme="charcoal"] .m-bottom-tabs {
   color: var(--text-mute);
   font-family: inherit;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  flex: 1; height: 60px;
+  flex: 1; height: 52px;
   border-radius: 8px;
   padding: 0 4px;
-  gap: 2px;
+  gap: 1px;
   transition: color 0.18s, background 0.18s;
   position: relative;
 }
 .m-tab-btn .mi {
-  font-size: 22px;
+  font-size: 20px;
   transition: transform 0.18s cubic-bezier(0.32,0.72,0.16,1);
   line-height: 1;
 }
 .m-tab-btn .label {
   display: block;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.1;
