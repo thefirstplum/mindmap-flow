@@ -4529,6 +4529,50 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
 }
 
 /* ────────────────────────────────────────────────────────────────
+   §  CALENDAR — 모드 토글 + Google 일정 카드
+   ──────────────────────────────────────────────────────────────── */
+.cal-mode-seg {
+  display: inline-flex; flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+  padding: 2px;
+  gap: 2px;
+  margin-right: 6px;
+}
+.cal-mode-seg button {
+  background: transparent; border: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--text-mute); cursor: pointer;
+  font-family: inherit;
+  transition: background .12s, color .12s;
+}
+.cal-mode-seg button.active {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
+.cal-mode-seg button:hover:not(.active) { color: var(--text); }
+
+/* Google 이벤트 카드 — 캘린더 색 base + opacity 배경 + 좌측 strip */
+.event-card.gcal-event {
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+.event-card.gcal-allday {
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+/* ────────────────────────────────────────────────────────────────
    §  MEMO — 정렬 / 고정
    ──────────────────────────────────────────────────────────────── */
 #memo-tag-bar { display: flex; flex-direction: column; }

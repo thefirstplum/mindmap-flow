@@ -154,19 +154,51 @@ function _renderWeekGrid() {
     let inner = '';
     for (let h = START_H; h <= END_H; h++) inner += '<div class="hour-line"></div>';
 
-    // 이벤트 카드 — timeBlocks[k]에서
-    const blocks = timeBlocks[k] || [];
-    for (const b of blocks) {
-      const startMin = _timeToMin(b.start);
-      const endMin = _timeToMin(b.end);
-      const top = (startMin - START_H * 60) + 4;  // padding 보정
-      const height = Math.max(28, endMin - startMin - 4);
-      if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
-      const colorClass = tbColorClass(b.color);
-      inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
-        <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
-        <div class="ev-time">${b.start} — ${b.end}</div>
-      </div>`;
+    // 캘린더 모드 — 'mine'(timeBlock) vs 'google'(gcal events). 같은 그리드 분기.
+    const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'mine';
+    if (calMode === 'google') {
+      // Google 일정 — 이 날짜 안의 이벤트 그리기
+      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+      const dayEnd   = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+      const evList = _gcalEventsInRange(dayStart, dayEnd);
+      for (const ev of evList) {
+        if (window.gcal.eventIsAllDay(ev)) {
+          // 종일 이벤트는 상단 컬럼 가장 위 작은 chip로 (간단)
+          inner += `<div class="event-card gcal-allday" style="top:0;height:22px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+            <div class="ev-title">📅 ${_escapeHtml(ev.summary || '제목 없음')}</div>
+          </div>`;
+          continue;
+        }
+        const evStart = window.gcal.eventStart(ev);
+        const evEnd = window.gcal.eventEnd(ev);
+        const startMin = evStart.getHours() * 60 + evStart.getMinutes();
+        const endMin = evEnd.getHours() * 60 + evEnd.getMinutes();
+        const top = (startMin - START_H * 60) + 4;
+        const height = Math.max(28, endMin - startMin - 4);
+        if (top < -30 || top > (END_H - START_H + 1) * 60) continue;
+        const bg = window.gcal.eventColor(ev);
+        const startLabel = `${String(evStart.getHours()).padStart(2,'0')}:${String(evStart.getMinutes()).padStart(2,'0')}`;
+        const endLabel   = `${String(evEnd.getHours()).padStart(2,'0')}:${String(evEnd.getMinutes()).padStart(2,'0')}`;
+        inner += `<div class="event-card gcal-event" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+          <div class="ev-title">${_escapeHtml(ev.summary || '제목 없음')}</div>
+          <div class="ev-time">${startLabel} — ${endLabel}</div>
+        </div>`;
+      }
+    } else {
+      // 우리 타임블록
+      const blocks = timeBlocks[k] || [];
+      for (const b of blocks) {
+        const startMin = _timeToMin(b.start);
+        const endMin = _timeToMin(b.end);
+        const top = (startMin - START_H * 60) + 4;  // padding 보정
+        const height = Math.max(28, endMin - startMin - 4);
+        if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
+        const colorClass = tbColorClass(b.color);
+        inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
+          <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+          <div class="ev-time">${b.start} — ${b.end}</div>
+        </div>`;
+      }
     }
 
     // 현재 시각 marker (오늘만)
@@ -188,7 +220,7 @@ function _renderWeekGrid() {
   `;
 }
 
-// 빈 영역(시간 셀) 클릭 → 클릭 위치의 시간으로 새 타임블록 추가
+// 빈 영역(시간 셀) 클릭 → 클릭 위치의 시간으로 새 타임블록 / Google 일정 추가
 function calGridEmptyClick(ev) {
   if (ev.target.closest('.event-card')) return; // 카드 자체 클릭은 무시
   const col = ev.currentTarget;
@@ -202,7 +234,17 @@ function calGridEmptyClick(ev) {
   const mm = totalMin % 60;
   calSelectedKey = col.dataset.dayKey;
   _calSyncCurrentDate();
-  // openTbModal은 (h) 시작 시각을 받음 — 분 단위 정확도 위해 직접 모달 초기화
+
+  // Google 모드 → Google 이벤트 추가 모달
+  const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'mine';
+  if (calMode === 'google') {
+    if (typeof openGCalNewEvent === 'function') {
+      openGCalNewEvent(calSelectedKey, h, mm);
+    }
+    return;
+  }
+
+  // 내 일정 (타임블록) 모달
   if (typeof openTbModal === 'function') openTbModal(h);
   // 시작·종료 시각을 좀 더 정확하게 채워준다 (모달 이미 열린 뒤)
   setTimeout(() => {
@@ -219,6 +261,66 @@ function calGridEmptyClick(ev) {
   }, 30);
 }
 
+// Google 일정 — 한 날짜 안의 이벤트만 필터
+function _gcalEventsInRange(dayStart, dayEnd) {
+  if (typeof window.gcal === 'undefined') return [];
+  const events = window.gcal.events || {};
+  const out = [];
+  for (const key in events) {
+    const ev = events[key];
+    const s = window.gcal.eventStart(ev);
+    const e = window.gcal.eventEnd(ev);
+    // 이 날짜 안에 겹침이라도 있으면 포함
+    if (e >= dayStart && s <= dayEnd) out.push(ev);
+  }
+  return out;
+}
+
+// 캘린더 모드 변경 — 토글 클릭 핸들러
+function setCalendarModeAndRefresh(mode) {
+  if (typeof window.gcal === 'undefined') return;
+  // 토글 활성 표시
+  document.querySelectorAll('.cal-mode-seg button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  window.gcal.setMode(mode);
+  if (mode === 'google') {
+    if (!window.gcal.enabled) {
+      toast('먼저 동기화 모달에서 Google Calendar 연동을 켜주세요', 'info');
+      return;
+    }
+    // 현재 주의 이벤트 fetch
+    refreshGCalEventsForVisibleWeek();
+  } else {
+    renderCalendar();
+  }
+}
+
+// 보이는 주의 Google 이벤트 fetch + 다시 렌더
+async function refreshGCalEventsForVisibleWeek() {
+  if (typeof window.gcal === 'undefined' || !window.gcal.enabled) {
+    renderCalendar();
+    return;
+  }
+  try {
+    const start = new Date(calWeekStart);
+    start.setHours(0, 0, 0, 0);
+    const end = _calAddDays(calWeekStart, 7);
+    end.setHours(23, 59, 59);
+    await window.gcal.fetchEvents(start, end);
+  } catch (e) {
+    console.warn('[GCal] week fetch failed:', e);
+    if (e.status === 401 || e.status === 403) {
+      toast('Google 인증이 만료됐어요. 동기화 버튼을 눌러주세요', 'error');
+    } else {
+      toast('Google 일정 가져오기 실패', 'error');
+    }
+  }
+  renderCalendar();
+}
+window.refreshGCalEventsForVisibleWeek = refreshGCalEventsForVisibleWeek;
+window.setCalendarModeAndRefresh = setCalendarModeAndRefresh;
+
 function _escapeHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -229,9 +331,21 @@ function calEditBlockKey(key, idx) {
   editTbBlock(key, idx);
 }
 
-// 주 네비게이션
-function calPrevWeek() { calWeekStart = _calAddDays(calWeekStart, -7); renderCalendar(); }
-function calNextWeek() { calWeekStart = _calAddDays(calWeekStart, 7); renderCalendar(); }
+// 주 네비게이션 (Google 모드면 새 주 이벤트 자동 fetch)
+function calPrevWeek() {
+  calWeekStart = _calAddDays(calWeekStart, -7);
+  renderCalendar();
+  if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
+    refreshGCalEventsForVisibleWeek();
+  }
+}
+function calNextWeek() {
+  calWeekStart = _calAddDays(calWeekStart, 7);
+  renderCalendar();
+  if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
+    refreshGCalEventsForVisibleWeek();
+  }
+}
 
 // ===== 요약 카드 + 선택일 감정일기 =====
 function _renderSummary() {
