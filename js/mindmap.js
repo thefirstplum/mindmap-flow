@@ -116,7 +116,8 @@ function createMindmap() {
   // was bumping updatedAt with no real change → other device thought a new
   // version arrived and forked a "(충돌)" copy when it tried to push.)
   const map = {
-    id: Date.now(),
+    // Date.now() * 10000 + random — 같은 ms에 양 기기 동시 생성해도 충돌 사실상 불가
+    id: Date.now() * 10000 + Math.floor(Math.random() * 10000),
     name: '새 마인드맵',
     nodes: [],
     edges: [],
@@ -1216,11 +1217,11 @@ function _linkNodeToMemo(nodeId, memoId) {
   toast(`노드 "${n.text}" ↔ 메모 "${m?.title || '제목 없음'}" 연결됨`, 'success');
 }
 function _createAndLinkMemo(title) {
-  if (typeof memos === 'undefined' || typeof memoIdCounter === 'undefined') {
+  if (typeof memos === 'undefined' || typeof newMemoId !== 'function') {
     toast('메모 모듈이 로드되지 않았어요'); return;
   }
   const now = new Date().toISOString();
-  const m = { id: memoIdCounter++, title: title, content: '', date: now, updatedAt: now, tags: [] };
+  const m = { id: newMemoId(), title: title, content: '', date: now, updatedAt: now, tags: [] };
   memos.unshift(m);
   if (typeof saveMemos === 'function') saveMemos();
   _linkNodeToMemo(_noteLinkPickerTargetNodeId, m.id);
