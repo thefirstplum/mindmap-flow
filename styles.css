@@ -453,78 +453,161 @@ body[data-theme="sunset"] {
   color: #fff; flex-shrink: 0;
   font-weight: 800;
 }
-/* 우측 햄버거 — 노트/마인드맵 페이지에서만 표시. 클릭 시 태그 드로어 */
+/* 우측 햄버거 — 노트/마인드맵 페이지에서만 표시. sync-dot-btn 톤과 통일 */
 .header-tag-btn {
   display: none;
-  width: 36px; height: 36px;
+  width: 32px; height: 32px;
   background: transparent; border: none;
-  color: var(--text);
-  border-radius: 8px;
+  color: var(--text-mute);
+  border-radius: 50%;
   align-items: center; justify-content: center;
   flex-shrink: 0; cursor: pointer; padding: 0;
   -webkit-tap-highlight-color: transparent;
-  transition: background .12s;
+  transition: background .12s, color .12s;
 }
-.header-tag-btn:hover { background: var(--surface3); }
-.header-tag-btn:active { background: var(--surface3); transform: scale(0.92); }
-.header-tag-btn .mi { font-size: 22px; }
+.header-tag-btn:hover { background: var(--surface2); color: var(--text); }
+.header-tag-btn:active { transform: scale(0.92); }
+.header-tag-btn .mi { font-size: 19px; }
+/* 드로어 열린 상태에서 active 시각 표시 */
+body.tag-drawer-open .header-tag-btn {
+  background: var(--accent-glow);
+  color: var(--accent);
+}
 /* 노트/마인드맵 페이지일 때만 우측 햄버거 노출 — 모바일 전용 (데스크탑은 사이드바 상시) */
 @media (max-width: 768px) {
   body.page-memo .header-tag-btn,
   body.page-mindmap .header-tag-btn { display: inline-flex; }
 }
 
-/* 태그 드로어 — 우측 슬라이드, 클릭한 페이지의 태그 트리만 표시 */
+/* 태그 드로어 — 우측 슬라이드 */
 .tag-drawer-overlay {
   display: none;
   position: fixed; inset: 0;
   background: rgba(0,0,0,0.36);
   z-index: 260;
   -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity 0.22s;
 }
-.tag-drawer-overlay.show { display: block; }
+.tag-drawer-overlay.show { display: block; opacity: 1; }
 .tag-drawer {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: 280px;
-  max-width: 84vw;
-  background: var(--surface);
+  width: 300px;
+  max-width: 86vw;
+  background: var(--bg-soft, var(--surface));
   border-left: 1px solid var(--border-light);
-  box-shadow: -16px 0 40px -12px rgba(0,0,0,0.18);
+  box-shadow: -16px 0 40px -12px rgba(0,0,0,0.20), -4px 0 12px rgba(0,0,0,0.06);
   z-index: 261;
   transform: translateX(100%);
-  transition: transform 0.26s cubic-bezier(0.32,0.72,0.16,1);
+  transition: transform 0.28s cubic-bezier(0.32,0.72,0.16,1);
   display: flex; flex-direction: column;
   padding-top: var(--safe-top);
   padding-bottom: var(--safe-bot);
+  padding-right: var(--safe-right);
 }
 .tag-drawer.show { transform: translateX(0); }
+
+/* 드로어 헤더 — 아이콘 + 라벨 + 카운트 + 닫기 */
 .tag-drawer-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-light);
+  padding: 16px 16px 12px;
   flex-shrink: 0;
 }
+.tag-drawer-title-wrap {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-width: 0; flex: 1;
+}
+.tag-drawer-icon {
+  font-size: 17px; color: var(--accent);
+}
 .tag-drawer-title {
+  font-size: 16px; font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.tag-drawer-count {
   font-size: 11px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--surface2);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
 }
+.tag-drawer-count:empty { display: none; }
 .tag-drawer-close {
-  width: 30px; height: 30px;
-  background: transparent; border: none;
+  width: 32px; height: 32px;
+  background: var(--surface2); border: none;
   color: var(--text-dim);
   border-radius: 50%;
   display: inline-flex; align-items: center; justify-content: center;
   cursor: pointer;
-  transition: background .12s;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: background .12s, color .12s, transform .08s;
 }
-.tag-drawer-close:hover { background: var(--surface3); }
+.tag-drawer-close:hover { background: var(--surface3); color: var(--text); }
+.tag-drawer-close:active { transform: scale(0.92); }
+
+/* 검색 input */
+.tag-drawer-search {
+  position: relative;
+  margin: 0 14px 10px;
+  flex-shrink: 0;
+}
+.tag-drawer-search .mi {
+  position: absolute;
+  left: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 16px;
+  color: var(--text-mute);
+  pointer-events: none;
+}
+.tag-drawer-search input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  transition: border-color .12s, box-shadow .12s;
+}
+.tag-drawer-search input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* body — 카드형 컨테이너 안 태그 트리 */
 .tag-drawer-body {
   flex: 1; overflow-y: auto;
-  padding: 6px 4px;
+  padding: 4px 10px 14px;
 }
-/* 드로어 안에선 사이드바와 동일 스타일 적용을 위해 .sidebar-tags 클래스 활용 */
+.tag-drawer-body .sidebar-tags {
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 4px 0;
+}
+.tag-drawer-body .tag-tree-header {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border-light);
+}
+.tag-drawer-body .tag-tree {
+  max-height: none;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+.tag-drawer-body .tag-tree:last-child { border-bottom: none; }
+.tag-drawer-body .tag-row {
+  padding: 7px 10px;
+  padding-left: calc(10px + var(--tag-depth, 0) * 14px);
+  font-size: 13px;
+  border-radius: 8px;
+}
+.tag-drawer-body .tag-row.tag-row-hidden { display: none; }
 
 /* page-head-title (mockup) — h1 + chip 한 줄 */
 .page-head-title {

@@ -71,9 +71,17 @@ window.toggleTagDrawer = function() {
     const clone = src.cloneNode(true);
     clone.removeAttribute('id'); // 중복 방지
     body.appendChild(clone);
+    // 카운트 — 클론된 .tag-row 중 #로 시작하지 않는(전체노트/태그없음 제외) 실제 태그 수
+    const tagCount = clone.querySelectorAll('.tag-row .tag-hash').length;
+    const cntEl = document.getElementById('tag-drawer-count');
+    if (cntEl) cntEl.textContent = tagCount > 0 ? tagCount : '';
   }
   overlay?.classList.add('show');
   drawer.classList.add('show');
+  document.body.classList.add('tag-drawer-open');
+  // 검색 input 초기화
+  const search = document.getElementById('tag-drawer-search-input');
+  if (search) { search.value = ''; }
   // 클릭 후 자동 닫기 (한 번만 등록)
   if (!body.__tagDrawerHandlerAttached) {
     body.addEventListener('click', (e) => {
@@ -87,6 +95,21 @@ window.toggleTagDrawer = function() {
 window.closeTagDrawer = function() {
   document.getElementById('tag-drawer')?.classList.remove('show');
   document.getElementById('tag-drawer-overlay')?.classList.remove('show');
+  document.body.classList.remove('tag-drawer-open');
+};
+
+// 검색 필터 — 드로어 안 태그 행에서 라벨 매칭 안 되는 행은 hide
+window.filterTagDrawer = function(q) {
+  const body = document.getElementById('tag-drawer-body');
+  if (!body) return;
+  const query = (q || '').trim().toLowerCase();
+  const rows = body.querySelectorAll('.tag-row');
+  rows.forEach(row => {
+    if (!query) { row.classList.remove('tag-row-hidden'); return; }
+    const label = (row.querySelector('.tag-row-label')?.textContent || row.textContent || '').toLowerCase();
+    if (label.includes(query)) row.classList.remove('tag-row-hidden');
+    else row.classList.add('tag-row-hidden');
+  });
 };
 
 window.openCommandPalette = window.openCommandPalette || (function() {
