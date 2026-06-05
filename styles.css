@@ -3307,15 +3307,51 @@ body[data-theme="charcoal"] .m-tab-btn.active {
 
   /* Header */
   .header {
-    padding: 0 8px 0 6px; height: 50px; gap: 7px;
+    padding: 0 8px 0 6px; height: 50px; gap: 6px;
     background: var(--surface2);
   }
-  .header h1 { font-size: 15px; }
+  .header h1 {
+    font-size: 15px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 100%;
+  }
+  .page-head-title { min-width: 0; flex-shrink: 1; }
   .header .subtitle { display: none; }
   .header-icon { display: none; }
   .header-menu-btn { display: flex; }
   .header-btn { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .header-btn .btn-label { display: none; }
+
+  /* 모바일: 검색 chip은 아이콘만 (placeholder/⌘K hide) + 우측 액션 컴팩트 */
+  .head-search {
+    min-width: 0;
+    width: 36px; height: 36px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .head-search .placeholder,
+  .head-search .kbd { display: none; }
+  .head-search .mi { font-size: 18px; }
+
+  /* meta-chip(카운트) 모바일에선 hide — 헤더 공간 확보 */
+  .page-meta-chip,
+  .page-head-title .meta-chip { display: none; }
+
+  /* head-pill primary(새 메모 등) — 모바일에선 라벨 hide, 아이콘만 동그라미 */
+  .head-pill.primary {
+    width: 36px; height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .head-pill.primary .label { display: none; }
+  .head-pill.primary .mi { font-size: 18px; }
+
+  /* sync-dot-btn 살짝 줄임 */
+  .sync-dot-btn { width: 34px; height: 34px; }
 
   /* Sidebar = slide-in drawer (no bottom tab bar) */
   .sidebar {
