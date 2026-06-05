@@ -970,27 +970,79 @@ function updateNodeActionBar() {
   bar.classList.add('show');
   const node = nodes.find(n => n.id === selectedNode);
   if (node) syncToolbarColor(node.color || currentNodeColor);
-  // 메모 연결 버튼 라벨/액션 토글
+  // 메모 연결 버튼 라벨/아이콘 토글 — 연결 상태에 따라
+  // (별도 unlink 버튼 제거 — 액션바 늘어남 + 라벨 없음 사장님 보고)
   const noteBtn = document.getElementById('nab-note-link');
   if (noteBtn && node) {
     if (node.noteId) {
-      noteBtn.title = '연결된 메모 열기';
-      noteBtn.innerHTML = '<span class="mi mi-sm mi-fill">description</span><span>메모 열기</span>';
-      noteBtn.onclick = (e) => jumpToLinkedMemo(node.id);
-      noteBtn.oncontextmenu = (e) => { e.preventDefault(); unlinkNodeFromMemo(); return false; };
+      noteBtn.title = '연결된 메모';
+      noteBtn.innerHTML = '<span class="mi mi-sm mi-fill">description</span><span>메모 ✓</span>';
     } else {
       noteBtn.title = '메모 연결';
       noteBtn.innerHTML = '<span class="mi mi-sm">description</span><span>메모</span>';
-      noteBtn.onclick = (e) => openNoteLinkPicker();
-      noteBtn.oncontextmenu = null;
     }
   }
-  // 연결 해제 버튼 — 노드가 메모와 연결된 경우에만 표시
-  const unlinkBtn = document.getElementById('nab-note-unlink');
-  if (unlinkBtn && node) {
-    unlinkBtn.style.display = node.noteId ? '' : 'none';
-  }
 }
+
+// 메모 버튼 클릭 — 연결 상태에 따라 분기
+// 연결 안 됨: 메모 picker / 연결 됨: 액션시트 (열기 / 해제)
+window.handleNoteBtnClick = function() {
+  if (!selectedNode) return;
+  const node = nodes.find(n => n.id === selectedNode);
+  if (!node) return;
+  if (!node.noteId) {
+    openNoteLinkPicker();
+    return;
+  }
+  // 이미 연결됨 — confirm으로 분기 (간단 + 닫기 가능)
+  _showNoteLinkActions(node);
+};
+
+function _showNoteLinkActions(node) {
+  document.getElementById('node-link-actions')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'node-link-actions';
+  overlay.className = 'note-create-sheet-overlay';
+  overlay.innerHTML = `
+    <div class="note-create-sheet" onclick="event.stopPropagation()">
+      <div class="note-create-sheet-title">연결된 메모</div>
+      <button class="note-create-sheet-btn" onclick="_nlaOpenMemo(${node.id})">
+        <span class="mi">description</span>
+        <span class="note-create-sheet-text">
+          <span class="ncs-title">메모 열기</span>
+          <span class="ncs-sub">연결된 메모로 이동</span>
+        </span>
+      </button>
+      <button class="note-create-sheet-btn" onclick="_nlaUnlink(${node.id})">
+        <span class="mi">link_off</span>
+        <span class="note-create-sheet-text">
+          <span class="ncs-title">연결 해제</span>
+          <span class="ncs-sub">노드와 메모 연결 끊기</span>
+        </span>
+      </button>
+      <button class="note-create-sheet-cancel" onclick="_nlaClose()">취소</button>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) _nlaClose(); });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
+}
+window._nlaClose = function() {
+  const el = document.getElementById('node-link-actions');
+  if (!el) return;
+  el.classList.remove('show');
+  setTimeout(() => el.remove(), 180);
+};
+window._nlaOpenMemo = function(nodeId) {
+  _nlaClose();
+  if (typeof jumpToLinkedMemo === 'function') jumpToLinkedMemo(nodeId);
+};
+window._nlaUnlink = function(nodeId) {
+  _nlaClose();
+  // unlinkNodeFromMemo는 selectedNode 기준 — 임시 set 후 호출
+  selectedNode = nodeId;
+  if (typeof unlinkNodeFromMemo === 'function') unlinkNodeFromMemo();
+};
 
 function openNodeEditSelected() {
   if (!selectedNode) return;
