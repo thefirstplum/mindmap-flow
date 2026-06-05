@@ -646,15 +646,11 @@ function _renderMobileCal() {
   const _pad = n => String(n).padStart(2, '0');
   const weekLabel = `${_pad(calWeekStart.getMonth()+1)}.${_pad(calWeekStart.getDate())} — ${_pad(wsEnd.getDate())}`;
 
-  // 모바일에도 모드 토글 — 데스크탑과 동일 (사장님 보고: 모바일에서 Google 일정 안 나옴 원인)
+  // 모드 토글은 정적 HTML(.cal-mobile-mode-static)에서 처리 — 여기선 active 상태만 동기화
   const _curMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
-  const modeSeg = `
-    <div class="cal-mode-seg mob-cal-mode-seg" id="mob-cal-mode-seg" role="tablist">
-      <button ${_curMode==='all'?'class="active"':''} data-mode="all" onclick="setCalendarModeAndRefresh('all')">전체</button>
-      <button ${_curMode==='mine'?'class="active"':''} data-mode="mine" onclick="setCalendarModeAndRefresh('mine')">내 일정</button>
-      <button ${_curMode==='google'?'class="active"':''} data-mode="google" onclick="setCalendarModeAndRefresh('google')">Google</button>
-    </div>
-  `;
+  document.querySelectorAll('#cal-mode-seg-mobile button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === _curMode);
+  });
 
   el.innerHTML = `
     <div class="mob-cal-month-row">
@@ -672,7 +668,6 @@ function _renderMobileCal() {
         <span class="mi mi-sm">today</span>
       </button>
     </div>
-    ${modeSeg}
     ${slider}
     ${head}
     <div class="mob-timeline">${timeCol}${dayCol}</div>
