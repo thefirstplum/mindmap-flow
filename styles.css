@@ -1908,12 +1908,12 @@ body.tag-drawer-open .header-tag-btn {
   .node-action-bar.show {
     transform: translateX(-50%) translateY(0);
   }
-  /* 색상 점 살짝 줄임 + 액션 버튼 컴팩트 */
-  .nab-colors { gap: 5px; flex-shrink: 0; }
-  .nab-color { width: 20px; height: 20px; }
-  .nab-sep { flex-shrink: 0; margin: 0 4px; height: 22px; }
-  .nab-btn { padding: 4px 7px; flex-shrink: 0; }
-  .nab-btn .mi-sm { font-size: 16px; }
+  /* 색상 8개 + 액션 4개가 한 줄에 들어가도록 더 컴팩트 */
+  .nab-colors { gap: 4px; flex-shrink: 0; }
+  .nab-color { width: 18px; height: 18px; }
+  .nab-sep { flex-shrink: 0; margin: 0 3px; height: 22px; }
+  .nab-btn { padding: 3px 6px; flex-shrink: 0; }
+  .nab-btn .mi-sm { font-size: 15px; }
   .nab-btn span:not(.mi):not(.mi-sm) { font-size: 9px; }
 }
 
