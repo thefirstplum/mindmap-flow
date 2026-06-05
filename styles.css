@@ -3504,6 +3504,8 @@ body[data-theme="charcoal"] .m-bottom-tabs {
   .header .subtitle { display: none; }
   .header-icon { display: none; }
   .header-menu-btn { display: flex; }
+  /* 사장님 요청: 모바일 캘린더 페이지에선 좌측 햄버거 hide */
+  body.page-calendar .header-menu-btn { display: none; }
   .header-btn { padding: 0; width: 34px; height: 34px; justify-content: center; }
   .header-btn .btn-label { display: none; }
 
