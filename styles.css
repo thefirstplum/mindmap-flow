@@ -4319,13 +4319,29 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
   .cal-today-btn { padding: 4px 10px; font-size: 11px; }
   .cal-today-btn .label-text { display: none; }
   .week-range { font-size: 16px; }
-  /* 모바일 cal-mobile 안 토글 — 풀폭 + 살짝 큰 padding */
+  /* 모바일 cal-mobile 안 토글 — 풀폭 + 살짝 큰 padding (동적 렌더 fallback) */
   .cal-mobile .mob-cal-mode-seg {
     margin: 4px 14px 10px;
     width: calc(100% - 28px);
     justify-content: center;
   }
   .cal-mobile .mob-cal-mode-seg button { flex: 1; padding: 6px 8px; font-size: 12px; }
+
+  /* 정적 모드 토글 컨테이너 — 모바일에서만 표시 (PWA 캐시 안전망) */
+  .cal-mobile-mode-static {
+    display: flex; justify-content: center;
+    padding: 12px 14px 4px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .cal-mobile-mode-static .cal-mode-seg {
+    display: flex; width: 100%; justify-content: center;
+  }
+  .cal-mobile-mode-static .cal-mode-seg button { flex: 1; padding: 7px 8px; font-size: 12px; }
+}
+/* 데스크탑에선 정적 토글 hide (data-toolbar의 cal-mode-seg가 보임) */
+@media (min-width: 769px) {
+  .cal-mobile-mode-static { display: none; }
 }
 
 .calendar-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 8px; }

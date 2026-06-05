@@ -6,7 +6,7 @@
 //   - Updates: skipWaiting + clients.claim so a fresh deploy takes over right away
 //   - Old caches purged on activate
 
-const CACHE_NAME = 'mindflow-cache-v1';
+const CACHE_NAME = 'mindflow-cache-v2'; // bump → 옛 캐시 강제 무효화 (2026-06-05)
 
 self.addEventListener('install', (event) => {
   // Take over immediately on first install — don't wait for tabs to close
