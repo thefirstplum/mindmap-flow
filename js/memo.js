@@ -2376,33 +2376,43 @@ window._cmToggleCheckbox = function(pos, checked) {
   if (!window._cm6View) return;
   const view = window._cm6View;
   const newText = checked ? '[x]' : '[ ]';
+  // selection을 그대로 유지 — dispatch 시 cursor가 변환 영역으로 옮겨가
+  // 다음 줄로 떨어지는 시각 효과 방지 (사장님 보고: "체크박스 클릭하면 밑으로 내려가네")
+  const sel = view.state.selection;
   view.dispatch({
-    changes: { from: pos, to: pos + 3, insert: newText }
+    changes: { from: pos, to: pos + 3, insert: newText },
+    selection: sel
   });
   // 메모 본문은 updateListener를 통해 자동 저장됨
 };
 
 // =================== WEB LINK CLICK IN BEAR EDITOR ===================
-// CM6 안의 텍스트에서 https?:// URL을 클릭하면 새 탭 열기.
-// Cmd/Ctrl + click: 어떤 위치든 그 줄에 URL 있으면 열기
-// 일반 click: 명시적 [text](url) 마크다운 링크 또는 표시된 wikilink는 자동
-const URL_RE = /https?:\/\/[^\s<>"')\]]+/;
+// CM6 안의 raw URL(https?://...)을 일반 클릭으로 새 탭 열기.
+// 클릭 위치를 doc position으로 변환해서 정확히 URL 영역 안일 때만 열고
+// (편집 시 부주의한 클릭 방지) capture phase로 CM6 cursor 이동도 차단.
+const URL_RE = /https?:\/\/[^\s<>"')\]]+/g;
 document.addEventListener('click', (e) => {
-  // markdown-body 안의 a 태그는 기본 동작 (target=_blank)
-  if (e.target.closest('.markdown-body a, .wikilink')) return;
-  // CM6 라이브 에디터 안에서만
+  // markdown-body / wikilink / widget화된 링크는 자체 핸들러
+  if (e.target.closest('.markdown-body a, .wikilink, .cm-link-w, .cm-wikilink-w')) return;
   const liveEl = e.target.closest('#memo-live-editor');
   if (!liveEl) return;
-  // Cmd/Ctrl + click 시 — 클릭된 줄 또는 단어 안의 URL 찾기
-  if (!(e.metaKey || e.ctrlKey)) return;
-  const line = e.target.closest('.cm-line, [data-line]');
-  if (!line) return;
-  const text = line.textContent || '';
-  const m = text.match(URL_RE);
-  if (m) {
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(m[0], '_blank', 'noopener,noreferrer');
+  const view = window._cm6View;
+  if (!view) return;
+  const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+  if (pos == null) return;
+  const line = view.state.doc.lineAt(pos);
+  const lineText = line.text;
+  URL_RE.lastIndex = 0;
+  let m;
+  while ((m = URL_RE.exec(lineText))) {
+    const startPos = line.from + m.index;
+    const endPos = startPos + m[0].length;
+    if (pos >= startPos && pos < endPos) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(m[0], '_blank', 'noopener,noreferrer');
+      return;
+    }
   }
 }, true);  // capture phase — CM6 cursor 동작 전에 잡기
 
