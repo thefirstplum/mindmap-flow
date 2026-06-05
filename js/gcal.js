@@ -224,26 +224,32 @@ function _renderGCalLists() {
   const writeEl = document.getElementById('gcal-write-cal');
   if (listEl) {
     if (gcalCalendars.length === 0) {
-      listEl.innerHTML = `<div style="font-size:11.5px;color:var(--text-mute);padding:8px 6px;">캘린더 목록 새로고침을 누르세요</div>`;
+      listEl.innerHTML = `<div class="gcal-empty">캘린더 목록 새로고침을 누르세요</div>`;
     } else {
       listEl.innerHTML = gcalCalendars.map(c => {
         const checked = gcalSelectedIds.includes(c.id) ? 'checked' : '';
-        const readonly = (c.accessRole === 'reader' || c.accessRole === 'freeBusyReader') ? '<span style="font-size:10px;color:var(--text-mute);background:var(--surface3);padding:1px 5px;border-radius:3px;margin-left:6px;">읽기</span>' : '';
-        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 8px;cursor:pointer;border-radius:6px;">
-          <input type="checkbox" ${checked} onchange="onGCalCalendarToggle('${c.id.replace(/'/g, "\\'")}', this.checked)" style="accent-color:${c.backgroundColor};">
-          <span style="width:10px;height:10px;border-radius:50%;background:${c.backgroundColor};flex-shrink:0;"></span>
-          <span style="flex:1;font-size:13px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_escapeGCal(c.summary)}</span>
-          ${c.primary ? '<span style="font-size:10px;color:var(--accent);font-weight:700;">기본</span>' : ''}
-          ${readonly}
+        const readonly = (c.accessRole === 'reader' || c.accessRole === 'freeBusyReader')
+          ? '<span class="gcal-cal-badge readonly">읽기</span>' : '';
+        const primary = c.primary ? '<span class="gcal-cal-badge primary">기본</span>' : '';
+        const safeId = c.id.replace(/'/g, "\\'");
+        return `<label class="gcal-cal-row">
+          <input type="checkbox" class="gcal-cal-cb" ${checked} onchange="onGCalCalendarToggle('${safeId}', this.checked)" style="accent-color:${c.backgroundColor};">
+          <span class="gcal-cal-dot" style="background:${c.backgroundColor};"></span>
+          <span class="gcal-cal-name">${_escapeGCal(c.summary)}</span>
+          ${primary}${readonly}
         </label>`;
       }).join('');
     }
   }
   if (writeEl) {
     const writableCals = gcalCalendars.filter(c => c.accessRole === 'owner' || c.accessRole === 'writer');
-    writeEl.innerHTML = writableCals.map(c =>
-      `<option value="${c.id}" ${c.id === gcalWriteCalendarId ? 'selected' : ''}>${_escapeGCal(c.summary)}${c.primary ? ' (기본)' : ''}</option>`
-    ).join('');
+    if (writableCals.length === 0) {
+      writeEl.innerHTML = `<option value="">쓰기 가능한 캘린더가 없어요</option>`;
+    } else {
+      writeEl.innerHTML = writableCals.map(c =>
+        `<option value="${c.id}" ${c.id === gcalWriteCalendarId ? 'selected' : ''}>${_escapeGCal(c.summary)}${c.primary ? ' (기본)' : ''}</option>`
+      ).join('');
+    }
   }
 }
 

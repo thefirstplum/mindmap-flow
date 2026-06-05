@@ -4529,6 +4529,54 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
 }
 
 /* ────────────────────────────────────────────────────────────────
+   §  GOOGLE CALENDAR — 동기화 모달 내 캘린더 선택 (modal 글로벌 스타일 override)
+   ──────────────────────────────────────────────────────────────── */
+/* .modal label은 block + uppercase + 14px margin이지만 우리 행은 한 줄 inline */
+.modal label.gcal-cal-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; margin: 0;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text);
+  text-transform: none; letter-spacing: 0;
+  transition: background .12s;
+}
+.modal label.gcal-cal-row:hover { background: var(--surface3); }
+/* .modal input은 width 100% + padding으로 거대해짐. 체크박스는 무관 */
+.modal input[type="checkbox"].gcal-cal-cb {
+  width: 16px; height: 16px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.gcal-cal-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gcal-cal-name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.gcal-cal-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px; border-radius: 4px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.gcal-cal-badge.primary { color: var(--accent); background: var(--accent-glow); }
+.gcal-cal-badge.readonly { color: var(--text-mute); background: var(--surface3); }
+.gcal-empty {
+  font-size: 12px; color: var(--text-mute);
+  padding: 10px 6px;
+  text-align: center;
+}
+
+/* ────────────────────────────────────────────────────────────────
    §  CALENDAR — 모드 토글 + Google 일정 카드
    ──────────────────────────────────────────────────────────────── */
 .cal-mode-seg {
