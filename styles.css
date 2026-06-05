@@ -4,6 +4,22 @@
    13 sections · target ≤ 3 000 lines · ≤ 50 !important
    ════════════════════════════════════════════════════════════════ */
 
+/* ── Custom fonts (사장님 추가 — 손글씨/책 테마용) ───────────── */
+@font-face {
+  font-family: 'MemomentKkukkkuk';
+  src: url('fonts/memomentKkukkkuk.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'IropkeBatang';
+  src: url('fonts/IropkeBatangM.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ────────────────────────────────────────────────────────────────
    §1  RESET & BASE
    ──────────────────────────────────────────────────────────────── */
@@ -209,6 +225,51 @@ body[data-theme="diary"] {
   --code-color:#6B8470;
   --green:#7B9A6B; --orange:#C9A046; --red:#C25647; --blue:#4A6E92; --pink:#C76E55; --cyan:#6B8470;
   color-scheme: light;
+}
+
+/* Book — 베이지 종이 + 갈색. 본문은 IropkeBatang(이롭게 바탕) 세리프 */
+body[data-theme="book"] {
+  --bg:#F4ECD8; --bg-soft:#EBE0C6; --surface:#FBF4DD; --surface2:#E4D8BC; --surface3:#D4C39E;
+  --border:#C9B68A; --border-light:#DACBA0;
+  --text:#3D2A18; --text-dim:#6B4E32; --text-mute:#947959;
+  --accent:#7C5C3A; --accent2:#A8784C; --accent3:#5E7A4E; --accent-soft:#9C7449; --accent-glow:rgba(124,92,58,0.13);
+  --md-code:#5E7A4E; --md-link:#5C7A8C; --md-highlight:#EFD58A; --md-tag:#876B3F;
+  --code-color:#5E7A4E;
+  --green:#5E7A4E; --orange:#B58840; --red:#A85647; --blue:#5C7A8C; --pink:#A8784C; --cyan:#5E7A4E;
+  color-scheme: light;
+}
+/* Book 본문 — 이롭게 바탕 세리프 (책 읽는 느낌) */
+body[data-theme="book"] #memo-live-editor .cm-content,
+body[data-theme="book"] .bear-editor,
+body[data-theme="book"] .memo-editor textarea,
+body[data-theme="book"] .markdown-body,
+body[data-theme="book"] .memo-editor-header input,
+body[data-theme="book"] .journal-textarea {
+  font-family: 'IropkeBatang', 'Apple SD Gothic Neo', -apple-system, serif;
+  letter-spacing: -0.005em;
+}
+
+/* Handwritten — 따뜻한 살구 + 손글씨(메모먼트 꾸꾸꾹) */
+body[data-theme="handwritten"] {
+  --bg:#FDF8EE; --bg-soft:#F6EEDF; --surface:#FFFAF1; --surface2:#F0E2D0; --surface3:#DFCDB8;
+  --border:#D9C4A8; --border-light:#E8D8BF;
+  --text:#4A2E20; --text-dim:#7A4F38; --text-mute:#A07C5F;
+  --accent:#B36B5A; --accent2:#D89A6B; --accent3:#85998A; --accent-soft:#C7846F; --accent-glow:rgba(179,107,90,0.14);
+  --md-code:#85998A; --md-link:#5C7A8C; --md-highlight:#F4D89A; --md-tag:#A87B4D;
+  --code-color:#85998A;
+  --green:#7E9F6E; --orange:#C9A050; --red:#B35454; --blue:#5C7A8C; --pink:#B36B5A; --cyan:#85998A;
+  color-scheme: light;
+}
+/* Handwritten 본문 — 메모먼트 꾸꾸꾹 (손글씨) */
+body[data-theme="handwritten"] #memo-live-editor .cm-content,
+body[data-theme="handwritten"] .bear-editor,
+body[data-theme="handwritten"] .memo-editor textarea,
+body[data-theme="handwritten"] .markdown-body,
+body[data-theme="handwritten"] .memo-editor-header input,
+body[data-theme="handwritten"] .journal-textarea {
+  font-family: 'MemomentKkukkkuk', 'Apple SD Gothic Neo', -apple-system, cursive;
+  letter-spacing: 0;
+  line-height: 1.7;
 }
 
 /* Dracula — 보라/핑크 다크 */
