@@ -292,9 +292,11 @@ function importData(event) {
   event.target.value = '';
 }
 
-// =================== GOOGLE DRIVE SYNC (data + images, all platforms) ===================
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
-const DRIVE_SCOPE_VER = 'v2'; // bump when scope changes so old tokens are invalidated
+// =================== GOOGLE DRIVE + CALENDAR SYNC ===================
+// scope를 Drive + Calendar로 확장 (2026-06-05). 사장님 요청: Google Calendar 일정
+// 양방향 sync. calendar scope 하나로 list/CRUD 모두 처리 가능.
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/calendar';
+const DRIVE_SCOPE_VER = 'v3'; // bump when scope changes so old tokens are invalidated
 const DRIVE_FOLDER_NAME = 'MindFlow';
 const DRIVE_ASSETS_NAME = 'assets';
 // Subfolder structure (since 2026-05-07): items live in dedicated subfolders so
@@ -327,7 +329,7 @@ let driveMindmapsFolderId = load('drive_mindmaps_folder_id', null);
 let driveTimeblocksFolderId = load('drive_timeblocks_folder_id', null);
 // Layer 1 client — owns auth token + raw HTTP. Folder ids and snapshot live
 // at this (engine) layer because they're business state, not transport state.
-const driveClient = new DriveClient({ clientId: driveClientId });
+const driveClient = new DriveClient({ clientId: driveClientId, scope: DRIVE_SCOPE });
 if (driveUserEmail) driveClient.setLoginHint(driveUserEmail);
 let drivePollTimer = null;
 let driveLastPushAt = 0;
