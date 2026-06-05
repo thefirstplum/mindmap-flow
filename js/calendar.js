@@ -655,26 +655,19 @@ function _renderMobileCal() {
     </div>
   `;
 
-  // 주 범위 라벨 (예: "01.05 — 11")
-  const wsEnd = _calAddDays(calWeekStart, 6);
-  const _pad = n => String(n).padStart(2, '0');
-  const weekLabel = `${_pad(calWeekStart.getMonth()+1)}.${_pad(calWeekStart.getDate())} — ${_pad(wsEnd.getDate())}`;
-
   // 모드 토글은 정적 HTML(.cal-mobile-mode-static)에서 처리 — 여기선 active 상태만 동기화
   const _curMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
   document.querySelectorAll('#cal-mode-seg-mobile button').forEach(b => {
     b.classList.toggle('active', b.dataset.mode === _curMode);
   });
 
+  // 헤더 — 한 줄로 깔끔하게 (사장님 보고: 캘린더 상세 날짜 깨짐)
   el.innerHTML = `
     <div class="mob-cal-month-row">
       <button class="mob-week-nav" onclick="calPrevWeek()" aria-label="이전 주">
         <span class="mi mi-sm">chevron_left</span>
       </button>
-      <div class="mob-cal-month">
-        <div class="mob-cal-month-text">${y}년 ${m}월</div>
-        <div class="mob-cal-week-text">${weekLabel}</div>
-      </div>
+      <div class="mob-cal-month">${y}년 ${m}월</div>
       <button class="mob-week-nav" onclick="calNextWeek()" aria-label="다음 주">
         <span class="mi mi-sm">chevron_right</span>
       </button>
