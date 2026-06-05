@@ -160,6 +160,8 @@ const THEMES_META = [
   { key: 'leather',    label: 'Leather',         dots: ['#F4E9D0', '#A35817', '#C99244'] },
   { key: 'botanical',  label: 'Botanical',       dots: ['#F2EFE0', '#6B8C5A', '#B8A06B'] },
   { key: 'diary',      label: 'Diary',           dots: ['#F8E8D8', '#C76E55', '#7B9A8A'] },
+  { key: 'book',       label: '책 (Book)',         dots: ['#F4ECD8', '#7C5C3A', '#A8784C'] },
+  { key: 'handwritten',label: '손글씨 (꾸꾸꾹)',     dots: ['#FDF8EE', '#B36B5A', '#D89A6B'] },
   { section: '다크' },
   { key: 'dracula',    label: 'Dracula',         dots: ['#282A36', '#FF79C6', '#BD93F9'] },
   { key: 'gotham',     label: 'Gotham',          dots: ['#0A1019', '#4A8FD4', '#95C8E8'] },
