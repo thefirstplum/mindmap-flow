@@ -4262,12 +4262,39 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
     position: relative;
   }
   .cal-mobile .mob-timeline .event-card {
-    left: 6px; right: 14px;
-    border-radius: 10px; padding: 9px 12px;
+    left: 4px; right: 8px;
+    border-radius: 10px; padding: 6px 10px;
     font-size: 12px;
   }
-  .cal-mobile .mob-timeline .event-card .ev-title { font-size: 13px; }
-  .cal-mobile .mob-timeline .event-card .ev-time { font-size: 11px; }
+  /* 모바일 — ev-title 2줄 허용 (nowrap+ellipsis 한 줄로 너무 짧게 잘리던 문제) */
+  .cal-mobile .mob-timeline .event-card .ev-title {
+    font-size: 12.5px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.28;
+    word-break: keep-all;
+  }
+  .cal-mobile .mob-timeline .event-card .ev-time {
+    font-size: 10.5px;
+    margin-top: 1px;
+  }
+  /* 짧은 카드(높이 36px 미만)일 땐 ev-time 가려서 제목에 공간 양보 */
+  .cal-mobile .mob-timeline .event-card .ev-icon { font-size: 12px; margin-right: 3px; }
+  /* 종일 이벤트 — 가로 폭 더 활용 */
+  .cal-mobile .mob-timeline .event-card.gcal-allday {
+    padding: 2px 8px;
+    font-size: 10.5px;
+  }
+  .cal-mobile .mob-timeline .event-card.gcal-allday .ev-title {
+    -webkit-line-clamp: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 11px;
+    line-height: 1.4;
+  }
   .cal-mobile .mob-timeline .now-pill { left: -38px; transform: translateY(-50%); font-size: 9.5px; padding: 2px 6px; }
 }
 
