@@ -348,16 +348,29 @@ function _openTbModalAt(h, mm, totalMin) {
 }
 
 // Google 일정 — 한 날짜 안의 이벤트만 필터
+// ⚠️ 종일 이벤트: Google API에서 end.date는 EXCLUSIVE (다음 날)
+//    예: 1/1 하루 종일 → start.date='2026-01-01', end.date='2026-01-02'
+//    그냥 Date 비교하면 1/2에도 표시되는 버그 → 종일은 dayKey 문자열로 별도 비교
 function _gcalEventsInRange(dayStart, dayEnd) {
   if (typeof window.gcal === 'undefined') return [];
   const events = window.gcal.events || {};
   const out = [];
+  // dayStart에서 YYYY-MM-DD 추출 (로컬 타임존 기준)
+  const _pad2 = n => String(n).padStart(2, '0');
+  const dayKey = `${dayStart.getFullYear()}-${_pad2(dayStart.getMonth()+1)}-${_pad2(dayStart.getDate())}`;
   for (const key in events) {
     const ev = events[key];
-    const s = window.gcal.eventStart(ev);
-    const e = window.gcal.eventEnd(ev);
-    // 이 날짜 안에 겹침이라도 있으면 포함
-    if (e >= dayStart && s <= dayEnd) out.push(ev);
+    if (window.gcal.eventIsAllDay(ev)) {
+      // 종일: start.date <= dayKey < end.date (end는 exclusive)
+      const sk = ev.start.date;
+      const ek = ev.end.date;
+      if (sk && ek && sk <= dayKey && dayKey < ek) out.push(ev);
+    } else {
+      // 시간 이벤트: 일반 시간 겹침 검사
+      const s = window.gcal.eventStart(ev);
+      const e = window.gcal.eventEnd(ev);
+      if (e >= dayStart && s <= dayEnd) out.push(ev);
+    }
   }
   return out;
 }
