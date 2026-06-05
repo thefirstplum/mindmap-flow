@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260605o">
+<link rel="stylesheet" href="styles.css?v=20260605p">
 </head>
 <body>
 <div class="app">
@@ -79,17 +79,25 @@
       </button>
       <!-- 노트/마인드맵 페이지에서만 — 우측 햄버거 → 태그 트리만 보는 드로어 -->
       <button class="header-tag-btn" id="header-tag-btn" onclick="toggleTagDrawer()" aria-label="태그" title="태그">
-        <span class="mi">menu</span>
+        <span class="mi mi-sm">label</span>
       </button>
     </div>
     <!-- 모바일 — 태그 드로어 (우측 슬라이드) -->
     <div class="tag-drawer-overlay" id="tag-drawer-overlay" onclick="if(event.target===this)closeTagDrawer()"></div>
     <aside class="tag-drawer" id="tag-drawer" aria-label="태그">
       <div class="tag-drawer-head">
-        <span class="tag-drawer-title">태그</span>
+        <div class="tag-drawer-title-wrap">
+          <span class="mi mi-sm tag-drawer-icon">label</span>
+          <span class="tag-drawer-title">태그</span>
+          <span class="tag-drawer-count" id="tag-drawer-count"></span>
+        </div>
         <button class="tag-drawer-close" onclick="closeTagDrawer()" aria-label="닫기">
           <span class="mi mi-sm">close</span>
         </button>
+      </div>
+      <div class="tag-drawer-search">
+        <span class="mi mi-sm">search</span>
+        <input type="text" id="tag-drawer-search-input" placeholder="태그 검색" oninput="filterTagDrawer(this.value)">
       </div>
       <div class="tag-drawer-body" id="tag-drawer-body"></div>
     </aside>
@@ -702,7 +710,7 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
-<script src="js/navigation.js?v=20260605o" defer></script>
+<script src="js/navigation.js?v=20260605p" defer></script>
 <script src="js/mindmap.js?v=20260605c" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
 <script src="js/memo.js?v=20260605f" defer></script>
