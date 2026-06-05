@@ -155,13 +155,12 @@ function _renderWeekGrid() {
     for (let h = START_H; h <= END_H; h++) inner += '<div class="hour-line"></div>';
 
     // 캘린더 모드 — 'all'(둘 다) | 'mine'(timeBlock만) | 'google'(gcal만)
+    // 사장님: 영역 분할 말고 합쳐서. 아이콘으로 구분.
     const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
     const showMine = (calMode === 'all' || calMode === 'mine');
     const showGoogle = (calMode === 'all' || calMode === 'google');
-    // 'all'일 때 좌우 50% 분할 (겹침 방지) — class 추가로 CSS에서 처리
-    const splitMode = (calMode === 'all' && (typeof window.gcal !== 'undefined') && window.gcal.enabled);
 
-    // 우리 타임블록 — 분할 시 좌측 50%
+    // 우리 타임블록 — event_note 아이콘
     if (showMine) {
       const blocks = timeBlocks[k] || [];
       for (const b of blocks) {
@@ -171,25 +170,23 @@ function _renderWeekGrid() {
         const height = Math.max(28, endMin - startMin - 4);
         if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
         const colorClass = tbColorClass(b.color);
-        const halfClass = splitMode ? ' ev-half-left' : '';
-        inner += `<div class="event-card ${colorClass}${halfClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
-          <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+        inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
+          <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-mine">event_note</span>${_escapeHtml(b.title || '제목 없음')}</div>
           <div class="ev-time">${b.start} — ${b.end}</div>
         </div>`;
       }
     }
 
-    // Google 일정 — 분할 시 우측 50%
+    // Google 일정 — event 아이콘 (G 표시)
     if (showGoogle && typeof window.gcal !== 'undefined') {
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
       const dayEnd   = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
       const evList = _gcalEventsInRange(dayStart, dayEnd);
-      // 종일 이벤트는 상단 부분에 쌓기 (offset)
       let alldayTop = 0;
       for (const ev of evList) {
         if (window.gcal.eventIsAllDay(ev)) {
           inner += `<div class="event-card gcal-allday" style="top:${alldayTop}px;height:20px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
-            <div class="ev-title">📅 ${_escapeHtml(ev.summary || '제목 없음')}</div>
+            <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-gcal">event</span>${_escapeHtml(ev.summary || '제목 없음')}</div>
           </div>`;
           alldayTop += 22;
           continue;
@@ -204,9 +201,8 @@ function _renderWeekGrid() {
         const bg = window.gcal.eventColor(ev);
         const startLabel = `${String(evStart.getHours()).padStart(2,'0')}:${String(evStart.getMinutes()).padStart(2,'0')}`;
         const endLabel   = `${String(evEnd.getHours()).padStart(2,'0')}:${String(evEnd.getMinutes()).padStart(2,'0')}`;
-        const halfClass = splitMode ? ' ev-half-right' : '';
-        inner += `<div class="event-card gcal-event${halfClass}" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
-          <div class="ev-title">${_escapeHtml(ev.summary || '제목 없음')}</div>
+        inner += `<div class="event-card gcal-event" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+          <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-gcal">event</span>${_escapeHtml(ev.summary || '제목 없음')}</div>
           <div class="ev-time">${startLabel} — ${endLabel}</div>
         </div>`;
       }
@@ -564,7 +560,7 @@ function _renderMobileCal() {
       const height = Math.max(28, endMin - startMin - 4);
       if (top < 0) continue;
       dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
-        <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+        <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-mine">event_note</span>${_escapeHtml(b.title || '제목 없음')}</div>
         <div class="ev-time">${b.start} — ${b.end}</div>
       </div>`;
     }
@@ -578,7 +574,7 @@ function _renderMobileCal() {
     for (const ev of evList) {
       if (window.gcal.eventIsAllDay(ev)) {
         dayCol += `<div class="event-card gcal-allday" style="top:${alldayTop}px;height:20px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
-          <div class="ev-title">📅 ${_escapeHtml(ev.summary || '제목 없음')}</div>
+          <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-gcal">event</span>${_escapeHtml(ev.summary || '제목 없음')}</div>
         </div>`;
         alldayTop += 22;
         continue;
@@ -594,7 +590,7 @@ function _renderMobileCal() {
       const startLabel = `${String(evStart.getHours()).padStart(2,'0')}:${String(evStart.getMinutes()).padStart(2,'0')}`;
       const endLabel   = `${String(evEnd.getHours()).padStart(2,'0')}:${String(evEnd.getMinutes()).padStart(2,'0')}`;
       dayCol += `<div class="event-card gcal-event" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
-        <div class="ev-title">${_escapeHtml(ev.summary || '제목 없음')}</div>
+        <div class="ev-title"><span class="mi mi-sm ev-icon ev-icon-gcal">event</span>${_escapeHtml(ev.summary || '제목 없음')}</div>
         <div class="ev-time">${startLabel} — ${endLabel}</div>
       </div>`;
     }
