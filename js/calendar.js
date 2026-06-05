@@ -163,7 +163,7 @@ function _renderWeekGrid() {
       const height = Math.max(28, endMin - startMin - 4);
       if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
       const colorClass = tbColorClass(b.color);
-      inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="calEditBlockKey('${k}', ${blocks.indexOf(b)})">
+      inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
         <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
         <div class="ev-time">${b.start} — ${b.end}</div>
       </div>`;
@@ -179,13 +179,44 @@ function _renderWeekGrid() {
         inner += `<div class="now-line" style="top:${top}px;"></div>`;
       }
     }
-    dayCols += `<div class="${cls}">${inner}</div>`;
+    dayCols += `<div class="${cls}" data-day-key="${k}" data-start-h="${START_H}" onclick="calGridEmptyClick(event)">${inner}</div>`;
   }
 
   grid.innerHTML = `
     <div class="week-day-header">${header}</div>
     <div class="week-body">${timeCol}${dayCols}</div>
   `;
+}
+
+// 빈 영역(시간 셀) 클릭 → 클릭 위치의 시간으로 새 타임블록 추가
+function calGridEmptyClick(ev) {
+  if (ev.target.closest('.event-card')) return; // 카드 자체 클릭은 무시
+  const col = ev.currentTarget;
+  const rect = col.getBoundingClientRect();
+  const startH = parseInt(col.dataset.startH || '6', 10);
+  const y = ev.clientY - rect.top;
+  // 60px / hour 기준 → 30분 단위 스냅
+  const min = Math.max(0, Math.round(y / 30) * 30);
+  const totalMin = startH * 60 + min;
+  const h = Math.floor(totalMin / 60);
+  const mm = totalMin % 60;
+  calSelectedKey = col.dataset.dayKey;
+  _calSyncCurrentDate();
+  // openTbModal은 (h) 시작 시각을 받음 — 분 단위 정확도 위해 직접 모달 초기화
+  if (typeof openTbModal === 'function') openTbModal(h);
+  // 시작·종료 시각을 좀 더 정확하게 채워준다 (모달 이미 열린 뒤)
+  setTimeout(() => {
+    const s = document.getElementById('tb-start');
+    const e = document.getElementById('tb-end');
+    if (s) s.value = `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    if (e) {
+      const endTotal = totalMin + 60;
+      const eh = Math.min(23, Math.floor(endTotal / 60));
+      const em = endTotal % 60;
+      e.value = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
+    }
+    document.getElementById('tb-title')?.focus();
+  }, 30);
 }
 
 function _escapeHtml(s) {
@@ -202,7 +233,7 @@ function calEditBlockKey(key, idx) {
 function calPrevWeek() { calWeekStart = _calAddDays(calWeekStart, -7); renderCalendar(); }
 function calNextWeek() { calWeekStart = _calAddDays(calWeekStart, 7); renderCalendar(); }
 
-// ===== 요약 카드 =====
+// ===== 요약 카드 + 선택일 감정일기 =====
 function _renderSummary() {
   const el = document.getElementById('cal-summary-card');
   if (!el) return;
@@ -222,6 +253,31 @@ function _renderSummary() {
     <div class="summary-row"><span class="lbl">이번 주 블록</span><span class="val">${totalBlocks}</span></div>
     <div class="summary-row"><span class="lbl">완료</span><span class="val accent">${doneCount} / ${totalBlocks}</span></div>
     <div class="summary-row"><span class="lbl">계획 시간</span><span class="val">${hh}h ${mm}m</span></div>
+  `;
+  _renderDayJournal();  // cal-side 하단 감정일기 패널
+}
+
+// 선택일 감정일기 패널 (cal-side 안 — 데스크탑)
+function _renderDayJournal() {
+  const host = document.getElementById('cal-day-journal');
+  if (!host) return;
+  const key = calSelectedKey;
+  const [y, m, d] = key.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const dows = ['일','월','화','수','목','금','토'];
+  const journal = (typeof journalEntries !== 'undefined' && journalEntries[key]) || { mood:'', content:'' };
+  const moodList = (typeof MOODS !== 'undefined') ? MOODS
+    : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
+  const moodHtml = moodList.map(mo =>
+    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
+  ).join('');
+  host.innerHTML = `
+    <div class="cal-side-sec-title cal-side-sec-title-with-date">
+      <span>📔 감정일기</span>
+      <span class="cal-side-day">${m}/${d} ${dows[date.getDay()]}</span>
+    </div>
+    <div class="cal-mood-row">${moodHtml}</div>
+    <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${_escapeHtml(journal.content || '')}</textarea>
   `;
 }
 
@@ -281,7 +337,7 @@ function _renderMobileCal() {
     timeCol += `<div class="time-slot">${h.toString().padStart(2,'0')}</div>`;
   }
   timeCol += '</div>';
-  let dayCol = '<div class="day-col">';
+  let dayCol = `<div class="day-col" data-day-key="${calSelectedKey}" data-start-h="${START_H}" onclick="calGridEmptyClick(event)">`;
   for (let h = START_H; h <= END_H; h++) dayCol += '<div class="hour-line"></div>';
   for (const b of blocks) {
     const startMin = _timeToMin(b.start);
@@ -289,7 +345,7 @@ function _renderMobileCal() {
     const top = (startMin - START_H * 60) + 4;
     const height = Math.max(28, endMin - startMin - 4);
     if (top < 0) continue;
-    dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
+    dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
       <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
       <div class="ev-time">${b.start} — ${b.end}</div>
     </div>`;
@@ -306,6 +362,21 @@ function _renderMobileCal() {
   }
   dayCol += '</div>';
 
+  // 모바일 — 선택일 감정일기
+  const journal = (typeof journalEntries !== 'undefined' && journalEntries[calSelectedKey]) || { mood:'', content:'' };
+  const moodList = (typeof MOODS !== 'undefined') ? MOODS
+    : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
+  const moodHtml = moodList.map(mo =>
+    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
+  ).join('');
+  const journalSection = `
+    <div class="mob-journal-sec">
+      <div class="mob-journal-head">📔 감정일기</div>
+      <div class="cal-mood-row">${moodHtml}</div>
+      <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${_escapeHtml(journal.content || '')}</textarea>
+    </div>
+  `;
+
   el.innerHTML = `
     <div class="mob-cal-month-row">
       <div class="mob-cal-month">${y}년 ${m}월</div>
@@ -313,6 +384,7 @@ function _renderMobileCal() {
     ${slider}
     ${head}
     <div class="mob-timeline">${timeCol}${dayCol}</div>
+    ${journalSection}
   `;
 }
 

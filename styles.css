@@ -3627,6 +3627,36 @@ select:focus:not(:focus-visible),
   padding: 18px 0 8px;
   line-height: 1.4;
 }
+.cal-side-sec-title-with-date {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.cal-side-sec-title-with-date .cal-side-day {
+  font-size: var(--fs-mini); font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+/* 데스크탑 cal-side 안 — 선택일 감정일기 패널 */
+.cal-day-journal { padding-top: 4px; }
+.cal-day-journal .cal-mood-row { margin-bottom: 8px; }
+.cal-day-journal .cal-journal-ta { min-height: 92px; }
+
+/* 모바일 cal-mobile 하단 감정일기 섹션 */
+.mob-journal-sec {
+  padding: 14px 14px 22px;
+  margin-top: 8px;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg);
+}
+.mob-journal-head {
+  font-size: var(--fs-section); font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: var(--tracking-section); text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.mob-journal-sec .cal-mood-row { margin-bottom: 10px; }
+.mob-journal-sec .cal-journal-ta { min-height: 110px; }
 .summary-card {
   background: var(--surface);
   border-radius: 10px;
