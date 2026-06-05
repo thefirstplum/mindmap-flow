@@ -5,7 +5,28 @@ const pages = { memo: '노트', mindmap: '마인드맵', calendar: '캘린더', 
 const headerActions = {
   memo:     { label: '새 메모',     fn: () => (typeof createMemo === 'function' && createMemo()) },
   mindmap:  { label: '새 마인드맵', fn: () => (typeof createMindmap === 'function' && createMindmap()) },
-  calendar: { label: '일정',        fn: () => (typeof openTbModal === 'function' && openTbModal('add')) },
+  calendar: { label: '일정',        fn: () => {
+    // 캘린더 페이지 헤더 + 버튼 — 모드별 분기
+    const m = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
+    const gE = (typeof window.gcal !== 'undefined') && window.gcal.enabled;
+    if (m === 'google' && gE) {
+      // 현재 선택일 + 다음 정각 시간으로
+      const k = (typeof calSelectedKey !== 'undefined') ? calSelectedKey : null;
+      const now = new Date();
+      const h = Math.min(22, Math.max(7, now.getHours() + 1));
+      if (k && typeof openGCalNewEvent === 'function') { openGCalNewEvent(k, h, 0); return; }
+    }
+    if (m === 'all' && gE) {
+      // 헤더에서 클릭 — 좌표 없으니 중앙 popup
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 3;
+      const now = new Date();
+      const h = Math.min(22, Math.max(7, now.getHours() + 1));
+      const totalMin = h * 60;
+      if (typeof _openCalQuickPicker === 'function') { _openCalQuickPicker(x, y, h, 0, totalMin); return; }
+    }
+    if (typeof openTbModal === 'function') openTbModal('add');
+  } },
   routine:  { label: '루틴',        fn: () => (typeof openRoutineModal === 'function' && openRoutineModal()) },
   journal:  { label: '오늘',        fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
   ledger:   { label: '추가',        fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
@@ -86,8 +107,9 @@ function navigateTo(page, opts) {
   if (page === 'calendar') {
     renderCalendar();
     renderCalDetail();
-    // Google 모드면 보이는 주 일정 자동 fetch
-    if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
+    // 'google' 또는 '전체' 모드면 보이는 주 일정 자동 fetch
+    if (typeof window.gcal !== 'undefined' && window.gcal.enabled
+        && (window.gcal.mode === 'google' || window.gcal.mode === 'all')) {
       if (typeof refreshGCalEventsForVisibleWeek === 'function') refreshGCalEventsForVisibleWeek();
     }
     // 토글 UI 활성 표시 복원

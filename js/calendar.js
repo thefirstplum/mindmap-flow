@@ -154,19 +154,44 @@ function _renderWeekGrid() {
     let inner = '';
     for (let h = START_H; h <= END_H; h++) inner += '<div class="hour-line"></div>';
 
-    // 캘린더 모드 — 'mine'(timeBlock) vs 'google'(gcal events). 같은 그리드 분기.
-    const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'mine';
-    if (calMode === 'google') {
-      // Google 일정 — 이 날짜 안의 이벤트 그리기
+    // 캘린더 모드 — 'all'(둘 다) | 'mine'(timeBlock만) | 'google'(gcal만)
+    const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
+    const showMine = (calMode === 'all' || calMode === 'mine');
+    const showGoogle = (calMode === 'all' || calMode === 'google');
+    // 'all'일 때 좌우 50% 분할 (겹침 방지) — class 추가로 CSS에서 처리
+    const splitMode = (calMode === 'all' && (typeof window.gcal !== 'undefined') && window.gcal.enabled);
+
+    // 우리 타임블록 — 분할 시 좌측 50%
+    if (showMine) {
+      const blocks = timeBlocks[k] || [];
+      for (const b of blocks) {
+        const startMin = _timeToMin(b.start);
+        const endMin = _timeToMin(b.end);
+        const top = (startMin - START_H * 60) + 4;  // padding 보정
+        const height = Math.max(28, endMin - startMin - 4);
+        if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
+        const colorClass = tbColorClass(b.color);
+        const halfClass = splitMode ? ' ev-half-left' : '';
+        inner += `<div class="event-card ${colorClass}${halfClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
+          <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+          <div class="ev-time">${b.start} — ${b.end}</div>
+        </div>`;
+      }
+    }
+
+    // Google 일정 — 분할 시 우측 50%
+    if (showGoogle && typeof window.gcal !== 'undefined') {
       const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
       const dayEnd   = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
       const evList = _gcalEventsInRange(dayStart, dayEnd);
+      // 종일 이벤트는 상단 부분에 쌓기 (offset)
+      let alldayTop = 0;
       for (const ev of evList) {
         if (window.gcal.eventIsAllDay(ev)) {
-          // 종일 이벤트는 상단 컬럼 가장 위 작은 chip로 (간단)
-          inner += `<div class="event-card gcal-allday" style="top:0;height:22px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+          inner += `<div class="event-card gcal-allday" style="top:${alldayTop}px;height:20px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
             <div class="ev-title">📅 ${_escapeHtml(ev.summary || '제목 없음')}</div>
           </div>`;
+          alldayTop += 22;
           continue;
         }
         const evStart = window.gcal.eventStart(ev);
@@ -179,24 +204,10 @@ function _renderWeekGrid() {
         const bg = window.gcal.eventColor(ev);
         const startLabel = `${String(evStart.getHours()).padStart(2,'0')}:${String(evStart.getMinutes()).padStart(2,'0')}`;
         const endLabel   = `${String(evEnd.getHours()).padStart(2,'0')}:${String(evEnd.getMinutes()).padStart(2,'0')}`;
-        inner += `<div class="event-card gcal-event" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+        const halfClass = splitMode ? ' ev-half-right' : '';
+        inner += `<div class="event-card gcal-event${halfClass}" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
           <div class="ev-title">${_escapeHtml(ev.summary || '제목 없음')}</div>
           <div class="ev-time">${startLabel} — ${endLabel}</div>
-        </div>`;
-      }
-    } else {
-      // 우리 타임블록
-      const blocks = timeBlocks[k] || [];
-      for (const b of blocks) {
-        const startMin = _timeToMin(b.start);
-        const endMin = _timeToMin(b.end);
-        const top = (startMin - START_H * 60) + 4;  // padding 보정
-        const height = Math.max(28, endMin - startMin - 4);
-        if (top < 0 || top > (END_H - START_H + 1) * 60) continue;
-        const colorClass = tbColorClass(b.color);
-        inner += `<div class="event-card ${colorClass}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${k}', ${blocks.indexOf(b)})">
-          <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
-          <div class="ev-time">${b.start} — ${b.end}</div>
         </div>`;
       }
     }
@@ -223,11 +234,11 @@ function _renderWeekGrid() {
 // 빈 영역(시간 셀) 클릭 → 클릭 위치의 시간으로 새 타임블록 / Google 일정 추가
 function calGridEmptyClick(ev) {
   if (ev.target.closest('.event-card')) return; // 카드 자체 클릭은 무시
+  if (ev.target.closest('.cal-quick-picker')) return; // popup 자체 클릭 무시
   const col = ev.currentTarget;
   const rect = col.getBoundingClientRect();
   const startH = parseInt(col.dataset.startH || '6', 10);
   const y = ev.clientY - rect.top;
-  // 60px / hour 기준 → 30분 단위 스냅
   const min = Math.max(0, Math.round(y / 30) * 30);
   const totalMin = startH * 60 + min;
   const h = Math.floor(totalMin / 60);
@@ -235,18 +246,93 @@ function calGridEmptyClick(ev) {
   calSelectedKey = col.dataset.dayKey;
   _calSyncCurrentDate();
 
-  // Google 모드 → Google 이벤트 추가 모달
-  const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'mine';
-  if (calMode === 'google') {
-    if (typeof openGCalNewEvent === 'function') {
-      openGCalNewEvent(calSelectedKey, h, mm);
-    }
+  const calMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
+  const gEnabled = (typeof window.gcal !== 'undefined') && window.gcal.enabled;
+
+  // 'all' 모드 + Google 연동 켜짐 → 작은 popup으로 선택 (UI/UX 최적화)
+  if (calMode === 'all' && gEnabled) {
+    _openCalQuickPicker(ev.clientX, ev.clientY, h, mm, totalMin);
     return;
   }
 
-  // 내 일정 (타임블록) 모달
+  // 'google' 모드 → Google 일정 바로
+  if (calMode === 'google' && gEnabled) {
+    if (typeof openGCalNewEvent === 'function') openGCalNewEvent(calSelectedKey, h, mm);
+    return;
+  }
+
+  // 'mine' 또는 Google 미연동 → timeBlock 바로
+  _openTbModalAt(h, mm, totalMin);
+}
+
+// 빠른 선택 popup — 'all' 모드에서 클릭 위치에 작은 카드 두 개
+function _openCalQuickPicker(clientX, clientY, h, mm, totalMin) {
+  document.getElementById('cal-quick-picker')?.remove();
+  const writeCal = (typeof window.gcal !== 'undefined') && window.gcal.writeId
+    ? (window.gcal.calendars.find(c => c.id === window.gcal.writeId) || {}).summary
+    : '';
+  const pop = document.createElement('div');
+  pop.id = 'cal-quick-picker';
+  pop.className = 'cal-quick-picker';
+  const timeLabel = `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+  pop.innerHTML = `
+    <div class="cqp-head">
+      <span class="mi mi-sm">schedule</span>
+      <span>${timeLabel} 부터 추가</span>
+      <button class="cqp-close" onclick="_closeCalQuickPicker()" aria-label="닫기"><span class="mi mi-sm">close</span></button>
+    </div>
+    <button class="cqp-card cqp-mine" onclick="_calQuickPick('mine', ${h}, ${mm}, ${totalMin})">
+      <span class="mi">event_note</span>
+      <span class="cqp-text">
+        <span class="cqp-title">타임블록</span>
+        <span class="cqp-sub">투두·색상 지정 가능</span>
+      </span>
+    </button>
+    <button class="cqp-card cqp-gcal" onclick="_calQuickPick('google', ${h}, ${mm}, ${totalMin})">
+      <span class="mi">event</span>
+      <span class="cqp-text">
+        <span class="cqp-title">Google 일정</span>
+        <span class="cqp-sub">${writeCal ? _escapeHtml(writeCal) : 'Google Calendar'}</span>
+      </span>
+    </button>
+  `;
+  document.body.appendChild(pop);
+  // 위치 — 클릭 좌표 근처. 화면 밖 넘으면 보정.
+  const rect = pop.getBoundingClientRect();
+  let left = clientX + 10;
+  let top = clientY - rect.height / 2;
+  if (left + rect.width > window.innerWidth - 8) left = clientX - rect.width - 10;
+  if (top < 10) top = 10;
+  if (top + rect.height > window.innerHeight - 10) top = window.innerHeight - rect.height - 10;
+  pop.style.left = left + 'px';
+  pop.style.top = top + 'px';
+  pop.classList.add('show');
+  // 외부 클릭 시 닫기
+  setTimeout(() => {
+    document.addEventListener('click', _calQuickPickerOutsideClick, true);
+  }, 0);
+}
+function _calQuickPickerOutsideClick(e) {
+  const pop = document.getElementById('cal-quick-picker');
+  if (!pop) { document.removeEventListener('click', _calQuickPickerOutsideClick, true); return; }
+  if (!pop.contains(e.target)) _closeCalQuickPicker();
+}
+function _closeCalQuickPicker() {
+  document.getElementById('cal-quick-picker')?.remove();
+  document.removeEventListener('click', _calQuickPickerOutsideClick, true);
+}
+window._closeCalQuickPicker = _closeCalQuickPicker;
+window._calQuickPick = function(type, h, mm, totalMin) {
+  _closeCalQuickPicker();
+  if (type === 'google') {
+    if (typeof openGCalNewEvent === 'function') openGCalNewEvent(calSelectedKey, h, mm);
+  } else {
+    _openTbModalAt(h, mm, totalMin);
+  }
+};
+
+function _openTbModalAt(h, mm, totalMin) {
   if (typeof openTbModal === 'function') openTbModal(h);
-  // 시작·종료 시각을 좀 더 정확하게 채워준다 (모달 이미 열린 뒤)
   setTimeout(() => {
     const s = document.getElementById('tb-start');
     const e = document.getElementById('tb-end');
@@ -284,13 +370,11 @@ function setCalendarModeAndRefresh(mode) {
     b.classList.toggle('active', b.dataset.mode === mode);
   });
   window.gcal.setMode(mode);
-  if (mode === 'google') {
-    if (!window.gcal.enabled) {
-      toast('먼저 동기화 모달에서 Google Calendar 연동을 켜주세요', 'info');
-      return;
-    }
-    // 현재 주의 이벤트 fetch
+  if ((mode === 'google' || mode === 'all') && window.gcal.enabled) {
     refreshGCalEventsForVisibleWeek();
+  } else if (mode === 'google' && !window.gcal.enabled) {
+    toast('먼저 동기화 모달에서 Google Calendar 연동을 켜주세요', 'info');
+    renderCalendar();
   } else {
     renderCalendar();
   }
@@ -331,20 +415,20 @@ function calEditBlockKey(key, idx) {
   editTbBlock(key, idx);
 }
 
-// 주 네비게이션 (Google 모드면 새 주 이벤트 자동 fetch)
+// 주 네비게이션 (Google 모드 또는 '전체' 모드면 새 주 이벤트 자동 fetch)
+function _shouldFetchGCal() {
+  return typeof window.gcal !== 'undefined' && window.gcal.enabled
+    && (window.gcal.mode === 'google' || window.gcal.mode === 'all');
+}
 function calPrevWeek() {
   calWeekStart = _calAddDays(calWeekStart, -7);
   renderCalendar();
-  if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
-    refreshGCalEventsForVisibleWeek();
-  }
+  if (_shouldFetchGCal()) refreshGCalEventsForVisibleWeek();
 }
 function calNextWeek() {
   calWeekStart = _calAddDays(calWeekStart, 7);
   renderCalendar();
-  if (typeof window.gcal !== 'undefined' && window.gcal.enabled && window.gcal.mode === 'google') {
-    refreshGCalEventsForVisibleWeek();
-  }
+  if (_shouldFetchGCal()) refreshGCalEventsForVisibleWeek();
 }
 
 // ===== 요약 카드 + 선택일 감정일기 =====
@@ -453,16 +537,54 @@ function _renderMobileCal() {
   timeCol += '</div>';
   let dayCol = `<div class="day-col" data-day-key="${calSelectedKey}" data-start-h="${START_H}" onclick="calGridEmptyClick(event)">`;
   for (let h = START_H; h <= END_H; h++) dayCol += '<div class="hour-line"></div>';
-  for (const b of blocks) {
-    const startMin = _timeToMin(b.start);
-    const endMin = _timeToMin(b.end);
-    const top = (startMin - START_H * 60) + 4;
-    const height = Math.max(28, endMin - startMin - 4);
-    if (top < 0) continue;
-    dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
-      <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
-      <div class="ev-time">${b.start} — ${b.end}</div>
-    </div>`;
+
+  // 캘린더 모드 분기 — 'all'/'mine' → timeBlock / 'all'/'google' → gcal
+  const _mobMode = (typeof window.gcal !== 'undefined') ? window.gcal.mode : 'all';
+  const _showMine = (_mobMode === 'all' || _mobMode === 'mine');
+  const _showGcal = (_mobMode === 'all' || _mobMode === 'google');
+
+  if (_showMine) {
+    for (const b of blocks) {
+      const startMin = _timeToMin(b.start);
+      const endMin = _timeToMin(b.end);
+      const top = (startMin - START_H * 60) + 4;
+      const height = Math.max(28, endMin - startMin - 4);
+      if (top < 0) continue;
+      dayCol += `<div class="event-card ${tbColorClass(b.color)}" style="top:${top}px;height:${height}px;" onclick="event.stopPropagation();calEditBlockKey('${calSelectedKey}', ${blocks.indexOf(b)})">
+        <div class="ev-title">${_escapeHtml(b.title || '제목 없음')}</div>
+        <div class="ev-time">${b.start} — ${b.end}</div>
+      </div>`;
+    }
+  }
+
+  if (_showGcal && typeof window.gcal !== 'undefined') {
+    const dayStart = new Date(y, m-1, dd, 0, 0, 0);
+    const dayEnd   = new Date(y, m-1, dd, 23, 59, 59);
+    const evList = _gcalEventsInRange(dayStart, dayEnd);
+    let alldayTop = 0;
+    for (const ev of evList) {
+      if (window.gcal.eventIsAllDay(ev)) {
+        dayCol += `<div class="event-card gcal-allday" style="top:${alldayTop}px;height:20px;background:${window.gcal.eventColor(ev)}26;border-left:3px solid ${window.gcal.eventColor(ev)};" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+          <div class="ev-title">📅 ${_escapeHtml(ev.summary || '제목 없음')}</div>
+        </div>`;
+        alldayTop += 22;
+        continue;
+      }
+      const evStart = window.gcal.eventStart(ev);
+      const evEnd = window.gcal.eventEnd(ev);
+      const startMin = evStart.getHours() * 60 + evStart.getMinutes();
+      const endMin = evEnd.getHours() * 60 + evEnd.getMinutes();
+      const top = (startMin - START_H * 60) + 4;
+      const height = Math.max(28, endMin - startMin - 4);
+      if (top < 0) continue;
+      const bg = window.gcal.eventColor(ev);
+      const startLabel = `${String(evStart.getHours()).padStart(2,'0')}:${String(evStart.getMinutes()).padStart(2,'0')}`;
+      const endLabel   = `${String(evEnd.getHours()).padStart(2,'0')}:${String(evEnd.getMinutes()).padStart(2,'0')}`;
+      dayCol += `<div class="event-card gcal-event" style="top:${top}px;height:${height}px;background:${bg}26;border-left:3px solid ${bg};color:var(--text);" onclick="event.stopPropagation();openGCalEditor('${ev._calendarId}','${ev.id}')">
+        <div class="ev-title">${_escapeHtml(ev.summary || '제목 없음')}</div>
+        <div class="ev-time">${startLabel} — ${endLabel}</div>
+      </div>`;
+    }
   }
   // 현재시각 (오늘만)
   if (calSelectedKey === todayKey) {

@@ -24,8 +24,10 @@ let gcalEvents = load('gcal_events_cache', {});  // { 'cal_id:event_id': {...eve
 let gcalLastFetchAt = load('gcal_last_fetch_at', 0);  // ms
 let gcalEnabled = load('gcal_enabled', false);
 
-// 캘린더 모드 — 'mine' (timeBlock) | 'google' (gcal events)
-let calendarMode = load('calendar_mode', 'mine');
+// 캘린더 모드 — 'all'(둘 다) | 'mine'(timeBlock만) | 'google'(gcal만)
+// 기본값 'all' (사장님 요청: 캘린더에서 같이 보여야지)
+let calendarMode = load('calendar_mode', 'all');
+// 옛 'mine'/'google' 저장값은 그대로 호환
 
 // ──────────────────── API 호출 헬퍼 ────────────────────
 // driveClient의 토큰을 그대로 재사용 (같은 scope 안에 calendar 포함)
@@ -182,7 +184,8 @@ function setGCalEnabled(on) {
 }
 
 function setCalendarMode(mode) {
-  calendarMode = (mode === 'google') ? 'google' : 'mine';
+  // 'all' | 'mine' | 'google'
+  calendarMode = (mode === 'google' || mode === 'mine' || mode === 'all') ? mode : 'all';
   save('calendar_mode', calendarMode);
   if (typeof renderCalendar === 'function') renderCalendar();
 }
