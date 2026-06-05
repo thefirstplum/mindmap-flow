@@ -142,6 +142,13 @@ function navigateTo(page, opts) {
   const domPage = (page === 'mindmap') ? 'memo' : page;
   document.querySelectorAll('.page').forEach(p =>
     p.classList.toggle('active', p.id === 'page-' + domPage));
+
+  // 페이지 전환 시 모바일 메모 상세(show-editor) 자동 닫음
+  // — 사장님 요청: 메모 상세 보다가 마인드맵 누르면 상세 닫기
+  if (currentPage !== page) {
+    const memoPage = document.getElementById('memo-page');
+    if (memoPage) memoPage.classList.remove('show-editor');
+  }
   document.getElementById('page-title').textContent = pages[page];
   currentPage = page;
   applyHeaderForPage(page);
