@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260605i">
+<link rel="stylesheet" href="styles.css?v=20260605j">
 </head>
 <body>
 <div class="app">
@@ -110,10 +110,11 @@
               <button class="mini-cal-nav" onclick="calNextWeek()" aria-label="다음 주"><span class="mi">chevron_right</span></button>
               <div style="flex:1;"></div>
               <div class="cal-mode-seg" id="cal-mode-seg" role="tablist">
-                <button class="active" data-mode="mine" onclick="setCalendarModeAndRefresh('mine')">내 일정</button>
+                <button class="active" data-mode="all" onclick="setCalendarModeAndRefresh('all')">전체</button>
+                <button data-mode="mine" onclick="setCalendarModeAndRefresh('mine')">내 일정</button>
                 <button data-mode="google" onclick="setCalendarModeAndRefresh('google')">Google</button>
               </div>
-              <button class="cal-today-btn" onclick="calGoToday()"><span class="mi mi-sm">today</span> 이번 주</button>
+              <button class="cal-today-btn" onclick="calGoToday()"><span class="mi mi-sm">today</span><span class="label-text">이번 주</span></button>
             </div>
             <div class="week-grid" id="week-grid"></div>
           </div>
@@ -690,7 +691,7 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
-<script src="js/navigation.js?v=20260605h" defer></script>
+<script src="js/navigation.js?v=20260605j" defer></script>
 <script src="js/mindmap.js?v=20260605c" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
 <script src="js/memo.js?v=20260605f" defer></script>
@@ -715,12 +716,12 @@
 </div>
 
 <script src="js/journal.js?v=20260509a" defer></script>
-<script src="js/calendar.js?v=20260605h" defer></script>
+<script src="js/calendar.js?v=20260605j" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260509a" defer></script>
 <script src="js/sync.js?v=20260605h" defer></script>
-<script src="js/gcal.js?v=20260605i" defer></script>
+<script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260528n" defer></script>
 
 </body>
