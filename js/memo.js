@@ -2,6 +2,16 @@
 let memos = load('memos', []);
 let activeMemoId = null;
 let memoIdCounter = load('memo_idcounter', 1);
+
+// 메모용 unique ID 생성 — 멀티 디바이스 race 방지
+// 카운터 기반(1,2,3...)이면 모바일/데스크탑이 같은 ID를 동시에 만들어서
+// Drive에서 "다른 내용의 같은 메모"로 보이게 됨 → 충돌 사본 양산.
+// timestamp(ms) × 10000 + random(0~9999) → 양 기기 동시 생성도 충돌 사실상 불가.
+// STABLE_ID_FLOOR(1e9)보다 훨씬 큰 범위(~1e16)라 외부 import id와도 안 겹침.
+// memoIdCounter는 옛 메모 호환용으로만 유지(증가는 안 함).
+function newMemoId() {
+  return Date.now() * 10000 + Math.floor(Math.random() * 10000);
+}
 let activeTagFilter = null;
 let memoSortMode = load('memo_sort', 'updated');  // 'updated' | 'created' | 'title'
 // Which kind of note the detail pane is showing: 'memo' (text) or 'mindmap'.
@@ -258,7 +268,7 @@ function duplicateMemoActive() {
   const m = memos.find(x => x.id === id);
   if (!m) return;
   const copy = JSON.parse(JSON.stringify(m));
-  copy.id = memoIdCounter++;
+  copy.id = newMemoId();
   copy.title = (m.title || '제목 없음') + ' (복사)';
   const now = new Date().toISOString();
   copy.createdAt = now;
@@ -517,7 +527,7 @@ function migrateHashtagsFromContent() {
 
 function createMemo() {
   const now = new Date().toISOString();
-  const memo = { id: memoIdCounter++, title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
+  const memo = { id: newMemoId(), title: '새 메모', content: '', date: now, updatedAt: now, tags: [] };
   memos.unshift(memo);
   activeNoteType = 'memo';
   activeMemoId = memo.id;
@@ -2117,7 +2127,7 @@ function openMemoByTitle(title) {
   if (!m) {
     // Auto-create — Obsidian/Roam 표준 동작 (위키링크는 새 노트 진입로)
     const now = new Date().toISOString();
-    m = { id: memoIdCounter++, title: t, content: '', date: now, updatedAt: now, tags: [] };
+    m = { id: newMemoId(), title: t, content: '', date: now, updatedAt: now, tags: [] };
     memos.unshift(m);
     saveMemos();
     toast(`새 메모 "${t}" 생성됨`, 'success');

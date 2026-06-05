@@ -1066,15 +1066,16 @@ async function _forkMemoConflict(driveFile, alreadyDownloadedContent) {
       ? window.SyncAdapters.Memo.parse(driveFile, content)
       : (typeof parseFrontmatter === 'function' ? parseFrontmatter(content, driveFile.name, Date.now()) : null);
     if (!remoteMemo) return;
-    if (typeof memoIdCounter === 'undefined') return;
+    // fork copy의 ID도 timestamp+random — 멀티 기기 race 회피
+    const nextId = (typeof newMemoId === 'function') ? newMemoId
+      : () => Date.now() * 10000 + Math.floor(Math.random() * 10000);
     const copy = window.SyncAdapters.Memo.createConflictCopy(remoteMemo, {
-      nextMemoId: () => memoIdCounter++
+      nextMemoId: nextId
     });
     if (typeof memos !== 'undefined' && Array.isArray(memos)) {
       memos.unshift(copy);
       try {
         localStorage.setItem('mindflow_memos', JSON.stringify(memos));
-        localStorage.setItem('mindflow_memo_idcounter', JSON.stringify(memoIdCounter));
       } catch {}
     }
     driveConflictsCount++;
@@ -1509,25 +1510,15 @@ async function drivePushAll() {
     }
 
     // Mindmaps — uploaded into MindFlow/mindmaps/
-    // 3-way conflict check: if Drive's modifiedTime differs from our last-known,
-    // another writer was here. Fork their version as conflict copy before we overwrite.
+    // 마인드맵 push는 fork 안 함. pull 시 mergeMindmaps가 노드 단위 union CRDT-lite
+    // 머지로 양쪽 편집을 모두 보존하기 때문 (850라인 코멘트 참조). 사장님 보고:
+    // 마인드맵에서 충돌 사본이 많이 발생 → push에서 한 번 더 fork하던 게 양산 원인.
     await batchAll(diff.dirtyMindmaps, async mm => {
       const capturedMtime = mm.updatedAt || '';
       const fname = `mindmap-${mm.id}.json`;
       const body = JSON.stringify(mm, null, 2);
       const existing = mindmapByName.get(fname);
       if (existing) {
-        const lastDriveMtime = oldSnap.driveMtimes?.mindmap?.[mm.id];
-        const isAlreadyConflict = (mm.name || '').includes('(충돌');
-        if (!isAlreadyConflict && lastDriveMtime && existing.modifiedTime && existing.modifiedTime !== lastDriveMtime) {
-          // Compare content first — skip fork if Drive's content matches local
-          try {
-            const remoteText = await driveClient.download(existing.id);
-            if (remoteText.trim() !== body.trim()) {
-              await _forkMindmapConflict(existing);
-            }
-          } catch (e) { console.warn('[Conflict mm] download failed:', e); }
-        }
         const res = await driveUpdateFile(existing.id, body, 'application/json');
         trackMtime(res);
         if (res?.modifiedTime) newSnap.driveMtimes.mindmap[mm.id] = res.modifiedTime;
@@ -1612,14 +1603,22 @@ async function drivePushAll() {
     });
 
     // Memos — build dedup'd filename map for the FULL memo set so dirty memos
-    // get consistent rename targets even when their neighbors aren't being pushed
+    // get consistent rename targets even when their neighbors aren't being pushed.
+    //
+    // 파일명 형식: `${id}-${sanitizeDriveName(title)}.md`
+    // — ID prefix가 항상 들어가서 "제목 없음" 등 같은 제목 메모 여러 개 있어도
+    //   파일명이 겹치지 않음. parseMemoIdFromFilename(^(\d+)-) 패턴 기존 지원.
+    // — 사장님이 보고: 빈 제목 메모가 다른 기기 빈 제목과 같은 이름이 되어
+    //   sync가 "기존 파일 덮어쓰기"로 판단 → 충돌 사본 양산. 이 해결.
     const usedNames = new Set([DRIVE_APP_FILENAME, 'journal.json', 'tb-prefix-colors.json', 'routine.json']);
     const memoFilenames = new Map();
     for (const memo of memos) {
       const base = sanitizeDriveName(memo.title);
-      let fname = `${base}.md`;
+      // ID prefix 포함 (같은 제목 메모 여러 개 있어도 unique)
+      let fname = `${memo.id}-${base}.md`;
+      // 만약의 이름 충돌(거의 없음)에 대비
       let n = 2;
-      while (usedNames.has(fname)) { fname = `${base} (${n}).md`; n++; }
+      while (usedNames.has(fname)) { fname = `${memo.id}-${base} (${n}).md`; n++; }
       usedNames.add(fname);
       memoFilenames.set(memo.id, fname);
     }
@@ -1632,7 +1631,10 @@ async function drivePushAll() {
         ? `\ntags: [${memo.tags.map(t => JSON.stringify(t)).join(', ')}]`
         : '';
       const content = `---\nid: ${memo.id}\ntitle: ${(memo.title || '').replace(/\n/g, ' ')}\ndate: ${memo.date}\nupdated: ${capturedMtime}${tagsLine}\n---\n\n${memo.content || ''}`;
-      const existing = byMemoId.get(memo.id) || byName.get(fname);
+      // ⚠️ ID 매칭만 사용 — byName fallback은 위험 (다른 ID인데 같은 파일명이면
+      //    다른 메모를 덮어쓸 위험). 옛 파일 (ID prefix 없음)은 첫 push 때
+      //    rename으로 정규화됨.
+      const existing = byMemoId.get(memo.id);
       if (existing) {
         // 3-way conflict check: did another device edit this file between our
         // pushes? Compare Drive's modifiedTime to what we recorded on last push.
@@ -1671,7 +1673,15 @@ async function drivePushAll() {
         }
         if (finalMtime) newSnap.driveMtimes.memo[memo.id] = finalMtime;
       } else {
-        const res = await driveUploadFile(fname, content, 'text/markdown', driveMemosFolderId || driveFolderId, { memoId: String(memo.id) });
+        // 신규 업로드. 이름 충돌이 있으면(드물지만 — ID prefix 덕에 거의 없음) (2) suffix
+        let uploadName = fname;
+        if (byName.has(uploadName)) {
+          const base = uploadName.replace(/\.md$/, '');
+          let n = 2;
+          while (byName.has(`${base} (${n}).md`)) n++;
+          uploadName = `${base} (${n}).md`;
+        }
+        const res = await driveUploadFile(uploadName, content, 'text/markdown', driveMemosFolderId || driveFolderId, { memoId: String(memo.id) });
         trackMtime(res);
         if (res?.modifiedTime) newSnap.driveMtimes.memo[memo.id] = res.modifiedTime;
       }
