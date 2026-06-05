@@ -200,14 +200,54 @@ function togglePinNote(type, id, ev) {
 // Back-compat alias for text memos
 function togglePinMemo(id, ev) { togglePinNote('memo', id, ev); }
 
-// "+ 새 노트" — 메모/마인드맵 분기 메뉴 (mockup: 헤더/리스트 헤더 둘 다 동일)
+// "+ 새 노트" — 메모/마인드맵 분기 액션 시트 (취소 가능)
 function showNoteCreateMenu(anchor) {
-  // confirm 단순 분기: 가벼운 UX (별도 sheet 만들지 않음)
-  const choice = confirm('확인 = 새 메모, 취소 = 새 마인드맵');
-  if (choice) { if (typeof createMemo === 'function') createMemo(); }
-  else { if (typeof createMindmap === 'function') createMindmap(); }
+  // 이미 떠있으면 닫기
+  const existing = document.getElementById('note-create-sheet');
+  if (existing) { existing.remove(); return; }
+  const overlay = document.createElement('div');
+  overlay.id = 'note-create-sheet';
+  overlay.className = 'note-create-sheet-overlay';
+  overlay.innerHTML = `
+    <div class="note-create-sheet" onclick="event.stopPropagation()">
+      <div class="note-create-sheet-title">새로 만들기</div>
+      <button class="note-create-sheet-btn" onclick="_chooseNoteCreate('memo')">
+        <span class="mi">edit_note</span>
+        <div class="note-create-sheet-text">
+          <div class="ncs-title">메모</div>
+          <div class="ncs-sub">텍스트 + 마크다운</div>
+        </div>
+      </button>
+      <button class="note-create-sheet-btn" onclick="_chooseNoteCreate('mindmap')">
+        <span class="mi">account_tree</span>
+        <div class="note-create-sheet-text">
+          <div class="ncs-title">마인드맵</div>
+          <div class="ncs-sub">노드·연결 다이어그램</div>
+        </div>
+      </button>
+      <button class="note-create-sheet-cancel" onclick="_closeNoteCreateSheet()">취소</button>
+    </div>
+  `;
+  overlay.addEventListener('click', e => { if (e.target === overlay) _closeNoteCreateSheet(); });
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('show'));
 }
 window.showNoteCreateMenu = showNoteCreateMenu;
+
+function _closeNoteCreateSheet() {
+  const el = document.getElementById('note-create-sheet');
+  if (!el) return;
+  el.classList.remove('show');
+  setTimeout(() => el.remove(), 180);
+}
+window._closeNoteCreateSheet = _closeNoteCreateSheet;
+
+function _chooseNoteCreate(type) {
+  _closeNoteCreateSheet();
+  if (type === 'memo' && typeof createMemo === 'function') createMemo();
+  else if (type === 'mindmap' && typeof createMindmap === 'function') createMindmap();
+}
+window._chooseNoteCreate = _chooseNoteCreate;
 
 // =================== NOTE CONTEXT MENU (우클릭/long-press) ===================
 // 메모/마인드맵 목록 항목 우클릭 시 액션 시트를 띄운다.
@@ -336,12 +376,14 @@ let memoSelectedIds = new Set();
 function toggleMemoSelectMode() {
   memoSelectMode = !memoSelectMode;
   memoSelectedIds.clear();
+  document.getElementById('memo-select-toggle-btn')?.classList.toggle('active', memoSelectMode);
   renderMemoList();
 }
 
 function exitMemoSelectMode() {
   memoSelectMode = false;
   memoSelectedIds.clear();
+  document.getElementById('memo-select-toggle-btn')?.classList.remove('active');
   renderMemoList();
 }
 
