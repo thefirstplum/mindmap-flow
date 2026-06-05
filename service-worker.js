@@ -5,23 +5,33 @@
 //   - Same-origin HTML/JS/CSS: network first, fallback to cache if offline
 //   - Updates: skipWaiting + clients.claim so a fresh deploy takes over right away
 //   - Old caches purged on activate
+//   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
+//     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v2'; // bump → 옛 캐시 강제 무효화 (2026-06-05)
+const CACHE_NAME = 'mindflow-cache-v3'; // bump every meaningful update
 
 self.addEventListener('install', (event) => {
-  // Take over immediately on first install — don't wait for tabs to close
-  self.skipWaiting();
+  event.waitUntil((async () => {
+    // 모든 옛 캐시를 명시적으로 비움 (CACHE_NAME 같든 다르든 전부)
+    const names = await caches.keys();
+    await Promise.all(names.map((n) => caches.delete(n)));
+    self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
-    // Drop any stale caches from older SW versions
+    // 안전망: activate 단계에서도 한번 더 cleanup
     const names = await caches.keys();
     await Promise.all(
       names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
     );
-    // Claim all open tabs/PWA windows so the new SW controls them this session
     await self.clients.claim();
+    // 모든 클라이언트에 reload 시그널 전송 — 옛 코드가 떠 있는 PWA·탭 즉시 새로고침
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of clients) {
+      try { c.postMessage({ type: 'SW_RELOAD', reason: 'new-version' }); } catch {}
+    }
   })());
 });
 
