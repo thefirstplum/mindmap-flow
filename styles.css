@@ -4711,15 +4711,17 @@ body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .
   font-weight: 600;
 }
 
-/* '전체' 모드에서 좌우 50% 분할 — timeBlock 좌측 / Google 우측 (겹침 방지) */
-.event-card.ev-half-left  { left: 3px; right: calc(50% + 2px); }
-.event-card.ev-half-right { left: calc(50% + 2px); right: 3px; }
-@media (max-width: 768px) {
-  /* 모바일은 폭 좁아서 분할 어려움 — 풀폭 유지, 겹치면 z-index로 위에 (사용자가 가벼운 두 번째 클릭으로 접근) */
-  .event-card.ev-half-left,
-  .event-card.ev-half-right { left: 4px; right: 4px; }
-  .event-card.gcal-event { opacity: 0.92; }
+/* 일정 카드 안 아이콘 (사장님 요청: 영역 분할 말고 아이콘으로 구분만) */
+.ev-icon {
+  font-size: 13px;
+  vertical-align: -2px;
+  margin-right: 4px;
+  opacity: 0.85;
 }
+.ev-icon-mine { color: var(--accent); }
+.ev-icon-gcal { color: var(--accent2, var(--accent)); }
+.event-card.gcal-event .ev-icon-gcal,
+.event-card.gcal-allday .ev-icon-gcal { color: inherit; opacity: 0.9; }
 
 /* ────────────────────────────────────────────────────────────────
    §  MEMO — 정렬 / 고정
