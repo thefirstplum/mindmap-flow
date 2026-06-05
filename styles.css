@@ -249,7 +249,7 @@ body[data-theme="book"] .journal-textarea {
   letter-spacing: -0.005em;
 }
 
-/* Handwritten — 따뜻한 살구 + 손글씨(메모먼트 꾸꾸꾹) */
+/* Handwritten — 따뜻한 살구 + 손글씨(메모먼트 꾸꾸꾹) 모든 글자에 적용 */
 body[data-theme="handwritten"] {
   --bg:#FDF8EE; --bg-soft:#F6EEDF; --surface:#FFFAF1; --surface2:#F0E2D0; --surface3:#DFCDB8;
   --border:#D9C4A8; --border-light:#E8D8BF;
@@ -259,17 +259,53 @@ body[data-theme="handwritten"] {
   --code-color:#85998A;
   --green:#7E9F6E; --orange:#C9A050; --red:#B35454; --blue:#5C7A8C; --pink:#B36B5A; --cyan:#85998A;
   color-scheme: light;
+  /* 사장님 요청: 모든 글자에 손글씨 폰트 적용 — body 자체에 명시 (전체 inherit) */
+  font-family: 'MemomentKkukkkuk', 'Apple SD Gothic Neo', -apple-system, cursive;
+  letter-spacing: 0;
 }
-/* Handwritten 본문 — 메모먼트 꾸꾸꾹 (손글씨) */
+/* 손글씨 테마 — 모든 텍스트 요소에도 명시 (button/input/textarea는 inherit 안 받음) */
+body[data-theme="handwritten"] button,
+body[data-theme="handwritten"] input,
+body[data-theme="handwritten"] select,
+body[data-theme="handwritten"] textarea,
+body[data-theme="handwritten"] .bear-editor,
+body[data-theme="handwritten"] .cm-content,
+body[data-theme="handwritten"] .markdown-body,
+body[data-theme="handwritten"] .sidebar,
+body[data-theme="handwritten"] .header h1 {
+  font-family: 'MemomentKkukkkuk', 'Apple SD Gothic Neo', -apple-system, cursive;
+}
+/* 본문 영역 손글씨 — line-height 더 여유 */
 body[data-theme="handwritten"] #memo-live-editor .cm-content,
 body[data-theme="handwritten"] .bear-editor,
 body[data-theme="handwritten"] .memo-editor textarea,
 body[data-theme="handwritten"] .markdown-body,
-body[data-theme="handwritten"] .memo-editor-header input,
 body[data-theme="handwritten"] .journal-textarea {
-  font-family: 'MemomentKkukkkuk', 'Apple SD Gothic Neo', -apple-system, cursive;
-  letter-spacing: 0;
   line-height: 1.7;
+}
+/* Material Symbols는 자체 폰트 유지 — 아이콘이 글자로 깨지지 않게 */
+body[data-theme="handwritten"] .mi {
+  font-family: 'Material Symbols Rounded' !important;
+}
+/* code · monospace는 ui-monospace 유지 (가독성) */
+body[data-theme="handwritten"] code,
+body[data-theme="handwritten"] pre,
+body[data-theme="handwritten"] .cm-rawurl-w,
+body[data-theme="handwritten"] .kbd {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+/* Midnight — Dribbble 톤 검정 다크 (사장님 첨부 이미지 참고) */
+body[data-theme="midnight"] {
+  --bg:#0E0E10; --bg-soft:#15161A; --surface:#1A1B20; --surface2:#23252B; --surface3:#2E3138;
+  --border:#2E3138; --border-light:#26282E;
+  --text:#F3F4F6; --text-dim:#B5B8C0; --text-mute:#6F7280;
+  --accent:#5B8DEF; --accent2:#A78BFA; --accent3:#F0B264; --accent-soft:#7CA8F4; --accent-glow:rgba(91,141,239,0.18);
+  --md-code:#7DD3FC; --md-link:#93C5FD; --md-highlight:rgba(91,141,239,0.22); --md-tag:#F0B264;
+  --code-color:#7DD3FC;
+  --green:#4ADE80; --orange:#F0B264; --red:#F87171; --blue:#5B8DEF; --pink:#F472B6; --cyan:#7DD3FC;
+  --shadow-1:0 1px 2px rgba(0,0,0,0.5); --shadow-2:0 4px 14px rgba(0,0,0,0.55);
+  color-scheme: dark;
 }
 
 /* Dracula — 보라/핑크 다크 */
@@ -3006,7 +3042,8 @@ body[data-theme="dracula"] #memo-live-editor .cm-line,
 body[data-theme="gotham"] #memo-live-editor .cm-line,
 body[data-theme="forest"] #memo-live-editor .cm-line,
 body[data-theme="ocean"] #memo-live-editor .cm-line,
-body[data-theme="sunset"] #memo-live-editor .cm-line {
+body[data-theme="sunset"] #memo-live-editor .cm-line,
+body[data-theme="midnight"] #memo-live-editor .cm-line {
   border-bottom-color: rgba(245, 235, 224, 0.06);
 }
 /* 설정에서 ruled lines off일 때 */
@@ -3389,7 +3426,8 @@ body[data-theme="dracula"] .m-bottom-tabs,
 body[data-theme="gotham"] .m-bottom-tabs,
 body[data-theme="forest"] .m-bottom-tabs,
 body[data-theme="ocean"] .m-bottom-tabs,
-body[data-theme="sunset"] .m-bottom-tabs {
+body[data-theme="sunset"] .m-bottom-tabs,
+body[data-theme="midnight"] .m-bottom-tabs {
   background: var(--surface);
   border-top-color: var(--border);
   box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.32);
@@ -4215,7 +4253,8 @@ body[data-theme="gotham"] .event-card .ev-title, body[data-theme="gotham"] .even
 body[data-theme="forest"] .event-card .ev-title, body[data-theme="forest"] .event-card .ev-time,
 body[data-theme="ocean"] .event-card .ev-title, body[data-theme="ocean"] .event-card .ev-time,
 body[data-theme="sunset"] .event-card .ev-title, body[data-theme="sunset"] .event-card .ev-time,
-body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .event-card .ev-time {
+body[data-theme="charcoal"] .event-card .ev-title, body[data-theme="charcoal"] .event-card .ev-time,
+body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .event-card .ev-time {
   color: #ECE7DE;
 }
 
