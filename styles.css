@@ -3285,8 +3285,11 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: calc(52px + var(--safe-bot));  /* 60 → 52 (사장님 보고: schedule보다 여백 높음) */
-  padding: 0 4px var(--safe-bot);  /* 안쪽 컨텐츠는 safe 영역 위로 */
+  /* 사장님 보고: 하단 여백 크다 → 컴팩트화
+     · 컨텐츠 영역 46px (= height - safe-bot) 으로 줄임
+     · padding-bottom은 safe-bot의 70%만 → home indicator와 살짝 더 가까이 */
+  height: calc(46px + var(--safe-bot) * 0.7);
+  padding: 0 4px calc(var(--safe-bot) * 0.7);
   background: var(--surface);
   border-top: 1px solid var(--border-light);
   z-index: 40;
@@ -3317,24 +3320,25 @@ body[data-theme="charcoal"] .m-bottom-tabs {
   color: var(--text-mute);
   font-family: inherit;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  flex: 1; height: 52px;
+  flex: 1; height: 46px;
   border-radius: 8px;
   padding: 0 4px;
-  gap: 1px;
+  gap: 0;
   transition: color 0.18s, background 0.18s;
   position: relative;
 }
 .m-tab-btn .mi {
-  font-size: 20px;
+  font-size: 19px;
   transition: transform 0.18s cubic-bezier(0.32,0.72,0.16,1);
   line-height: 1;
 }
 .m-tab-btn .label {
   display: block;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.1;
+  margin-top: 2px;
 }
 .m-tab-btn:hover { color: var(--text); }
 
