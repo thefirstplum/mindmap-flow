@@ -72,7 +72,10 @@ function _renderMiniCal() {
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month, d);
     const key = dateKey(date);
-    const has = (timeBlocks[key] || []).length > 0 || (journalEntries[key] && (journalEntries[key].mood || journalEntries[key].content));
+    const hasTb = (timeBlocks[key] || []).length > 0;
+    const hasJournal = (journalEntries[key] && (journalEntries[key].mood || journalEntries[key].content));
+    const hasGCal = _gcalHasEventsOnDay(date);
+    const has = hasTb || hasJournal || hasGCal;
     const cls = [
       'mini-cal-cell',
       key === todayKey ? 'today' : '',
@@ -343,6 +346,14 @@ function _openTbModalAt(h, mm, totalMin) {
   }, 30);
 }
 
+// 특정 날짜에 Google 일정이 있는지 (빠른 검사, mini cal · slider 점 표시용)
+function _gcalHasEventsOnDay(date) {
+  if (typeof window.gcal === 'undefined' || !window.gcal.enabled) return false;
+  const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0);
+  const dayEnd   = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59);
+  return _gcalEventsInRange(dayStart, dayEnd).length > 0;
+}
+
 // Google 일정 — 한 날짜 안의 이벤트만 필터
 // ⚠️ 종일 이벤트: Google API에서 end.date는 EXCLUSIVE (다음 날)
 //    예: 1/1 하루 종일 → start.date='2026-01-01', end.date='2026-01-02'
@@ -514,18 +525,21 @@ function _renderMobileCal() {
   const todayKey = dateKey(new Date());
   const dows = ['일','월','화','수','목','금','토'];
 
-  // 7일 슬라이더
+  // 7일 슬라이더 — timeBlock + Google 일정 둘 다 has-event . 표시
   let slider = '<div class="mob-week-slider">';
   for (let i = 0; i < 7; i++) {
     const d = _calAddDays(calWeekStart, i);
     const k = dateKey(d);
-    const has = (timeBlocks[k] || []).length > 0;
+    const hasTb = (timeBlocks[k] || []).length > 0;
+    const hasGCal = _gcalHasEventsOnDay(d);
+    const has = hasTb || hasGCal;
     const cls = [
       'mob-day',
       k === calSelectedKey ? 'active' : '',
       i === 0 ? 'sun' : '',
       i === 6 ? 'sat' : '',
       has ? 'has-event' : '',
+      hasGCal ? 'has-gcal' : '',
     ].filter(Boolean).join(' ');
     slider += `<button class="${cls}" onclick="calSelectDay('${k}')">
       <span class="dow">${dows[i]}</span>
