@@ -1399,6 +1399,12 @@ body.tag-drawer-open .header-tag-btn {
   background: var(--surface2);
   border-radius: 12px;
 }
+/* 모바일에서 하단 탭바와 안 겹치게 여유 — 사장님 보고 */
+@media (max-width: 768px) {
+  .backlink-panel {
+    margin: 24px 14px calc(80px + var(--safe-bot) * 0.7);
+  }
+}
 .backlink-header {
   display: flex; align-items: center; gap: 6px;
   font-size: var(--fs-section); font-weight: 700;
@@ -1888,28 +1894,24 @@ body.tag-drawer-open .header-tag-btn {
 .nab-btn.nab-icon-only { padding: 6px 8px; }
 .nab-btn.nab-icon-only:hover { color: var(--red); background: rgba(212, 95, 90, 0.12); }
 
-/* 모바일 node-action-bar — 가로 스크롤 허용 (사장님 보고: 너무 길어서 다 안 보임) */
+/* 모바일 node-action-bar — 색상 5개로 줄여 한 줄에 들어감 + 하단 탭바 위로 띄움 */
 @media (max-width: 768px) {
   .node-action-bar {
-    left: 8px; right: 8px;
-    transform: translateY(14px);
+    /* 하단 m-bottom-tabs(56 + safe-bot*0.7) 위로 — 사장님 보고: 겹침 */
+    bottom: calc(64px + var(--safe-bot) * 0.7);
+    left: 50%;
+    transform: translateX(-50%) translateY(14px);
     max-width: calc(100vw - 16px);
-    padding: 8px 10px;
+    padding: 7px 10px;
     gap: 6px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    justify-content: flex-start;
   }
   .node-action-bar.show {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
-  .node-action-bar::-webkit-scrollbar { display: none; }
-  /* 색상 점 살짝 줄임 + 액션 버튼 패딩 줄임 */
+  /* 색상 점 살짝 줄임 + 액션 버튼 컴팩트 */
   .nab-colors { gap: 5px; flex-shrink: 0; }
   .nab-color { width: 20px; height: 20px; }
-  .nab-sep { flex-shrink: 0; margin: 0 2px; height: 22px; }
+  .nab-sep { flex-shrink: 0; margin: 0 4px; height: 22px; }
   .nab-btn { padding: 4px 7px; flex-shrink: 0; }
   .nab-btn .mi-sm { font-size: 16px; }
   .nab-btn span:not(.mi):not(.mi-sm) { font-size: 9px; }
