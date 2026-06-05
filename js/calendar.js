@@ -622,9 +622,26 @@ function _renderMobileCal() {
     </div>
   `;
 
+  // 주 범위 라벨 (예: "01.05 — 11")
+  const wsEnd = _calAddDays(calWeekStart, 6);
+  const _pad = n => String(n).padStart(2, '0');
+  const weekLabel = `${_pad(calWeekStart.getMonth()+1)}.${_pad(calWeekStart.getDate())} — ${_pad(wsEnd.getDate())}`;
+
   el.innerHTML = `
     <div class="mob-cal-month-row">
-      <div class="mob-cal-month">${y}년 ${m}월</div>
+      <button class="mob-week-nav" onclick="calPrevWeek()" aria-label="이전 주">
+        <span class="mi mi-sm">chevron_left</span>
+      </button>
+      <div class="mob-cal-month">
+        <div class="mob-cal-month-text">${y}년 ${m}월</div>
+        <div class="mob-cal-week-text">${weekLabel}</div>
+      </div>
+      <button class="mob-week-nav" onclick="calNextWeek()" aria-label="다음 주">
+        <span class="mi mi-sm">chevron_right</span>
+      </button>
+      <button class="mob-cal-today" onclick="calGoToday()" aria-label="오늘로 이동">
+        <span class="mi mi-sm">today</span>
+      </button>
     </div>
     ${slider}
     ${head}
