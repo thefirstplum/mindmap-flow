@@ -155,7 +155,20 @@ if ('serviceWorker' in navigator) {
       if (!document.hidden) checkUpdate();
     });
     window.addEventListener('focus', checkUpdate);
+    // 페이지 로드 시 즉시 한번 — 옛 SW가 캐시 잡고 있는 케이스 대응
+    checkUpdate();
   }).catch((e) => console.warn('SW register failed:', e));
+
+  // 새 SW가 보내는 강제 reload 시그널 수신 — 컨트롤러 교체 못 잡는 케이스 안전망
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SW_RELOAD') {
+      const el = document.activeElement;
+      const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
+      if (!typing) {
+        setTimeout(() => location.reload(), 100);
+      }
+    }
+  });
 }
 
 // =================== SYNC EVENTS → UI WIRE-UP ===================
