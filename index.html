@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260606g">
+<link rel="stylesheet" href="styles.css?v=20260606h">
 </head>
 <body>
 <div class="app">
@@ -269,12 +269,9 @@
                 <span class="mi mi-sm">link</span>
                 <span>연결</span>
               </button>
-              <button class="nab-btn" onclick="openNoteLinkPicker()" title="메모 연결" id="nab-note-link">
+              <button class="nab-btn" onclick="handleNoteBtnClick()" title="메모 연결" id="nab-note-link">
                 <span class="mi mi-sm">description</span>
                 <span>메모</span>
-              </button>
-              <button class="nab-btn nab-icon-only" onclick="unlinkNodeFromMemo()" title="메모 연결 해제" id="nab-note-unlink" style="display:none;" aria-label="연결 해제">
-                <span class="mi mi-sm">link_off</span>
               </button>
               <button class="nab-btn danger" onclick="deleteSelected()" title="삭제">
                 <span class="mi mi-sm">delete</span>
@@ -718,7 +715,7 @@
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
 <script src="js/navigation.js?v=20260605v" defer></script>
-<script src="js/mindmap.js?v=20260606g" defer></script>
+<script src="js/mindmap.js?v=20260606h" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
 <script src="js/memo.js?v=20260606a" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->

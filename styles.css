@@ -1399,10 +1399,10 @@ body.tag-drawer-open .header-tag-btn {
   background: var(--surface2);
   border-radius: 12px;
 }
-/* 모바일에서 하단 탭바와 안 겹치게 여유 — 사장님 보고 */
+/* 모바일에서 하단 탭바와 안 겹치게 여유 — 사장님: 여전히 겹침 */
 @media (max-width: 768px) {
   .backlink-panel {
-    margin: 24px 14px calc(80px + var(--safe-bot) * 0.7);
+    margin: 24px 14px calc(96px + var(--safe-bot));
   }
 }
 .backlink-header {
@@ -1897,8 +1897,8 @@ body.tag-drawer-open .header-tag-btn {
 /* 모바일 node-action-bar — 색상 5개로 줄여 한 줄에 들어감 + 하단 탭바 위로 띄움 */
 @media (max-width: 768px) {
   .node-action-bar {
-    /* 하단 m-bottom-tabs(56 + safe-bot*0.7) 위로 — 사장님 보고: 겹침 */
-    bottom: calc(64px + var(--safe-bot) * 0.7);
+    /* 하단 m-bottom-tabs(56 + safe-bot*0.7) 위로 충분한 여유 — 사장님: 여전히 겹침 */
+    bottom: calc(72px + var(--safe-bot));
     left: 50%;
     transform: translateX(-50%) translateY(14px);
     max-width: calc(100vw - 16px);
