@@ -106,6 +106,23 @@ function applyData(data) {
 }
 
 function openSyncModal() {
+  // 모달 reset — 이전 close 시 inline style 남거나 modal animation이 끝 상태로
+  // 굳어서 두 번째 open에서 dimm만 보이고 본체 안 뜨는 경우 방지 (사장님 보고)
+  const _ov = document.getElementById('sync-modal');
+  if (_ov) {
+    _ov.style.display = '';
+    _ov.style.opacity = '';
+    _ov.classList.remove('show');
+    void _ov.offsetWidth;  // 강제 reflow → CSS animation 재실행 보장
+    const _mod = _ov.querySelector('.modal');
+    if (_mod) {
+      _mod.style.animation = 'none';
+      _mod.style.opacity = '';
+      _mod.style.transform = '';
+      void _mod.offsetWidth;
+      _mod.style.animation = '';
+    }
+  }
   const data = getAllData();
   const totalNodes = data.mindmaps.reduce((s, m) => s + (m.nodes?.length || 0), 0);
   const totalEdges = data.mindmaps.reduce((s, m) => s + (m.edges?.length || 0), 0);
