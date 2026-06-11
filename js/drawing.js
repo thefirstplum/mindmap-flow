@@ -27,6 +27,15 @@ let drawPalmMode = 'auto';
 // 'blank' | 'lined' | 'grid' | 'dot' | 'cream' | 'sepia'
 let drawPaper = load('draw_paper', 'blank');
 
+// Phase 4 — 줌/팬 (캔버스 wrap에 CSS transform)
+let drawScale = 1;
+let drawPanX = 0;
+let drawPanY = 0;
+
+// Phase 5 — 멀티 페이지 (한 드로잉에 여러 페이지)
+let drawPages = [[]];  // 각 페이지의 strokes 배열
+let drawPageIdx = 0;
+
 // Phase 2 — 최근 사용 색상 (팔레트 popup용)
 let drawRecentColors = load('draw_recent_colors', ['#1d1a14']);
 const DRAW_PALETTE_COLORS = [
@@ -55,6 +64,14 @@ function openDrawingModal() {
   drawTool = 'ink';
   drawColor = '#1f1a14';
   drawWidthBase = 2.5;
+  // Phase 4 — 줌 reset
+  drawScale = 1;
+  drawPanX = 0;
+  drawPanY = 0;
+  // Phase 5 — 페이지 reset (1페이지로 시작)
+  drawPages = [[]];
+  drawPageIdx = 0;
+  setTimeout(() => _renderPageIndicator(), 50);
   document.querySelectorAll('.draw-color').forEach(c => c.classList.toggle('active', c.dataset.color === drawColor));
   // 모든 도구 active 초기화 후 ink만 active
   document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
@@ -401,9 +418,98 @@ function clearDraw() {
   updateDrawEmptyHint();
 }
 
+// =================== Phase 5 — 멀티 페이지 ===================
+// 현재 페이지를 drawStrokes에 동기화 + 다른 페이지로 전환
+function _flushCurrentPage() {
+  drawPages[drawPageIdx] = drawStrokes.slice();
+}
+function _loadPage(idx) {
+  drawStrokes = drawPages[idx] ? drawPages[idx].slice() : [];
+  drawRedoStack = [];
+  drawCurrentStroke = null;
+  drawPageIdx = idx;
+  redrawAllStrokes();
+  updateDrawEmptyHint();
+  _renderPageIndicator();
+  resetCanvasTransform();
+}
+function gotoPage(idx) {
+  if (idx < 0 || idx >= drawPages.length) return;
+  _flushCurrentPage();
+  _loadPage(idx);
+}
+function addPage() {
+  _flushCurrentPage();
+  drawPages.push([]);
+  _loadPage(drawPages.length - 1);
+  if (typeof toast === 'function') toast(`페이지 ${drawPageIdx + 1} 추가됨`, 'success');
+}
+function deletePage() {
+  if (drawPages.length === 1) {
+    if (typeof toast === 'function') toast('마지막 페이지는 삭제할 수 없어요');
+    return;
+  }
+  if (!confirm(`페이지 ${drawPageIdx + 1} 삭제할까요?`)) return;
+  drawPages.splice(drawPageIdx, 1);
+  if (drawPageIdx >= drawPages.length) drawPageIdx = drawPages.length - 1;
+  _loadPage(drawPageIdx);
+}
+window.gotoPage = gotoPage;
+window.addPage = addPage;
+window.deletePage = deletePage;
+
+function _renderPageIndicator() {
+  const host = document.getElementById('draw-page-indicator');
+  if (!host) return;
+  const dots = drawPages.map((_, i) =>
+    `<button class="page-dot${i === drawPageIdx ? ' active' : ''}" onclick="gotoPage(${i})" aria-label="페이지 ${i + 1}"></button>`
+  ).join('');
+  host.innerHTML = `
+    <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx - 1})" ${drawPageIdx === 0 ? 'disabled' : ''} aria-label="이전 페이지">
+      <span class="mi mi-sm">chevron_left</span>
+    </button>
+    <span class="page-count">${drawPageIdx + 1} / ${drawPages.length}</span>
+    <div class="page-dots">${dots}</div>
+    <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx + 1})" ${drawPageIdx === drawPages.length - 1 ? 'disabled' : ''} aria-label="다음 페이지">
+      <span class="mi mi-sm">chevron_right</span>
+    </button>
+    <button class="page-nav-btn add" onclick="addPage()" title="새 페이지 추가" aria-label="새 페이지">
+      <span class="mi mi-sm">add</span>
+    </button>
+    <button class="page-nav-btn del" onclick="deletePage()" title="페이지 삭제" aria-label="페이지 삭제" ${drawPages.length === 1 ? 'disabled' : ''}>
+      <span class="mi mi-sm">delete</span>
+    </button>
+  `;
+}
+
 function updateDrawEmptyHint() {
   const hint = document.getElementById('draw-empty-hint');
   if (hint) hint.classList.toggle('hidden', drawStrokes.length > 0 || !!drawCurrentStroke);
+}
+
+// Phase 4 — 줌/팬 transform 적용
+function applyCanvasTransform() {
+  if (!drawCanvas) return;
+  drawCanvas.style.transformOrigin = '0 0';
+  drawCanvas.style.transform = `translate(${drawPanX}px, ${drawPanY}px) scale(${drawScale})`;
+  const ind = document.getElementById('draw-zoom-indicator');
+  if (ind) ind.textContent = `${Math.round(drawScale * 100)}%`;
+}
+function resetCanvasTransform() {
+  drawScale = 1;
+  drawPanX = 0;
+  drawPanY = 0;
+  applyCanvasTransform();
+}
+window.resetCanvasTransform = resetCanvasTransform;
+
+// 클릭 좌표 → 캔버스 내부(unscaled) 좌표
+function _clientToCanvas(clientX, clientY) {
+  const rect = drawCanvas.getBoundingClientRect();
+  return {
+    x: (clientX - rect.left) / drawScale,
+    y: (clientY - rect.top) / drawScale,
+  };
 }
 
 function setupDrawingPointer(canvas) {
@@ -415,6 +521,14 @@ function setupDrawingPointer(canvas) {
   let lastPenAt = 0;
   let everSawPen = false;
   const PALM_BUFFER_MS = 1500;
+
+  // Phase 4 — 멀티터치 추적 (두 손가락 → 핀치 줌 + 팬)
+  const activePointers = new Map();  // id → {x, y, type}
+  let pinchMode = false;
+  let pinchStartDist = 0;
+  let pinchStartScale = 1;
+  let pinchStartCenter = { x: 0, y: 0 };
+  let pinchStartPan = { x: 0, y: 0 };
 
   function shouldRejectTouch() {
     if (drawPalmMode === 'allow-touch') return false;
@@ -445,6 +559,27 @@ function setupDrawingPointer(canvas) {
   });
 
   const start = (e) => {
+    // Phase 4 — 멀티터치 추적
+    if (e.pointerType === 'touch') {
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      // 두 번째 손가락 도착 → pinch 모드로 전환
+      if (activePointers.size === 2) {
+        const ps = [...activePointers.values()];
+        pinchMode = true;
+        pinchStartDist = Math.hypot(ps[1].x - ps[0].x, ps[1].y - ps[0].y);
+        pinchStartScale = drawScale;
+        pinchStartCenter = { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 };
+        pinchStartPan = { x: drawPanX, y: drawPanY };
+        // 진행 중 stroke 취소 (실수로 그렸으면 되돌림)
+        if (drawCurrentStroke) {
+          drawCurrentStroke = null;
+          drawCompositeFromBaked();
+          updateDrawEmptyHint();
+        }
+        return;
+      }
+    }
+
     if (e.pointerType === 'touch' && shouldRejectTouch()) return;
     if (e.pointerType === 'pen') {
       everSawPen = true;
@@ -460,9 +595,8 @@ function setupDrawingPointer(canvas) {
     if (e.pointerId != null) {
       try { canvas.setPointerCapture(e.pointerId); } catch {}
     }
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    // Phase 4 — transform 적용된 좌표 변환
+    const { x, y } = _clientToCanvas(e.clientX, e.clientY);
 
     // Phase 6 — stroke 단위 지우개: 클릭한 위치의 stroke 삭제
     if (drawTool === 'eraser' && drawEraserMode === 'stroke') {
@@ -492,12 +626,27 @@ function setupDrawingPointer(canvas) {
   };
 
   const move = (e) => {
+    // Phase 4 — pinch 모드 중: 핀치 줌 + 팬
+    if (e.pointerType === 'touch' && activePointers.has(e.pointerId)) {
+      activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinchMode && activePointers.size === 2) {
+        e.preventDefault();
+        const ps = [...activePointers.values()];
+        const newDist = Math.hypot(ps[1].x - ps[0].x, ps[1].y - ps[0].y);
+        const newCenter = { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 };
+        const ratio = newDist / Math.max(1, pinchStartDist);
+        drawScale = Math.max(0.4, Math.min(4, pinchStartScale * ratio));
+        drawPanX = pinchStartPan.x + (newCenter.x - pinchStartCenter.x);
+        drawPanY = pinchStartPan.y + (newCenter.y - pinchStartCenter.y);
+        applyCanvasTransform();
+        return;
+      }
+    }
+
     // Phase 6 — stroke 단위 지우개: 드래그하면서 닿은 stroke 제거
     if (drawTool === 'eraser' && drawEraserMode === 'stroke' && !drawCurrentStroke) {
       if (e.pointerType === 'touch' && shouldRejectTouch()) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const { x, y } = _clientToCanvas(e.clientX, e.clientY);
       const hitIdx = _strokeHitTest(x, y, Math.max(8, drawWidthBase * 2));
       if (hitIdx >= 0) {
         drawStrokes.splice(hitIdx, 1);
@@ -511,14 +660,10 @@ function setupDrawingPointer(canvas) {
     if (e.pointerId !== drawCurrentStroke.pointerId) return;
     if (e.pointerType === 'pen') { lastPenAt = Date.now(); }
     e.preventDefault();
-    const rect = canvas.getBoundingClientRect();
     const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
     for (const ev of events) {
-      drawCurrentStroke.points.push({
-        x: ev.clientX - rect.left,
-        y: ev.clientY - rect.top,
-        p: ev.pressure > 0 ? ev.pressure : 0.5
-      });
+      const { x, y } = _clientToCanvas(ev.clientX, ev.clientY);
+      drawCurrentStroke.points.push({ x, y, p: ev.pressure > 0 ? ev.pressure : 0.5 });
     }
     // Paint only the new segments on top of the visible canvas — no rebake
     paintLatestSegment(drawCurrentStroke, drawCurrentStroke.paintedUpTo);
@@ -526,6 +671,11 @@ function setupDrawingPointer(canvas) {
   };
 
   const end = (e) => {
+    // Phase 4 — pointer 추적 제거
+    if (e.pointerType === 'touch') {
+      activePointers.delete(e.pointerId);
+      if (activePointers.size < 2) pinchMode = false;
+    }
     if (drawCurrentStroke && e.pointerId !== drawCurrentStroke.pointerId) return;
     if (e.pointerType === 'pen') {
       stylusActive = false;
@@ -534,13 +684,9 @@ function setupDrawingPointer(canvas) {
     if (!drawCurrentStroke) return;
     if (drawCurrentStroke.points.length > 0) {
       drawStrokes.push(drawCurrentStroke);
-      // Bake the completed stroke into the offscreen canvas so future moves
-      // can blit instead of replaying it.
       renderStrokeOn(drawBakedCtx, drawCurrentStroke);
     }
     drawCurrentStroke = null;
-    // Refresh visible canvas from baked (current stroke painted in place
-    // matches the baked version exactly, so this is essentially a no-op)
     drawCompositeFromBaked();
     updateDrawEmptyHint();
   };
@@ -550,6 +696,22 @@ function setupDrawingPointer(canvas) {
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('pointerleave', end);
+
+  // Phase 4 — 데스크탑 휠 줌 (Cmd/Ctrl + wheel)
+  canvas.parentElement?.addEventListener('wheel', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    const rect = drawCanvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left;
+    const cy = e.clientY - rect.top;
+    const oldScale = drawScale;
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    drawScale = Math.max(0.4, Math.min(4, drawScale * factor));
+    // 줌 중심 보정 (마우스 위치 기준)
+    drawPanX -= cx * (drawScale - oldScale) / oldScale;
+    drawPanY -= cy * (drawScale - oldScale) / oldScale;
+    applyCanvasTransform();
+  }, { passive: false });
 }
 
 function setPalmMode(mode) {
@@ -607,54 +769,72 @@ function strokesToSVG() {
 }
 
 async function insertDrawing() {
-  if (drawStrokes.length === 0) {
+  // 현재 페이지 flush
+  _flushCurrentPage();
+  // 빈 페이지 제외
+  const nonEmpty = drawPages.filter(p => p && p.length > 0);
+  if (nonEmpty.length === 0) {
     toast('그림이 비어있습니다');
     return;
   }
-  let blob, mimeType, filename;
 
-  const svg = strokesToSVG();
-  if (svg) {
-    blob = new Blob([svg], { type: 'image/svg+xml' });
-    mimeType = 'image/svg+xml';
-    filename = `drawing-${Date.now()}.svg`;
-  } else {
-    // Fallback: PNG (covers eraser case where SVG composition is complex)
-    const pngBlob = await new Promise(resolve => drawCanvas.toBlob(resolve, 'image/png'));
-    if (!pngBlob) { toast('이미지 생성 실패', 'error'); return; }
-    blob = pngBlob;
-    mimeType = 'image/png';
-    filename = `drawing-${Date.now()}.png`;
-  }
+  let totalInsertText = '';
+  const origIdx = drawPageIdx;
+  toast(nonEmpty.length > 1 ? `${nonEmpty.length}개 페이지 처리 중...` : '드로잉 처리 중...');
 
-  let insertText;
-  if (driveAssetsFolderId) {
-    try {
-      toast('드로잉 업로드 중...');
-      const file = await driveUploadFile(filename, blob, mimeType, driveAssetsFolderId);
-      await driveMakePublic(file.id);
-      const url = `https://drive.google.com/thumbnail?id=${file.id}&sz=w2000`;
-      insertText = `\n![drawing](${url})\n`;
-      toast('드로잉이 메모에 삽입됨', 'success');
-    } catch (e) {
-      console.warn('Drive upload failed; falling back to inline:', e);
+  for (let pi = 0; pi < drawPages.length; pi++) {
+    if (!drawPages[pi] || drawPages[pi].length === 0) continue;
+    // 해당 페이지 strokes로 캔버스 다시 그리기 (PNG 생성용)
+    drawStrokes = drawPages[pi].slice();
+    drawPageIdx = pi;
+    rebakeAll();
+    drawCompositeFromBaked();
+
+    let blob, mimeType, filename;
+    const svg = strokesToSVG();
+    if (svg) {
+      blob = new Blob([svg], { type: 'image/svg+xml' });
+      mimeType = 'image/svg+xml';
+      filename = `drawing-${Date.now()}-p${pi+1}.svg`;
+    } else {
+      const pngBlob = await new Promise(resolve => drawCanvas.toBlob(resolve, 'image/png'));
+      if (!pngBlob) { toast('이미지 생성 실패', 'error'); return; }
+      blob = pngBlob;
+      mimeType = 'image/png';
+      filename = `drawing-${Date.now()}-p${pi+1}.png`;
+    }
+
+    let insertText;
+    if (driveAssetsFolderId) {
+      try {
+        const file = await driveUploadFile(filename, blob, mimeType, driveAssetsFolderId);
+        await driveMakePublic(file.id);
+        const url = `https://drive.google.com/thumbnail?id=${file.id}&sz=w2000`;
+        insertText = `\n![drawing](${url})\n`;
+      } catch (e) {
+        console.warn('Drive upload failed; falling back to inline:', e);
+        const dataUrl = await blobToDataUrl(blob);
+        insertText = `\n![drawing](${dataUrl})\n`;
+      }
+    } else {
       const dataUrl = await blobToDataUrl(blob);
       insertText = `\n![drawing](${dataUrl})\n`;
     }
-  } else {
-    const dataUrl = await blobToDataUrl(blob);
-    insertText = `\n![drawing](${dataUrl})\n`;
+    totalInsertText += insertText;
   }
 
-  // Append to memo content
+  // Append all pages to memo
   const memo = memos.find(m => m.id === activeMemoId);
   if (memo) {
-    memo.content = (memo.content || '') + insertText;
+    memo.content = (memo.content || '') + totalInsertText;
     touchMemo(memo);
     saveMemos();
     renderMemoEditor();
+    toast(nonEmpty.length > 1 ? `${nonEmpty.length}개 페이지 삽입됨` : '드로잉이 메모에 삽입됨', 'success');
   }
 
+  // 원래 페이지로 복원 (모달 닫히기 전 잠깐)
+  drawPageIdx = origIdx;
   closeDrawingModal();
 }
 
