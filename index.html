@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260611f">
+<link rel="stylesheet" href="styles.css?v=20260611g">
 </head>
 <body>
 <div class="app">
@@ -604,100 +604,93 @@
 
 <div class="drawing-modal-overlay" id="drawing-modal-overlay" onclick="if(event.target===this)closeDrawingModal()">
   <div class="drawing-modal">
-    <!-- 미니멀 툴바 (Bamboo Paper) — 4개 trigger만, 굵기·undo·redo 등은 popup 안 -->
-    <div class="drawing-toolbar">
-      <!-- 1. 펜 종류 + 굵기 통합 popup -->
-      <div class="draw-tool-wrap" style="position:relative;">
-        <button class="draw-tool active pen-trigger" id="pen-trigger" onclick="togglePenPicker(event)" title="펜">
-          <span class="mi" id="pen-trigger-icon">edit</span>
+    <!-- Bamboo Paper 스타일 — 상단 floating capsule, 펜 4개 직접 노출 -->
+    <div class="drawing-toolbar bamboo-style">
+      <div class="bamboo-tools">
+        <!-- 펜 4개 메인 (Bamboo 톤 — 각 펜이 책상 위 도구처럼 시각화, active 펜은 솟아오름) -->
+        <button class="bamboo-pen active" id="bp-ink" data-tool="ink" onclick="pickTool('ink', this)" title="잉크 펜">
+          <span class="bp-icon"><span class="mi">edit</span></span>
+          <span class="bp-dot" id="bp-ink-dot" style="background:#1d1a14"></span>
         </button>
-        <div class="draw-pen-picker" id="draw-pen-picker">
-          <div class="pen-pick-section">
-            <div class="pen-pick-grid">
-              <div class="pen-pick active" data-tool="ink" onclick="pickTool('ink', this)">
-                <span class="mi">edit</span><span>잉크</span>
-              </div>
-              <div class="pen-pick" data-tool="fine" onclick="pickTool('fine', this)">
-                <span class="mi">stylus_note</span><span>파인</span>
-              </div>
-              <div class="pen-pick" data-tool="pencil" onclick="pickTool('pencil', this)">
-                <span class="mi">draw</span><span>연필</span>
-              </div>
-              <div class="pen-pick" data-tool="fountain" onclick="pickTool('fountain', this)">
-                <span class="mi">ink_pen</span><span>만년필</span>
-              </div>
-              <div class="pen-pick" data-tool="marker" onclick="pickTool('marker', this)">
-                <span class="mi">brush</span><span>마커</span>
-              </div>
-              <div class="pen-pick" data-tool="highlighter" onclick="pickTool('highlighter', this)">
-                <span class="mi">format_ink_highlighter</span><span>형광펜</span>
-              </div>
-              <div class="pen-pick" data-tool="brush" onclick="pickTool('brush', this)">
-                <span class="mi">imagesmode</span><span>붓</span>
-              </div>
-            </div>
-          </div>
-          <!-- 굵기는 펜 popup 안에 통합 (트리거 별도 X) -->
-          <div class="pen-pick-section">
-            <div class="pp-section-title">굵기</div>
-            <div class="width-presets">
-              <button class="width-preset" onclick="pickWidth(1.5)"><span class="wd" style="width:3px;height:3px"></span></button>
-              <button class="width-preset" onclick="pickWidth(3)"><span class="wd" style="width:5px;height:5px"></span></button>
-              <button class="width-preset" onclick="pickWidth(6)"><span class="wd" style="width:9px;height:9px"></span></button>
-              <button class="width-preset" onclick="pickWidth(12)"><span class="wd" style="width:14px;height:14px"></span></button>
-            </div>
-            <input type="range" min="1" max="30" step="0.5" value="2.5" id="draw-width" oninput="updateDrawWidth(this.value)">
-            <div class="width-display"><span id="draw-width-display">2</span>px</div>
+        <button class="bamboo-pen" id="bp-marker" data-tool="marker" onclick="pickTool('marker', this)" title="마커">
+          <span class="bp-icon"><span class="mi">brush</span></span>
+          <span class="bp-dot" id="bp-marker-dot" style="background:#1d1a14"></span>
+        </button>
+        <button class="bamboo-pen" id="bp-highlighter" data-tool="highlighter" onclick="pickTool('highlighter', this)" title="형광펜">
+          <span class="bp-icon"><span class="mi">format_ink_highlighter</span></span>
+          <span class="bp-dot" id="bp-highlighter-dot" style="background:#1d1a14"></span>
+        </button>
+        <button class="bamboo-pen" id="bp-pencil" data-tool="pencil" onclick="pickTool('pencil', this)" title="연필">
+          <span class="bp-icon"><span class="mi">draw</span></span>
+          <span class="bp-dot" id="bp-pencil-dot" style="background:#1d1a14"></span>
+        </button>
+        <button class="bamboo-pen" id="bp-eraser" data-tool="eraser" onclick="setDrawTool('eraser')" title="지우개">
+          <span class="bp-icon"><span class="mi">ink_eraser</span></span>
+        </button>
+      </div>
+
+      <!-- 우측 — 색상 + 더보기 -->
+      <div class="bamboo-right">
+        <div class="draw-tool-wrap" style="position:relative;">
+          <button class="bamboo-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상"></button>
+          <div class="draw-color-picker" id="draw-color-picker"></div>
+        </div>
+        <div class="draw-tool-wrap" style="position:relative;">
+          <button class="bamboo-more" onclick="toggleMorePicker(event)" title="더보기">
+            <span class="mi">more_horiz</span>
+          </button>
+          <div class="draw-more-picker" id="draw-more-picker">
+            <button class="more-item" onclick="undoDraw()">
+              <span class="mi">undo</span><span>되돌리기</span>
+              <span class="more-kbd">⌘Z</span>
+            </button>
+            <button class="more-item" onclick="redoDraw()">
+              <span class="mi">redo</span><span>다시 실행</span>
+              <span class="more-kbd">⌘⇧Z</span>
+            </button>
+            <div class="more-sep"></div>
+            <!-- 추가 펜 종류 (Bamboo 4종 외 — 만년필/파인/붓) -->
+            <button class="more-item" onclick="pickTool('fountain', this)">
+              <span class="mi">ink_pen</span><span>만년필</span>
+            </button>
+            <button class="more-item" onclick="pickTool('fine', this)">
+              <span class="mi">stylus_note</span><span>파인 펜</span>
+            </button>
+            <button class="more-item" onclick="pickTool('brush', this)">
+              <span class="mi">imagesmode</span><span>붓 (수채화)</span>
+            </button>
+            <div class="more-sep"></div>
+            <button class="more-item" onclick="togglePaperPicker(event)">
+              <span class="mi">grid_on</span><span>종이 배경</span>
+            </button>
+            <button class="more-item" onclick="toggleWidthInline(event)">
+              <span class="mi">line_weight</span><span>굵기</span>
+              <span class="more-kbd" id="more-width-val">2px</span>
+            </button>
+            <button class="more-item" onclick="cyclePalmMode()">
+              <span class="mi">pan_tool</span><span>팜 리젝션</span>
+            </button>
+            <div class="more-sep"></div>
+            <button class="more-item danger" onclick="clearDraw()">
+              <span class="mi">delete_sweep</span><span>모두 지우기</span>
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- 2. 색상 -->
-      <div class="draw-tool-wrap" style="position:relative;">
-        <button class="draw-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상"></button>
-        <div class="draw-color-picker" id="draw-color-picker"></div>
-      </div>
-
-      <!-- 3. 지우개 -->
-      <button class="draw-tool" id="tool-eraser" onclick="setDrawTool('eraser')" title="지우개 (E)">
-        <span class="mi">ink_eraser</span>
-      </button>
+      <!-- 지우개 모드 (지우개 active 시 표시) -->
       <div class="draw-eraser-mode-wrap" id="draw-eraser-mode-wrap">
         <button class="eraser-mode-btn active" data-mode="pixel" onclick="setEraserMode('pixel')">부분</button>
         <button class="eraser-mode-btn" data-mode="stroke" onclick="setEraserMode('stroke')">선</button>
       </div>
 
-      <div class="draw-spacer"></div>
-
-      <!-- 4. ⋯ 더보기 — 모든 액션 통합 -->
-      <div class="draw-tool-wrap" style="position:relative;">
-        <button class="draw-tool" onclick="toggleMorePicker(event)" title="더보기">
-          <span class="mi">more_horiz</span>
-        </button>
-        <div class="draw-more-picker" id="draw-more-picker">
-          <button class="more-item" onclick="undoDraw()">
-            <span class="mi">undo</span><span>되돌리기</span>
-            <span class="more-kbd">⌘Z</span>
-          </button>
-          <button class="more-item" onclick="redoDraw()">
-            <span class="mi">redo</span><span>다시 실행</span>
-            <span class="more-kbd">⌘⇧Z</span>
-          </button>
-          <div class="more-sep"></div>
-          <button class="more-item" onclick="togglePaperPicker(event)">
-            <span class="mi">grid_on</span><span>종이 배경</span>
-          </button>
-          <button class="more-item" onclick="cyclePalmMode()">
-            <span class="mi">pan_tool</span><span>팜 리젝션</span>
-          </button>
-          <div class="more-sep"></div>
-          <button class="more-item danger" onclick="clearDraw()">
-            <span class="mi">delete_sweep</span><span>모두 지우기</span>
-          </button>
-        </div>
+      <!-- 굵기 inline popup (더보기 → 굵기 클릭 시) -->
+      <div class="draw-width-inline" id="draw-width-inline">
+        <input type="range" min="1" max="30" step="0.5" value="2.5" id="draw-width" oninput="updateDrawWidth(this.value)">
+        <div class="width-display"><span id="draw-width-display">2</span>px</div>
       </div>
 
-      <!-- 종이 popup (더보기에서 호출) -->
+      <!-- 종이 popup -->
       <div class="draw-paper-picker" id="draw-paper-picker">
         <div class="paper-pick active" data-paper="blank" onclick="setPaper('blank')">
           <div class="paper-thumb blank"></div><span>빈 종이</span>
@@ -719,8 +712,10 @@
         </div>
       </div>
 
-      <!-- 숨김 — 호환용 -->
+      <!-- 호환용 hidden -->
       <button id="tool-palm" style="display:none;"></button>
+      <button id="pen-trigger" style="display:none;"><span id="pen-trigger-icon">edit</span></button>
+      <button id="tool-eraser" style="display:none;"></button>
     </div>
     <div class="drawing-canvas-wrap">
       <canvas id="drawing-canvas"></canvas>
@@ -824,7 +819,7 @@
 <script src="js/calendar.js?v=20260605y" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
-<script src="js/drawing.js?v=20260611d" defer></script>
+<script src="js/drawing.js?v=20260611g" defer></script>
 <script src="js/sync.js?v=20260605o" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260605t" defer></script>
