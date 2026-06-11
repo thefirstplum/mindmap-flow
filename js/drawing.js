@@ -64,6 +64,7 @@ function openDrawingModal() {
   drawTool = 'ink';
   drawColor = '#1f1a14';
   drawWidthBase = 2.5;
+  setTimeout(_updateWidthDot, 50);
   // Phase 4 — 줌 reset
   drawScale = 1;
   drawPanX = 0;
@@ -283,14 +284,28 @@ function redrawAllStrokes() {
 
 function setDrawTool(tool) {
   drawTool = tool;
-  // 모든 도구 버튼 active 토글 — 펜 7종 + 지우개
-  const tools = ['ink', 'fine', 'pencil', 'fountain', 'marker', 'highlighter', 'brush', 'eraser'];
-  for (const t of tools) {
-    const btn = document.getElementById('tool-' + t);
-    if (btn) btn.classList.toggle('active', tool === t);
+  // 펜 trigger 아이콘 갱신 — 현재 펜 종류 표시
+  const penIcons = {
+    ink: 'edit', fine: 'stylus_note', pencil: 'draw', fountain: 'ink_pen',
+    marker: 'brush', highlighter: 'format_ink_highlighter', brush: 'imagesmode',
+  };
+  const trigger = document.getElementById('pen-trigger');
+  const triggerIcon = document.getElementById('pen-trigger-icon');
+  if (trigger && triggerIcon) {
+    if (tool === 'eraser') {
+      trigger.classList.remove('active');
+    } else {
+      trigger.classList.add('active');
+      triggerIcon.textContent = penIcons[tool] || 'edit';
+    }
   }
+  // 지우개 버튼
+  document.getElementById('tool-eraser')?.classList.toggle('active', tool === 'eraser');
+  // 펜 picker 안 active 표시
+  document.querySelectorAll('.pen-pick').forEach(b =>
+    b.classList.toggle('active', b.dataset.tool === tool));
   if (drawCanvas) drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
-  // 도구 선택 시 권장 width 자동 (기존 width 유지하고 싶으면 주석 처리)
+  // 권장 굵기 자동
   const recommendedWidth = {
     ink: 2.5, fine: 1.5, pencil: 1.5, fountain: 2.5,
     marker: 5, highlighter: 12, brush: 4, eraser: 8,
@@ -301,8 +316,89 @@ function setDrawTool(tool) {
     if (slider) slider.value = recommendedWidth;
     const disp = document.getElementById('draw-width-display');
     if (disp) disp.textContent = String(Math.round(recommendedWidth));
+    _updateWidthDot();
   }
 }
+
+// 펜 picker 트리거 핸들러
+function togglePenPicker(e) {
+  e?.stopPropagation();
+  const pop = document.getElementById('draw-pen-picker');
+  if (!pop) return;
+  pop.classList.toggle('show');
+  if (pop.classList.contains('show')) {
+    setTimeout(() => document.addEventListener('click', _penOutside, { once: true }), 0);
+  }
+}
+function _penOutside(e) {
+  const pop = document.getElementById('draw-pen-picker');
+  if (pop && !pop.contains(e.target)) closePenPicker();
+}
+function closePenPicker() {
+  document.getElementById('draw-pen-picker')?.classList.remove('show');
+}
+function pickTool(tool, el) {
+  setDrawTool(tool);
+  closePenPicker();
+}
+window.togglePenPicker = togglePenPicker;
+window.closePenPicker = closePenPicker;
+window.pickTool = pickTool;
+
+// 굵기 picker 트리거 핸들러
+function toggleWidthPicker(e) {
+  e?.stopPropagation();
+  const pop = document.getElementById('draw-width-picker');
+  if (!pop) return;
+  pop.classList.toggle('show');
+  if (pop.classList.contains('show')) {
+    setTimeout(() => document.addEventListener('click', _widthOutside, { once: true }), 0);
+  }
+}
+function _widthOutside(e) {
+  const pop = document.getElementById('draw-width-picker');
+  if (pop && !pop.contains(e.target)) closeWidthPicker();
+}
+function closeWidthPicker() {
+  document.getElementById('draw-width-picker')?.classList.remove('show');
+}
+function pickWidth(w) {
+  drawWidthBase = parseFloat(w);
+  const slider = document.getElementById('draw-width');
+  if (slider) slider.value = drawWidthBase;
+  const disp = document.getElementById('draw-width-display');
+  if (disp) disp.textContent = String(Math.round(drawWidthBase));
+  _updateWidthDot();
+  closeWidthPicker();
+}
+function _updateWidthDot() {
+  const dot = document.getElementById('width-trigger-dot');
+  if (!dot) return;
+  const size = Math.max(3, Math.min(16, drawWidthBase));
+  dot.style.width = size + 'px';
+  dot.style.height = size + 'px';
+}
+window.toggleWidthPicker = toggleWidthPicker;
+window.pickWidth = pickWidth;
+
+// 더보기 picker
+function toggleMorePicker(e) {
+  e?.stopPropagation();
+  const pop = document.getElementById('draw-more-picker');
+  if (!pop) return;
+  pop.classList.toggle('show');
+  if (pop.classList.contains('show')) {
+    setTimeout(() => document.addEventListener('click', _moreOutside, { once: true }), 0);
+  }
+}
+function _moreOutside(e) {
+  const pop = document.getElementById('draw-more-picker');
+  if (pop && !pop.contains(e.target)) closeMorePicker();
+}
+function closeMorePicker() {
+  document.getElementById('draw-more-picker')?.classList.remove('show');
+}
+window.toggleMorePicker = toggleMorePicker;
 
 function setDrawColor(color, el) {
   drawColor = color;
@@ -364,6 +460,7 @@ window.closeColorPicker = closeColorPicker;
 function updateDrawWidth(v) {
   drawWidthBase = parseFloat(v) || 2;
   document.getElementById('draw-width-display').textContent = String(Math.round(drawWidthBase));
+  _updateWidthDot();
 }
 
 // 지우개 모드 토글 — 픽셀 vs 스트로크
@@ -697,21 +794,9 @@ function setupDrawingPointer(canvas) {
   canvas.addEventListener('pointercancel', end);
   canvas.addEventListener('pointerleave', end);
 
-  // Phase 4 — 데스크탑 휠 줌 (Cmd/Ctrl + wheel)
-  canvas.parentElement?.addEventListener('wheel', (e) => {
-    if (!(e.ctrlKey || e.metaKey)) return;
-    e.preventDefault();
-    const rect = drawCanvas.getBoundingClientRect();
-    const cx = e.clientX - rect.left;
-    const cy = e.clientY - rect.top;
-    const oldScale = drawScale;
-    const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    drawScale = Math.max(0.4, Math.min(4, drawScale * factor));
-    // 줌 중심 보정 (마우스 위치 기준)
-    drawPanX -= cx * (drawScale - oldScale) / oldScale;
-    drawPanY -= cy * (drawScale - oldScale) / oldScale;
-    applyCanvasTransform();
-  }, { passive: false });
+  // 휠 줌은 제거 — macOS 트랙패드 핀치가 ctrlKey 자동 true라
+  // 일반 스크롤이 줌으로 잘못 인식되는 문제 (사장님 보고)
+  // 데스크탑 줌은 우상단 인디케이터 +/- 버튼 또는 핀치(모바일)만
 }
 
 function setPalmMode(mode) {

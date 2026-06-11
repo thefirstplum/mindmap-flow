@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260611c">
+<link rel="stylesheet" href="styles.css?v=20260611d">
 </head>
 <body>
 <div class="app">
@@ -604,88 +604,123 @@
 
 <div class="drawing-modal-overlay" id="drawing-modal-overlay" onclick="if(event.target===this)closeDrawingModal()">
   <div class="drawing-modal">
+    <!-- 단순화된 툴바 (Bamboo Paper 톤) — 5개 그룹만 노출, 나머지는 popup -->
     <div class="drawing-toolbar">
-      <!-- Phase 1 — 펜 7종 (Bamboo Paper 톤) -->
-      <button class="draw-tool active" id="tool-ink" onclick="setDrawTool('ink')" title="잉크 펜 — 압력 따라 굵기">
-        <span class="mi">edit</span>
-      </button>
-      <button class="draw-tool" id="tool-fine" onclick="setDrawTool('fine')" title="파인 펜 — 일정 굵기">
-        <span class="mi">stylus_note</span>
-      </button>
-      <button class="draw-tool" id="tool-pencil" onclick="setDrawTool('pencil')" title="연필 — 가는 질감">
-        <span class="mi">draw</span>
-      </button>
-      <button class="draw-tool" id="tool-fountain" onclick="setDrawTool('fountain')" title="만년필 — 압력 변화 큼">
-        <span class="mi">ink_pen</span>
-      </button>
-      <button class="draw-tool" id="tool-marker" onclick="setDrawTool('marker')" title="마커 — 두꺼운 사인펜">
-        <span class="mi">brush</span>
-      </button>
-      <button class="draw-tool" id="tool-highlighter" onclick="setDrawTool('highlighter')" title="형광펜 — 강조">
-        <span class="mi">format_ink_highlighter</span>
-      </button>
-      <button class="draw-tool" id="tool-brush" onclick="setDrawTool('brush')" title="붓 — 수채화">
-        <span class="mi">imagesmode</span>
-      </button>
-      <button class="draw-tool" id="tool-eraser" onclick="setDrawTool('eraser')" title="지우개">
-        <span class="mi">ink_eraser</span>
-      </button>
-      <!-- 지우개 모드 토글 — eraser 선택 시 활성 표시 -->
-      <div class="draw-eraser-mode-wrap" id="draw-eraser-mode-wrap">
-        <button class="eraser-mode-btn active" data-mode="pixel" onclick="setEraserMode('pixel')" title="부분 지우개 (픽셀)">부분</button>
-        <button class="eraser-mode-btn" data-mode="stroke" onclick="setEraserMode('stroke')" title="스트로크 단위">선</button>
-      </div>
-      <div class="draw-sep"></div>
-      <!-- Phase 2 — 색상 팔레트 popup trigger -->
-      <div class="draw-color-picker-wrap" style="position:relative;">
-        <button class="draw-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상 선택"></button>
-        <div class="draw-color-picker" id="draw-color-picker"></div>
-      </div>
-      <!-- Phase 3 — 종이 배경 popup trigger -->
-      <div class="draw-paper-picker-wrap" style="position:relative;">
-        <button class="draw-paper-trigger" onclick="togglePaperPicker(event)" title="종이 배경">
-          <span class="mi">grid_on</span>
+      <!-- 1. 펜 종류 trigger (현재 선택 펜 아이콘) — 클릭하면 7종 popup -->
+      <div class="draw-tool-wrap" style="position:relative;">
+        <button class="draw-tool active pen-trigger" id="pen-trigger" onclick="togglePenPicker(event)" title="펜 종류">
+          <span class="mi" id="pen-trigger-icon">edit</span>
         </button>
-        <div class="draw-paper-picker" id="draw-paper-picker">
-          <div class="paper-pick active" data-paper="blank" onclick="setPaper('blank')">
-            <div class="paper-thumb blank"></div><span>빈 종이</span>
+        <div class="draw-pen-picker" id="draw-pen-picker">
+          <div class="pen-pick active" data-tool="ink" onclick="pickTool('ink', this)">
+            <span class="mi">edit</span><span>잉크</span>
           </div>
-          <div class="paper-pick" data-paper="lined" onclick="setPaper('lined')">
-            <div class="paper-thumb lined"></div><span>줄 노트</span>
+          <div class="pen-pick" data-tool="fine" onclick="pickTool('fine', this)">
+            <span class="mi">stylus_note</span><span>파인</span>
           </div>
-          <div class="paper-pick" data-paper="grid" onclick="setPaper('grid')">
-            <div class="paper-thumb grid"></div><span>격자</span>
+          <div class="pen-pick" data-tool="pencil" onclick="pickTool('pencil', this)">
+            <span class="mi">draw</span><span>연필</span>
           </div>
-          <div class="paper-pick" data-paper="dot" onclick="setPaper('dot')">
-            <div class="paper-thumb dot"></div><span>점</span>
+          <div class="pen-pick" data-tool="fountain" onclick="pickTool('fountain', this)">
+            <span class="mi">ink_pen</span><span>만년필</span>
           </div>
-          <div class="paper-pick" data-paper="cream" onclick="setPaper('cream')">
-            <div class="paper-thumb cream"></div><span>크림</span>
+          <div class="pen-pick" data-tool="marker" onclick="pickTool('marker', this)">
+            <span class="mi">brush</span><span>마커</span>
           </div>
-          <div class="paper-pick" data-paper="sepia" onclick="setPaper('sepia')">
-            <div class="paper-thumb sepia"></div><span>세피아</span>
+          <div class="pen-pick" data-tool="highlighter" onclick="pickTool('highlighter', this)">
+            <span class="mi">format_ink_highlighter</span><span>형광펜</span>
+          </div>
+          <div class="pen-pick" data-tool="brush" onclick="pickTool('brush', this)">
+            <span class="mi">imagesmode</span><span>붓</span>
           </div>
         </div>
       </div>
-      <div class="draw-sep"></div>
-      <div class="draw-width-control">
-        <span>굵기</span>
-        <input type="range" min="1" max="10" value="2" id="draw-width" oninput="updateDrawWidth(this.value)">
-        <span class="draw-width-display" id="draw-width-display">2</span>
+
+      <!-- 2. 색상 trigger -->
+      <div class="draw-tool-wrap" style="position:relative;">
+        <button class="draw-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상"></button>
+        <div class="draw-color-picker" id="draw-color-picker"></div>
       </div>
-      <div class="draw-sep"></div>
-      <button class="draw-tool" id="tool-palm" onclick="cyclePalmMode()" title="팜 리젝션 모드">
-        <span class="mi">pan_tool</span>
+
+      <!-- 3. 굵기 trigger -->
+      <div class="draw-tool-wrap" style="position:relative;">
+        <button class="draw-tool width-trigger" onclick="toggleWidthPicker(event)" title="굵기">
+          <span class="width-dot" id="width-trigger-dot"></span>
+        </button>
+        <div class="draw-width-picker" id="draw-width-picker">
+          <div class="width-presets">
+            <button class="width-preset" data-w="1.5" onclick="pickWidth(1.5)"><span class="wd" style="width:3px;height:3px"></span><span>가늘게</span></button>
+            <button class="width-preset" data-w="3" onclick="pickWidth(3)"><span class="wd" style="width:5px;height:5px"></span><span>보통</span></button>
+            <button class="width-preset" data-w="6" onclick="pickWidth(6)"><span class="wd" style="width:9px;height:9px"></span><span>두껍게</span></button>
+            <button class="width-preset" data-w="12" onclick="pickWidth(12)"><span class="wd" style="width:14px;height:14px"></span><span>매우 두껍게</span></button>
+          </div>
+          <input type="range" min="1" max="30" step="0.5" value="2.5" id="draw-width" oninput="updateDrawWidth(this.value)">
+          <div class="width-display"><span id="draw-width-display">2</span>px</div>
+        </div>
+      </div>
+
+      <!-- 4. 지우개 -->
+      <button class="draw-tool" id="tool-eraser" onclick="setDrawTool('eraser')" title="지우개 (E)">
+        <span class="mi">ink_eraser</span>
       </button>
+      <!-- 지우개 모드 토글 — eraser 선택 시 표시 -->
+      <div class="draw-eraser-mode-wrap" id="draw-eraser-mode-wrap">
+        <button class="eraser-mode-btn active" data-mode="pixel" onclick="setEraserMode('pixel')">부분</button>
+        <button class="eraser-mode-btn" data-mode="stroke" onclick="setEraserMode('stroke')">선</button>
+      </div>
+
+      <div class="draw-spacer"></div>
+
+      <!-- 5. Undo/Redo (자주 쓰는 액션은 노출) -->
       <button class="draw-tool" onclick="undoDraw()" title="되돌리기 (⌘Z)">
         <span class="mi">undo</span>
       </button>
       <button class="draw-tool" onclick="redoDraw()" title="다시 실행 (⌘⇧Z)">
         <span class="mi">redo</span>
       </button>
-      <button class="draw-tool" onclick="clearDraw()" title="모두 지우기">
-        <span class="mi">delete_sweep</span>
-      </button>
+
+      <!-- 6. ⋯ 더보기 — 종이/팜/Clear -->
+      <div class="draw-tool-wrap" style="position:relative;">
+        <button class="draw-tool" onclick="toggleMorePicker(event)" title="더보기">
+          <span class="mi">more_horiz</span>
+        </button>
+        <div class="draw-more-picker" id="draw-more-picker">
+          <button class="more-item" onclick="togglePaperPicker(event)">
+            <span class="mi">grid_on</span><span>종이 배경</span>
+          </button>
+          <button class="more-item" onclick="cyclePalmMode()">
+            <span class="mi">pan_tool</span><span>팜 리젝션</span>
+          </button>
+          <button class="more-item danger" onclick="clearDraw()">
+            <span class="mi">delete_sweep</span><span>모두 지우기</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 종이 popup (더보기 트리거에서 호출) -->
+      <div class="draw-paper-picker" id="draw-paper-picker">
+        <div class="paper-pick active" data-paper="blank" onclick="setPaper('blank')">
+          <div class="paper-thumb blank"></div><span>빈 종이</span>
+        </div>
+        <div class="paper-pick" data-paper="lined" onclick="setPaper('lined')">
+          <div class="paper-thumb lined"></div><span>줄 노트</span>
+        </div>
+        <div class="paper-pick" data-paper="grid" onclick="setPaper('grid')">
+          <div class="paper-thumb grid"></div><span>격자</span>
+        </div>
+        <div class="paper-pick" data-paper="dot" onclick="setPaper('dot')">
+          <div class="paper-thumb dot"></div><span>점</span>
+        </div>
+        <div class="paper-pick" data-paper="cream" onclick="setPaper('cream')">
+          <div class="paper-thumb cream"></div><span>크림</span>
+        </div>
+        <div class="paper-pick" data-paper="sepia" onclick="setPaper('sepia')">
+          <div class="paper-thumb sepia"></div><span>세피아</span>
+        </div>
+      </div>
+
+      <!-- 숨김 — 호환용 (cyclePalmMode가 참조) -->
+      <button id="tool-palm" style="display:none;"></button>
     </div>
     <div class="drawing-canvas-wrap">
       <canvas id="drawing-canvas"></canvas>
@@ -789,7 +824,7 @@
 <script src="js/calendar.js?v=20260605y" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
-<script src="js/drawing.js?v=20260611c" defer></script>
+<script src="js/drawing.js?v=20260611d" defer></script>
 <script src="js/sync.js?v=20260605o" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260605t" defer></script>
