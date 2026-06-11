@@ -3353,6 +3353,78 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .paper-thumb.dot    { background: #FAF6EB radial-gradient(circle, #C4B095 1px, transparent 1.5px); background-size: 10px 10px; }
 .paper-thumb.cream  { background: #F7EFD8; }
 .paper-thumb.sepia  { background: #F4E7C7; }
+
+/* Phase 4 — 줌 인디케이터 (캔버스 우상단 floating) */
+.draw-zoom-indicator {
+  position: absolute;
+  top: 12px; right: 12px;
+  background: rgba(0,0,0,0.55);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 5px 11px;
+  font-size: 11px; font-weight: 700;
+  font-family: ui-monospace, Menlo, monospace;
+  cursor: pointer;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  letter-spacing: 0.02em;
+  transition: background .12s, transform .08s;
+}
+.draw-zoom-indicator:hover { background: rgba(0,0,0,0.72); }
+.draw-zoom-indicator:active { transform: scale(0.94); }
+/* 캔버스 wrap에 transform이 들어가도 wrap 자체는 overflow:hidden 유지 */
+.drawing-canvas-wrap { will-change: transform; }
+#drawing-canvas { will-change: transform; }
+
+/* Phase 5 — 페이지 인디케이터 (캔버스 하단) */
+.draw-page-indicator {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border-light);
+  flex-shrink: 0;
+  justify-content: center;
+}
+.page-nav-btn {
+  width: 30px; height: 30px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  border-radius: 50%;
+  color: var(--text-dim);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+  font-family: inherit;
+}
+.page-nav-btn:hover:not(:disabled) { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
+.page-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.page-nav-btn.add { background: var(--accent); color: #fff; border-color: var(--accent); }
+.page-nav-btn.add:hover:not(:disabled) { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+.page-nav-btn.del { background: transparent; color: var(--red); border-color: rgba(212,95,90,0.4); }
+.page-nav-btn.del:hover:not(:disabled) { background: rgba(212,95,90,0.12); color: var(--red); }
+.page-count {
+  font-size: 12px; font-weight: 700;
+  color: var(--text-dim);
+  font-family: ui-monospace, Menlo, monospace;
+  min-width: 50px; text-align: center;
+}
+.page-dots {
+  display: flex; gap: 5px; align-items: center;
+}
+.page-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  border: none;
+  cursor: pointer;
+  transition: background .12s, transform .12s;
+  padding: 0;
+}
+.page-dot:hover { transform: scale(1.4); background: var(--text-mute); }
+.page-dot.active { background: var(--accent); transform: scale(1.4); }
 .draw-color {
   width: 26px; height: 26px; border-radius: 50%;
   cursor: pointer; border: 2px solid transparent;
