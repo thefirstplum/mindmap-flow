@@ -3434,21 +3434,34 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 
 /* === Bamboo 톤 미니멀 picker 들 === */
 
-/* 펜 종류 picker (펜 trigger 클릭 시) */
+/* 펜 종류 picker (펜 trigger 클릭 시) — 펜 7종 + 굵기 통합 */
 .draw-pen-picker {
   position: absolute; top: calc(100% + 8px); left: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 8px;
+  padding: 12px;
   box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
   z-index: 100;
   display: none;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
+  flex-direction: column;
+  gap: 10px;
   min-width: 280px;
 }
-.draw-pen-picker.show { display: grid; }
+.draw-pen-picker.show { display: flex; }
+.pen-pick-section { display: flex; flex-direction: column; gap: 6px; }
+.pen-pick-section + .pen-pick-section {
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+.pp-section-title {
+  font-size: 10.5px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.pen-pick-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+}
 .pen-pick {
   display: flex; flex-direction: column; align-items: center;
   gap: 3px;
@@ -3463,6 +3476,19 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .pen-pick.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
 .pen-pick .mi { font-size: 22px; }
 .pen-pick span:not(.mi) { font-size: 11px; font-weight: 600; }
+/* 굵기 슬라이더가 펜 popup 안에 있을 때 */
+.draw-pen-picker .width-presets {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+}
+.draw-pen-picker input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.draw-pen-picker .width-display {
+  text-align: center;
+  font-size: 11px; color: var(--text-mute);
+  font-family: ui-monospace, Menlo, monospace;
+}
 
 /* 굵기 picker */
 .draw-width-trigger { /* same as draw-tool */ }
@@ -3553,6 +3579,20 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .more-item .mi { font-size: 18px; color: var(--text-dim); }
 .more-item.danger:hover { background: rgba(212,95,90,0.12); color: var(--red); }
 .more-item.danger:hover .mi { color: var(--red); }
+.more-item .more-kbd {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: var(--text-mute);
+  background: var(--surface2);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, Menlo, monospace;
+}
+.more-sep {
+  height: 1px;
+  background: var(--border-light);
+  margin: 4px 0;
+}
 
 /* 종이 picker 위치를 우측 정렬 (더보기에서 호출됨) */
 .draw-paper-picker {
