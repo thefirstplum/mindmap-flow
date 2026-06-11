@@ -3201,10 +3201,16 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   box-shadow: var(--shadow-2); animation: slideUp 0.22s cubic-bezier(0.34,1.56,0.64,1);
 }
 .drawing-toolbar {
-  padding: 11px 13px; border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 6px;
+  flex-wrap: nowrap;  /* Bamboo 톤 — 한 줄 유지 */
   background: var(--surface); flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.drawing-toolbar::-webkit-scrollbar { display: none; }
+.draw-spacer { flex: 1; min-width: 4px; }
+.draw-tool-wrap { display: inline-flex; flex-shrink: 0; }
 .draw-tool {
   width: 34px; height: 34px;
   background: var(--surface2); border: 1px solid var(--border);
@@ -3425,6 +3431,134 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 }
 .page-dot:hover { transform: scale(1.4); background: var(--text-mute); }
 .page-dot.active { background: var(--accent); transform: scale(1.4); }
+
+/* === Bamboo 톤 미니멀 picker 들 === */
+
+/* 펜 종류 picker (펜 trigger 클릭 시) */
+.draw-pen-picker {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+  z-index: 100;
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  min-width: 280px;
+}
+.draw-pen-picker.show { display: grid; }
+.pen-pick {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px;
+  padding: 9px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .12s;
+  color: var(--text);
+}
+.pen-pick:hover { background: var(--surface2); }
+.pen-pick.active { background: var(--accent-glow); border-color: var(--accent); color: var(--accent); }
+.pen-pick .mi { font-size: 22px; }
+.pen-pick span:not(.mi) { font-size: 11px; font-weight: 600; }
+
+/* 굵기 picker */
+.draw-width-trigger { /* same as draw-tool */ }
+.draw-width-picker {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+  z-index: 100;
+  display: none;
+  min-width: 240px;
+}
+.draw-width-picker.show { display: block; }
+.draw-width-picker .width-presets {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+  margin-bottom: 12px;
+}
+.width-preset {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+}
+.width-preset:hover { background: var(--surface3); }
+.width-preset .wd {
+  background: var(--text);
+  border-radius: 50%;
+  display: inline-block;
+}
+.width-preset span:not(.wd) {
+  font-size: 10px; font-weight: 600;
+  color: var(--text-dim);
+}
+.draw-width-picker input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.width-display {
+  text-align: center;
+  font-size: 12px; color: var(--text-mute);
+  font-family: ui-monospace, Menlo, monospace;
+  margin-top: 6px;
+}
+.width-trigger {}
+.width-dot {
+  display: inline-block;
+  background: var(--text);
+  border-radius: 50%;
+  width: 5px; height: 5px;
+  transition: width .15s, height .15s;
+}
+
+/* 더보기 picker */
+.draw-more-picker {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 180px;
+}
+.draw-more-picker.show { display: flex; }
+.more-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: transparent; border: none;
+  border-radius: 7px;
+  font-family: inherit;
+  font-size: 13px; color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s, color .12s;
+}
+.more-item:hover { background: var(--surface2); }
+.more-item .mi { font-size: 18px; color: var(--text-dim); }
+.more-item.danger:hover { background: rgba(212,95,90,0.12); color: var(--red); }
+.more-item.danger:hover .mi { color: var(--red); }
+
+/* 종이 picker 위치를 우측 정렬 (더보기에서 호출됨) */
+.draw-paper-picker {
+  position: absolute; top: 100%; right: 12px; left: auto;
+  margin-top: 6px;
+}
 .draw-color {
   width: 26px; height: 26px; border-radius: 50%;
   cursor: pointer; border: 2px solid transparent;
