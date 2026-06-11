@@ -23,6 +23,19 @@ let drawBaked = null;
 let drawBakedCtx = null;
 let drawPalmMode = 'auto';
 
+// Phase 3 — 종이 배경 (캔버스 배경 패턴)
+// 'blank' | 'lined' | 'grid' | 'dot' | 'cream' | 'sepia'
+let drawPaper = load('draw_paper', 'blank');
+
+// Phase 2 — 최근 사용 색상 (팔레트 popup용)
+let drawRecentColors = load('draw_recent_colors', ['#1d1a14']);
+const DRAW_PALETTE_COLORS = [
+  // 9개 큐레이션 (3 × 3) Bamboo 톤
+  '#1d1a14', '#475569', '#7c5c3a',  // 검정·슬레이트·갈색
+  '#dc322f', '#cb4b16', '#b58900',  // 레드·오렌지·옐로우
+  '#859900', '#268bd2', '#7c3aed',  // 그린·블루·퍼플
+];
+
 // Tool spec — 각 도구별 굵기·투명도·압력 곡선
 const DRAW_TOOLS = {
   ink:         { widthMul: 1.5, alpha: 1.00, pMin: 0.35, pMax: 1.10, jitter: 0,    composite: 'source-over' },
@@ -84,8 +97,66 @@ function resizeDrawingCanvas() {
     drawBaked.height = drawCanvas.height;
     drawBakedCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+  applyPaperBg();
   rebakeAll();
 }
+
+// Phase 3 — 종이 배경 패턴 (CSS 데이터-URL svg 패턴)
+function _paperPatternUrl(type) {
+  // 32px grid 기준 패턴
+  const patterns = {
+    lined: `<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='32'><line x1='0' y1='31.5' x2='100%' y2='31.5' stroke='%23D9C9B4' stroke-width='1'/></svg>`,
+    grid:  `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><path d='M 32 0 L 0 0 0 32' fill='none' stroke='%23DCC9B3' stroke-width='0.6'/></svg>`,
+    dot:   `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='1' fill='%23C4B095'/></svg>`,
+  };
+  return patterns[type] ? `url("data:image/svg+xml;utf8,${patterns[type]}")` : 'none';
+}
+function applyPaperBg() {
+  if (!drawCanvas) return;
+  const wrap = drawCanvas.parentElement;
+  if (!wrap) return;
+  const bgColors = {
+    blank:  '#FFFFFF',
+    lined:  '#FFFCF2',
+    grid:   '#FFFDF5',
+    dot:    '#FAF6EB',
+    cream:  '#F7EFD8',
+    sepia:  '#F4E7C7',
+  };
+  wrap.style.background = bgColors[drawPaper] || '#FFFFFF';
+  const url = _paperPatternUrl(drawPaper);
+  wrap.style.backgroundImage = url;
+  wrap.style.backgroundSize = drawPaper === 'lined' ? '100% 32px' : 'auto';
+  wrap.style.backgroundRepeat = 'repeat';
+}
+function setPaper(type) {
+  drawPaper = type;
+  save('draw_paper', type);
+  applyPaperBg();
+  document.querySelectorAll('.paper-pick').forEach(b =>
+    b.classList.toggle('active', b.dataset.paper === type));
+  closePaperPicker();
+}
+function togglePaperPicker(e) {
+  e?.stopPropagation();
+  const pop = document.getElementById('draw-paper-picker');
+  if (!pop) return;
+  pop.classList.toggle('show');
+  if (pop.classList.contains('show')) {
+    setTimeout(() => document.addEventListener('click', _paperOutside, { once: true }), 0);
+  }
+}
+function _paperOutside(e) {
+  const pop = document.getElementById('draw-paper-picker');
+  if (pop && !pop.contains(e.target)) closePaperPicker();
+}
+function closePaperPicker() {
+  document.getElementById('draw-paper-picker')?.classList.remove('show');
+  document.removeEventListener('click', _paperOutside);
+}
+window.setPaper = setPaper;
+window.togglePaperPicker = togglePaperPicker;
+window.closePaperPicker = closePaperPicker;
 window.addEventListener('resize', () => {
   if (document.getElementById('drawing-modal-overlay')?.classList.contains('show')) {
     resizeDrawingCanvas();
@@ -220,9 +291,58 @@ function setDrawColor(color, el) {
   drawColor = color;
   document.querySelectorAll('.draw-color').forEach(c => c.classList.remove('active'));
   if (el) el.classList.add('active');
-  // 색 선택 시 지우개면 ink로 (사용자가 그리기 의도)
+  // 트리거 동그라미 색 갱신
+  const trigger = document.getElementById('color-picker-trigger');
+  if (trigger) trigger.style.background = color;
+  // 최근 사용 색 기록 (앞으로 + 중복 제거 + 최대 6개)
+  drawRecentColors = [color, ...drawRecentColors.filter(c => c !== color)].slice(0, 6);
+  save('draw_recent_colors', drawRecentColors);
+  // 지우개 모드면 ink로 (사용자가 그리기 의도)
   if (drawTool === 'eraser') setDrawTool('ink');
+  closeColorPicker();
 }
+
+// Phase 2 — 색상 팔레트 popup
+function toggleColorPicker(e) {
+  e?.stopPropagation();
+  const pop = document.getElementById('draw-color-picker');
+  if (!pop) return;
+  // 최근 색 + 큐레이션 다시 렌더
+  _renderColorPicker();
+  pop.classList.toggle('show');
+  if (pop.classList.contains('show')) {
+    setTimeout(() => document.addEventListener('click', _colorOutside, { once: true }), 0);
+  }
+}
+function _colorOutside(e) {
+  const pop = document.getElementById('draw-color-picker');
+  if (pop && !pop.contains(e.target)) closeColorPicker();
+}
+function closeColorPicker() {
+  document.getElementById('draw-color-picker')?.classList.remove('show');
+  document.removeEventListener('click', _colorOutside);
+}
+function _renderColorPicker() {
+  const pop = document.getElementById('draw-color-picker');
+  if (!pop) return;
+  const recent = drawRecentColors.length > 0
+    ? `<div class="cp-section-title">최근</div>
+       <div class="cp-grid recent">${drawRecentColors.map(c =>
+         `<div class="draw-color${c === drawColor ? ' active' : ''}" data-color="${c}" style="background:${c}" onclick="setDrawColor('${c}', this)"></div>`
+       ).join('')}</div>`
+    : '';
+  const palette = `<div class="cp-section-title">팔레트</div>
+    <div class="cp-grid">${DRAW_PALETTE_COLORS.map(c =>
+      `<div class="draw-color${c === drawColor ? ' active' : ''}" data-color="${c}" style="background:${c}" onclick="setDrawColor('${c}', this)"></div>`
+    ).join('')}</div>
+    <div class="cp-custom-row">
+      <input type="color" id="draw-custom-color" value="${drawColor}" onchange="setDrawColor(this.value, this)" title="사용자 정의 색">
+      <span style="font-size:11px;color:var(--text-mute);">사용자 정의</span>
+    </div>`;
+  pop.innerHTML = recent + palette;
+}
+window.toggleColorPicker = toggleColorPicker;
+window.closeColorPicker = closeColorPicker;
 
 function updateDrawWidth(v) {
   drawWidthBase = parseFloat(v) || 2;

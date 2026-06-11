@@ -3236,6 +3236,123 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   transition: background .12s, color .12s;
 }
 .eraser-mode-btn.active { background: var(--surface); color: var(--accent); }
+
+/* Phase 2 — 색상 팔레트 popup */
+.draw-color-trigger {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  box-shadow: 0 0 0 2px var(--surface);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform .12s;
+}
+.draw-color-trigger:hover { transform: scale(1.08); }
+.draw-color-picker {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: 0 12px 28px -8px rgba(0,0,0,0.22);
+  z-index: 100;
+  display: none;
+  min-width: 220px;
+}
+.draw-color-picker.show { display: block; }
+.draw-color-picker .cp-section-title {
+  font-size: 10.5px; font-weight: 700;
+  color: var(--text-mute);
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.draw-color-picker .cp-section-title ~ .cp-section-title { margin-top: 12px; }
+.draw-color-picker .cp-grid {
+  display: grid; grid-template-columns: repeat(6, 28px);
+  gap: 6px;
+}
+.draw-color-picker .cp-grid.recent { grid-template-columns: repeat(6, 28px); }
+.draw-color-picker .draw-color {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform .12s;
+}
+.draw-color-picker .draw-color:hover { transform: scale(1.12); }
+.draw-color-picker .draw-color.active { border-color: var(--text); transform: scale(1.12); }
+.draw-color-picker .cp-custom-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-light);
+}
+.draw-color-picker .cp-custom-row input[type="color"] {
+  width: 32px; height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  padding: 2px;
+}
+
+/* Phase 3 — 종이 배경 picker */
+.draw-paper-trigger {
+  width: 34px; height: 34px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s;
+}
+.draw-paper-trigger:hover { background: var(--surface3); }
+.draw-paper-trigger .mi { font-size: 18px; }
+.draw-paper-picker {
+  position: absolute; top: calc(100% + 8px); left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 12px 28px -8px rgba(0,0,0,0.22);
+  z-index: 100;
+  display: none;
+  grid-template-columns: repeat(3, 80px);
+  gap: 6px;
+  min-width: 256px;
+}
+.draw-paper-picker.show { display: grid; }
+.draw-paper-picker .paper-pick {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background .12s;
+}
+.draw-paper-picker .paper-pick:hover { background: var(--surface2); }
+.draw-paper-picker .paper-pick.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+.draw-paper-picker .paper-pick span {
+  font-size: 11px; color: var(--text-dim);
+}
+.paper-thumb {
+  width: 64px; height: 44px;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  background-color: #fff;
+  background-size: cover;
+  background-repeat: repeat;
+}
+.paper-thumb.blank  { background: #fff; }
+.paper-thumb.lined  { background: #FFFCF2 repeating-linear-gradient(to bottom, transparent 0, transparent 11px, #D9C9B4 11px, #D9C9B4 12px); }
+.paper-thumb.grid   { background: #FFFDF5 conic-gradient(from 90deg at 1px 1px, #FFFDF5 25%, #DCC9B3 0); background-size: 8px 8px; }
+.paper-thumb.dot    { background: #FAF6EB radial-gradient(circle, #C4B095 1px, transparent 1.5px); background-size: 10px 10px; }
+.paper-thumb.cream  { background: #F7EFD8; }
+.paper-thumb.sepia  { background: #F4E7C7; }
 .draw-color {
   width: 26px; height: 26px; border-radius: 50%;
   cursor: pointer; border: 2px solid transparent;
