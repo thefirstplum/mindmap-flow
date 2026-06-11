@@ -284,26 +284,14 @@ function redrawAllStrokes() {
 
 function setDrawTool(tool) {
   drawTool = tool;
-  // 펜 trigger 아이콘 갱신 — 현재 펜 종류 표시
-  const penIcons = {
-    ink: 'edit', fine: 'stylus_note', pencil: 'draw', fountain: 'ink_pen',
-    marker: 'brush', highlighter: 'format_ink_highlighter', brush: 'imagesmode',
-  };
-  const trigger = document.getElementById('pen-trigger');
-  const triggerIcon = document.getElementById('pen-trigger-icon');
-  if (trigger && triggerIcon) {
-    if (tool === 'eraser') {
-      trigger.classList.remove('active');
-    } else {
-      trigger.classList.add('active');
-      triggerIcon.textContent = penIcons[tool] || 'edit';
-    }
-  }
-  // 지우개 버튼
-  document.getElementById('tool-eraser')?.classList.toggle('active', tool === 'eraser');
-  // 펜 picker 안 active 표시
+  // Bamboo 4 메인 펜 + 지우개 active 토글 (위로 솟아오름)
+  document.querySelectorAll('.bamboo-pen').forEach(b =>
+    b.classList.toggle('active', b.dataset.tool === tool));
+  // 펜 picker 안 active 표시 (더보기 popup의 추가 펜용)
   document.querySelectorAll('.pen-pick').forEach(b =>
     b.classList.toggle('active', b.dataset.tool === tool));
+  // 호환용 (옛 selector)
+  document.getElementById('tool-eraser')?.classList.toggle('active', tool === 'eraser');
   if (drawCanvas) drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
   // 권장 굵기 자동
   const recommendedWidth = {
@@ -317,7 +305,12 @@ function setDrawTool(tool) {
     const disp = document.getElementById('draw-width-display');
     if (disp) disp.textContent = String(Math.round(recommendedWidth));
     _updateWidthDot();
+    _updateMoreWidthVal();
   }
+}
+function _updateMoreWidthVal() {
+  const el = document.getElementById('more-width-val');
+  if (el) el.textContent = Math.round(drawWidthBase) + 'px';
 }
 
 // 펜 picker 트리거 핸들러
@@ -407,6 +400,11 @@ function setDrawColor(color, el) {
   // 트리거 동그라미 색 갱신
   const trigger = document.getElementById('color-picker-trigger');
   if (trigger) trigger.style.background = color;
+  // Bamboo 펜 dot 동기화 (각 펜이 현재 색으로 표시)
+  ['ink', 'marker', 'highlighter', 'pencil'].forEach(t => {
+    const dot = document.getElementById('bp-' + t + '-dot');
+    if (dot) dot.style.background = color;
+  });
   // 최근 사용 색 기록 (앞으로 + 중복 제거 + 최대 6개)
   drawRecentColors = [color, ...drawRecentColors.filter(c => c !== color)].slice(0, 6);
   save('draw_recent_colors', drawRecentColors);
@@ -414,6 +412,15 @@ function setDrawColor(color, el) {
   if (drawTool === 'eraser') setDrawTool('ink');
   closeColorPicker();
 }
+
+// 굵기 inline popup (더보기 → 굵기)
+window.toggleWidthInline = function(e) {
+  e?.stopPropagation();
+  const el = document.getElementById('draw-width-inline');
+  if (!el) return;
+  el.classList.toggle('show');
+  closeMorePicker();
+};
 
 // Phase 2 — 색상 팔레트 popup
 function toggleColorPicker(e) {

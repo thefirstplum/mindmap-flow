@@ -3203,11 +3203,142 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .drawing-toolbar {
   padding: 8px 12px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
-  flex-wrap: wrap;  /* popup이 잘리지 않도록 overflow: visible 필수 → wrap 허용 */
+  flex-wrap: wrap;
   background: var(--surface); flex-shrink: 0;
-  overflow: visible;  /* ⚠️ 필수: popup이 toolbar 아래로 떠야 함 */
+  overflow: visible;
   position: relative;
-  z-index: 15;  /* 캔버스 zoom indicator(z:10)보다 위 — popup이 가려지지 않게 */
+  z-index: 15;
+}
+
+/* === Bamboo Paper 스타일 툴바 — 책상 위 펜 그룹 === */
+.drawing-toolbar.bamboo-style {
+  padding: 6px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
+  justify-content: space-between;
+  flex-wrap: nowrap;
+}
+.drawing-toolbar.bamboo-style .bamboo-tools {
+  display: inline-flex; align-items: flex-end; gap: 2px;
+  flex-shrink: 0;
+}
+.drawing-toolbar.bamboo-style .bamboo-right {
+  display: inline-flex; align-items: center; gap: 8px;
+  flex-shrink: 0;
+}
+
+/* 책상 위 펜 — base 모양 + active 시 위로 솟아오름 */
+.bamboo-pen {
+  position: relative;
+  width: 44px; height: 48px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  gap: 3px;
+  transition: transform .18s cubic-bezier(0.32,0.72,0.16,1);
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.bamboo-pen .bp-icon {
+  width: 36px; height: 36px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px 10px 6px 6px;  /* 펜 위쪽이 살짝 둥근 책상 위 도구 톤 */
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-dim);
+  transition: background .14s, color .14s, border-color .14s;
+}
+.bamboo-pen .bp-icon .mi { font-size: 19px; }
+.bamboo-pen .bp-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #1d1a14;
+  border: 1.5px solid var(--surface);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  transition: transform .14s;
+}
+/* hover — 살짝 들썩 */
+.bamboo-pen:hover { transform: translateY(-2px); }
+.bamboo-pen:hover .bp-icon { background: var(--surface3); color: var(--text); }
+/* active — 위로 확실히 솟아오름 (Bamboo Paper 시그니처) */
+.bamboo-pen.active { transform: translateY(-6px); }
+.bamboo-pen.active .bp-icon {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 4px 10px -2px rgba(58, 46, 42, 0.16);
+}
+.bamboo-pen.active .bp-dot { transform: scale(1.3); }
+.bamboo-pen:active { transform: translateY(-3px); }
+/* 지우개는 dot 없음 */
+.bamboo-pen[data-tool="eraser"] { width: 40px; }
+.bamboo-pen[data-tool="eraser"] .bp-icon { border-radius: 50%; }
+
+/* 색상 trigger (Bamboo 톤 — 큰 동그라미) */
+.bamboo-color-trigger {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--text);
+  box-shadow: 0 0 0 2px var(--surface), 0 2px 6px rgba(0,0,0,0.12);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform .12s;
+}
+.bamboo-color-trigger:hover { transform: scale(1.1); }
+.bamboo-color-trigger:active { transform: scale(0.96); }
+
+/* 더보기 버튼 (Bamboo 톤) */
+.bamboo-more {
+  width: 34px; height: 34px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-dim);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s;
+  font-family: inherit;
+}
+.bamboo-more:hover { background: var(--surface3); color: var(--text); }
+.bamboo-more .mi { font-size: 19px; }
+
+/* 굵기 inline popup (더보기 → 굵기 → 슬라이더만) */
+.draw-width-inline {
+  display: none;
+  position: absolute;
+  top: 100%; right: 14px;
+  margin-top: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 14px 32px -10px rgba(0,0,0,0.25);
+  z-index: 100;
+  width: 220px;
+}
+.draw-width-inline.show { display: block; }
+.draw-width-inline input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.draw-width-inline .width-display {
+  text-align: center;
+  font-size: 12px; color: var(--text-mute);
+  font-family: ui-monospace, Menlo, monospace;
+  margin-top: 6px;
+}
+
+/* 모바일 — bamboo-pen 살짝 작게 */
+@media (max-width: 768px) {
+  .drawing-toolbar.bamboo-style { padding: 4px 10px; }
+  .bamboo-pen { width: 38px; height: 44px; }
+  .bamboo-pen .bp-icon { width: 32px; height: 32px; }
+  .bamboo-pen .bp-icon .mi { font-size: 17px; }
+  .bamboo-color-trigger,
+  .bamboo-more { width: 32px; height: 32px; }
 }
 .draw-spacer { flex: 1; min-width: 4px; }
 .draw-tool-wrap { display: inline-flex; flex-shrink: 0; }
