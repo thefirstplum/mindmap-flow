@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260611a">
+<link rel="stylesheet" href="styles.css?v=20260611b">
 </head>
 <body>
 <div class="app">
@@ -636,21 +636,37 @@
         <button class="eraser-mode-btn" data-mode="stroke" onclick="setEraserMode('stroke')" title="스트로크 단위">선</button>
       </div>
       <div class="draw-sep"></div>
-      <div class="draw-color active" data-color="#1d1a14" style="background:#1d1a14" onclick="setDrawColor('#1d1a14',this)" title="잉크 검정"></div>
-      <div class="draw-color" data-color="#b58900" style="background:#b58900" onclick="setDrawColor('#b58900',this)" title="옐로우"></div>
-      <div class="draw-color" data-color="#cb4b16" style="background:#cb4b16" onclick="setDrawColor('#cb4b16',this)" title="오렌지"></div>
-      <div class="draw-color" data-color="#dc322f" style="background:#dc322f" onclick="setDrawColor('#dc322f',this)" title="레드"></div>
-      <div class="draw-color" data-color="#e11d48" style="background:#e11d48" onclick="setDrawColor('#e11d48',this)" title="로즈"></div>
-      <div class="draw-color" data-color="#d33682" style="background:#d33682" onclick="setDrawColor('#d33682',this)" title="마젠타"></div>
-      <div class="draw-color" data-color="#7c3aed" style="background:#7c3aed" onclick="setDrawColor('#7c3aed',this)" title="퍼플"></div>
-      <div class="draw-color" data-color="#6c71c4" style="background:#6c71c4" onclick="setDrawColor('#6c71c4',this)" title="바이올렛"></div>
-      <div class="draw-color" data-color="#0284c7" style="background:#0284c7" onclick="setDrawColor('#0284c7',this)" title="스카이"></div>
-      <div class="draw-color" data-color="#268bd2" style="background:#268bd2" onclick="setDrawColor('#268bd2',this)" title="블루"></div>
-      <div class="draw-color" data-color="#2aa198" style="background:#2aa198" onclick="setDrawColor('#2aa198',this)" title="시안"></div>
-      <div class="draw-color" data-color="#0d9488" style="background:#0d9488" onclick="setDrawColor('#0d9488',this)" title="틸"></div>
-      <div class="draw-color" data-color="#859900" style="background:#859900" onclick="setDrawColor('#859900',this)" title="그린"></div>
-      <div class="draw-color" data-color="#92400e" style="background:#92400e" onclick="setDrawColor('#92400e',this)" title="브라운"></div>
-      <div class="draw-color" data-color="#475569" style="background:#475569" onclick="setDrawColor('#475569',this)" title="슬레이트"></div>
+      <!-- Phase 2 — 색상 팔레트 popup trigger -->
+      <div class="draw-color-picker-wrap" style="position:relative;">
+        <button class="draw-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상 선택"></button>
+        <div class="draw-color-picker" id="draw-color-picker"></div>
+      </div>
+      <!-- Phase 3 — 종이 배경 popup trigger -->
+      <div class="draw-paper-picker-wrap" style="position:relative;">
+        <button class="draw-paper-trigger" onclick="togglePaperPicker(event)" title="종이 배경">
+          <span class="mi">grid_on</span>
+        </button>
+        <div class="draw-paper-picker" id="draw-paper-picker">
+          <div class="paper-pick active" data-paper="blank" onclick="setPaper('blank')">
+            <div class="paper-thumb blank"></div><span>빈 종이</span>
+          </div>
+          <div class="paper-pick" data-paper="lined" onclick="setPaper('lined')">
+            <div class="paper-thumb lined"></div><span>줄 노트</span>
+          </div>
+          <div class="paper-pick" data-paper="grid" onclick="setPaper('grid')">
+            <div class="paper-thumb grid"></div><span>격자</span>
+          </div>
+          <div class="paper-pick" data-paper="dot" onclick="setPaper('dot')">
+            <div class="paper-thumb dot"></div><span>점</span>
+          </div>
+          <div class="paper-pick" data-paper="cream" onclick="setPaper('cream')">
+            <div class="paper-thumb cream"></div><span>크림</span>
+          </div>
+          <div class="paper-pick" data-paper="sepia" onclick="setPaper('sepia')">
+            <div class="paper-thumb sepia"></div><span>세피아</span>
+          </div>
+        </div>
+      </div>
       <div class="draw-sep"></div>
       <div class="draw-width-control">
         <span>굵기</span>
@@ -769,7 +785,7 @@
 <script src="js/calendar.js?v=20260605y" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
-<script src="js/drawing.js?v=20260611a" defer></script>
+<script src="js/drawing.js?v=20260611b" defer></script>
 <script src="js/sync.js?v=20260605o" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260605t" defer></script>
