@@ -3203,12 +3203,12 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .drawing-toolbar {
   padding: 8px 12px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 6px;
-  flex-wrap: nowrap;  /* Bamboo 톤 — 한 줄 유지 */
+  flex-wrap: wrap;  /* popup이 잘리지 않도록 overflow: visible 필수 → wrap 허용 */
   background: var(--surface); flex-shrink: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;  /* ⚠️ 필수: popup이 toolbar 아래로 떠야 함 */
+  position: relative;
+  z-index: 15;  /* 캔버스 zoom indicator(z:10)보다 위 — popup이 가려지지 않게 */
 }
-.drawing-toolbar::-webkit-scrollbar { display: none; }
 .draw-spacer { flex: 1; min-width: 4px; }
 .draw-tool-wrap { display: inline-flex; flex-shrink: 0; }
 .draw-tool {
