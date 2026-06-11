@@ -1,34 +1,55 @@
 // =================== DRAWING (Apple Pencil / stylus / finger / mouse) ===================
+// 사장님 요청 (2026-06-11): Wacom Bamboo Paper 스타일 필기 도구
+//
+// 펜 종류 7가지 (각 도구별로 stroke 렌더링 달리):
+//   fine        — 일정 굵기, 압력 무시 (라이너)
+//   ink         — 압력에 비례 굵기 변화 (기본 펜)
+//   pencil      — 얇고 약간 거칠게, 회색 톤
+//   fountain    — 압력 + 다른 굵기 곡선 (만년필 느낌)
+//   marker      — 두꺼운 일정 굵기, 반투명
+//   highlighter — 매우 두껍고 매우 투명, 강조용
+//   brush       — 압력 따라 큰 굵기 변화, 살짝 번짐
 let drawStrokes = [];
+let drawRedoStack = [];      // Phase 6 — Redo 스택
 let drawCurrentStroke = null;
-let drawTool = 'pen';
+let drawTool = 'ink';         // 'ink' | 'fine' | 'pencil' | 'fountain' | 'marker' | 'highlighter' | 'brush' | 'eraser'
+let drawEraserMode = 'pixel'; // 'pixel'(부분 지우개) | 'stroke'(스트로크 단위 삭제)
 let drawColor = '#1f1a14';
 let drawWidthBase = 2;
 let drawCanvas = null;
 let drawCtx = null;
 // Offscreen baked canvas: holds all completed strokes already rendered.
-// On every pointermove we just blit this image, then draw the current stroke
-// on top — instead of replaying every previous stroke. Keeps drawing smooth
-// even after dozens of strokes.
 let drawBaked = null;
 let drawBakedCtx = null;
-// Palm rejection mode: 'auto' starts permissive then becomes pen-only as
-// soon as a pen pointer is seen; 'pen-only' rejects touch from the start;
-// 'allow-touch' never rejects.
 let drawPalmMode = 'auto';
+
+// Tool spec — 각 도구별 굵기·투명도·압력 곡선
+const DRAW_TOOLS = {
+  ink:         { widthMul: 1.5, alpha: 1.00, pMin: 0.35, pMax: 1.10, jitter: 0,    composite: 'source-over' },
+  fine:        { widthMul: 1.0, alpha: 1.00, pMin: 1.00, pMax: 1.00, jitter: 0,    composite: 'source-over' },
+  pencil:      { widthMul: 0.9, alpha: 0.78, pMin: 0.50, pMax: 0.95, jitter: 0.6,  composite: 'source-over' },
+  fountain:    { widthMul: 2.0, alpha: 1.00, pMin: 0.20, pMax: 1.45, jitter: 0,    composite: 'source-over' },
+  marker:      { widthMul: 3.0, alpha: 0.55, pMin: 0.90, pMax: 1.05, jitter: 0,    composite: 'source-over' },
+  highlighter: { widthMul: 7.0, alpha: 0.32, pMin: 1.00, pMax: 1.00, jitter: 0,    composite: 'multiply'    },
+  brush:       { widthMul: 2.2, alpha: 0.92, pMin: 0.30, pMax: 1.50, jitter: 0,    composite: 'source-over' },
+};
 
 function openDrawingModal() {
   if (!activeMemoId) { toast('먼저 메모를 선택하세요'); return; }
   drawStrokes = [];
+  drawRedoStack = [];
   drawCurrentStroke = null;
-  drawTool = 'pen';
+  drawTool = 'ink';
   drawColor = '#1f1a14';
-  drawWidthBase = 2;
+  drawWidthBase = 2.5;
   document.querySelectorAll('.draw-color').forEach(c => c.classList.toggle('active', c.dataset.color === drawColor));
-  document.getElementById('tool-pen').classList.add('active');
-  document.getElementById('tool-eraser').classList.remove('active');
-  document.getElementById('draw-width').value = '2';
-  document.getElementById('draw-width-display').textContent = '2';
+  // 모든 도구 active 초기화 후 ink만 active
+  document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool-ink')?.classList.add('active');
+  const slider = document.getElementById('draw-width');
+  if (slider) slider.value = '2.5';
+  const disp = document.getElementById('draw-width-display');
+  if (disp) disp.textContent = '2';
 
   document.getElementById('drawing-modal-overlay').classList.add('show');
   setTimeout(() => {
@@ -85,53 +106,67 @@ function clearBakedCanvas() {
   drawBakedCtx.clearRect(0, 0, w, h);
 }
 
+// 각 도구별 stroke 한 세그먼트 렌더 — Bamboo Paper 톤 다양한 펜
+function _renderSegment(ctx, p1, p2, stroke, spec) {
+  const pAvg = ((p1.p || 0.5) + (p2.p || 0.5)) / 2;
+  const pNorm = spec.pMin + (spec.pMax - spec.pMin) * Math.max(0, Math.min(1, pAvg));
+  const w = Math.max(0.4, stroke.width * spec.widthMul * pNorm);
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.stroke();
+  // 연필 — 옆에 작은 노이즈 점 (질감)
+  if (spec.jitter && Math.random() < spec.jitter) {
+    const dx = (Math.random() - 0.5) * w * 0.8;
+    const dy = (Math.random() - 0.5) * w * 0.8;
+    ctx.fillRect((p1.x + p2.x) / 2 + dx, (p1.y + p2.y) / 2 + dy, 0.6, 0.6);
+  }
+}
+
+function _setupStrokeCtx(ctx, stroke) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  if (stroke.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#000';
+    ctx.fillStyle = '#000';
+    return DRAW_TOOLS.fine;  // 지우개도 fine 톤 width
+  }
+  const spec = DRAW_TOOLS[stroke.tool] || DRAW_TOOLS.ink;
+  ctx.globalCompositeOperation = spec.composite || 'source-over';
+  ctx.globalAlpha = spec.alpha;
+  ctx.strokeStyle = stroke.color;
+  ctx.fillStyle = stroke.color;
+  return spec;
+}
+
 function renderStrokeOn(ctx, stroke) {
   if (!stroke || !ctx || stroke.points.length < 1) return;
   ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
-  ctx.strokeStyle = stroke.color;
-  ctx.fillStyle = stroke.color;
+  const spec = _setupStrokeCtx(ctx, stroke);
   if (stroke.points.length === 1) {
     const p = stroke.points[0];
+    const r = Math.max(1, stroke.width * spec.widthMul * spec.pMax * (p.p || 0.5));
     ctx.beginPath();
-    ctx.arc(p.x, p.y, Math.max(1, stroke.width * (p.p || 0.5)), 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
     ctx.fill();
   } else {
     for (let i = 1; i < stroke.points.length; i++) {
-      const p1 = stroke.points[i-1];
-      const p2 = stroke.points[i];
-      const w = Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2));
-      ctx.lineWidth = w;
-      ctx.beginPath();
-      ctx.moveTo(p1.x, p1.y);
-      ctx.lineTo(p2.x, p2.y);
-      ctx.stroke();
+      _renderSegment(ctx, stroke.points[i-1], stroke.points[i], stroke, spec);
     }
   }
   ctx.restore();
 }
 
 // Append only the latest segment of the current stroke to the visible canvas
-// (so we don't re-render previous segments — that's where the lag came from).
 function paintLatestSegment(stroke, fromIdx) {
   if (!drawCtx || !stroke || stroke.points.length <= fromIdx) return;
   drawCtx.save();
-  drawCtx.lineCap = 'round';
-  drawCtx.lineJoin = 'round';
-  drawCtx.globalCompositeOperation = stroke.tool === 'eraser' ? 'destination-out' : 'source-over';
-  drawCtx.strokeStyle = stroke.color;
-  drawCtx.fillStyle = stroke.color;
+  const spec = _setupStrokeCtx(drawCtx, stroke);
   for (let i = Math.max(1, fromIdx); i < stroke.points.length; i++) {
-    const p1 = stroke.points[i-1];
-    const p2 = stroke.points[i];
-    const w = Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2));
-    drawCtx.lineWidth = w;
-    drawCtx.beginPath();
-    drawCtx.moveTo(p1.x, p1.y);
-    drawCtx.lineTo(p2.x, p2.y);
-    drawCtx.stroke();
+    _renderSegment(drawCtx, stroke.points[i-1], stroke.points[i], stroke, spec);
   }
   drawCtx.restore();
 }
@@ -160,17 +195,33 @@ function redrawAllStrokes() {
 
 function setDrawTool(tool) {
   drawTool = tool;
-  document.getElementById('tool-pen').classList.toggle('active', tool === 'pen');
-  document.getElementById('tool-eraser').classList.toggle('active', tool === 'eraser');
+  // 모든 도구 버튼 active 토글 — 펜 7종 + 지우개
+  const tools = ['ink', 'fine', 'pencil', 'fountain', 'marker', 'highlighter', 'brush', 'eraser'];
+  for (const t of tools) {
+    const btn = document.getElementById('tool-' + t);
+    if (btn) btn.classList.toggle('active', tool === t);
+  }
   if (drawCanvas) drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
+  // 도구 선택 시 권장 width 자동 (기존 width 유지하고 싶으면 주석 처리)
+  const recommendedWidth = {
+    ink: 2.5, fine: 1.5, pencil: 1.5, fountain: 2.5,
+    marker: 5, highlighter: 12, brush: 4, eraser: 8,
+  }[tool];
+  if (recommendedWidth) {
+    drawWidthBase = recommendedWidth;
+    const slider = document.getElementById('draw-width');
+    if (slider) slider.value = recommendedWidth;
+    const disp = document.getElementById('draw-width-display');
+    if (disp) disp.textContent = String(Math.round(recommendedWidth));
+  }
 }
 
 function setDrawColor(color, el) {
   drawColor = color;
   document.querySelectorAll('.draw-color').forEach(c => c.classList.remove('active'));
   if (el) el.classList.add('active');
-  // Switch to pen when a color is picked
-  setDrawTool('pen');
+  // 색 선택 시 지우개면 ink로 (사용자가 그리기 의도)
+  if (drawTool === 'eraser') setDrawTool('ink');
 }
 
 function updateDrawWidth(v) {
@@ -178,16 +229,54 @@ function updateDrawWidth(v) {
   document.getElementById('draw-width-display').textContent = String(Math.round(drawWidthBase));
 }
 
+// 지우개 모드 토글 — 픽셀 vs 스트로크
+function setEraserMode(mode) {
+  drawEraserMode = (mode === 'stroke') ? 'stroke' : 'pixel';
+  document.querySelectorAll('.eraser-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === drawEraserMode));
+  if (typeof toast === 'function') {
+    toast(drawEraserMode === 'stroke' ? '지우개: 스트로크 단위' : '지우개: 부분 (픽셀)');
+  }
+}
+window.setEraserMode = setEraserMode;
+
+// 스트로크 단위 지우개 — 클릭한 위치에 닿은 stroke 전체 삭제
+function _strokeHitTest(x, y, radius) {
+  // 끝에서부터 검사 (위에 그려진 게 먼저 지워짐)
+  for (let i = drawStrokes.length - 1; i >= 0; i--) {
+    const s = drawStrokes[i];
+    if (s.tool === 'eraser') continue;
+    for (const p of s.points) {
+      const dx = p.x - x, dy = p.y - y;
+      if (dx * dx + dy * dy < radius * radius) return i;
+    }
+  }
+  return -1;
+}
+
 function undoDraw() {
-  drawStrokes.pop();
+  if (drawStrokes.length === 0) return;
+  const last = drawStrokes.pop();
+  drawRedoStack.push(last);
   redrawAllStrokes();
   updateDrawEmptyHint();
 }
+
+// Phase 6 — Redo
+function redoDraw() {
+  if (drawRedoStack.length === 0) return;
+  const s = drawRedoStack.pop();
+  drawStrokes.push(s);
+  redrawAllStrokes();
+  updateDrawEmptyHint();
+}
+window.redoDraw = redoDraw;
 
 function clearDraw() {
   if (drawStrokes.length === 0) return;
   if (!confirm('모두 지우시겠습니까?')) return;
   drawStrokes = [];
+  drawRedoStack = [];
   redrawAllStrokes();
   updateDrawEmptyHint();
 }
@@ -254,6 +343,21 @@ function setupDrawingPointer(canvas) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+
+    // Phase 6 — stroke 단위 지우개: 클릭한 위치의 stroke 삭제
+    if (drawTool === 'eraser' && drawEraserMode === 'stroke') {
+      const hitIdx = _strokeHitTest(x, y, Math.max(8, drawWidthBase * 2));
+      if (hitIdx >= 0) {
+        drawStrokes.splice(hitIdx, 1);
+        drawRedoStack = [];  // 새 액션 → redo 초기화
+        redrawAllStrokes();
+        updateDrawEmptyHint();
+      }
+      return;
+    }
+
+    // 새 스트로크 시작 — redo stack 초기화
+    drawRedoStack = [];
     drawCurrentStroke = {
       tool: drawTool,
       color: drawColor,
@@ -263,13 +367,26 @@ function setupDrawingPointer(canvas) {
       pointerType: e.pointerType,
       paintedUpTo: 1 // index of next point to paint
     };
-    // Paint the initial dot immediately so dot-strokes work and the user
-    // sees something on first touch
     drawCompositeFromBaked();
     updateDrawEmptyHint();
   };
 
   const move = (e) => {
+    // Phase 6 — stroke 단위 지우개: 드래그하면서 닿은 stroke 제거
+    if (drawTool === 'eraser' && drawEraserMode === 'stroke' && !drawCurrentStroke) {
+      if (e.pointerType === 'touch' && shouldRejectTouch()) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const hitIdx = _strokeHitTest(x, y, Math.max(8, drawWidthBase * 2));
+      if (hitIdx >= 0) {
+        drawStrokes.splice(hitIdx, 1);
+        redrawAllStrokes();
+        updateDrawEmptyHint();
+      }
+      return;
+    }
+
     if (!drawCurrentStroke) return;
     if (e.pointerId !== drawCurrentStroke.pointerId) return;
     if (e.pointerType === 'pen') { lastPenAt = Date.now(); }
@@ -333,32 +450,36 @@ function cyclePalmMode() {
   toast({ 'auto': '팜 리젝션: 자동', 'pen-only': '팜 리젝션: 펜만 받기', 'allow-touch': '팜 리젝션: 손가락도 받기' }[drawPalmMode]);
 }
 
-// Generate compact SVG from stroke history
+// Generate compact SVG from stroke history — 다양한 도구 alpha/width 반영
+// 복잡한 도구(pencil jitter, highlighter multiply 등) 있으면 SVG 표현 한계 → PNG fallback
 function strokesToSVG() {
   const w = drawCanvas.width / (window.devicePixelRatio || 1);
   const h = drawCanvas.height / (window.devicePixelRatio || 1);
-  // Apply eraser strokes as a separate transparent layer using mask
-  // Simpler approach: bake erased strokes by skipping pixels covered by eraser path
-  // For first version: just emit pen strokes; eraser is applied client-side preview only
-  // (To preserve eraser, we'd need a full canvas → PNG path. Falls back to that if eraser used.)
   const hasEraser = drawStrokes.some(s => s.tool === 'eraser');
-  if (hasEraser) {
-    // Use canvas snapshot for accuracy when eraser is involved
-    return null;
-  }
+  const hasComplex = drawStrokes.some(s => {
+    const t = s.tool;
+    return t === 'pencil' || t === 'highlighter' || t === 'brush';
+  });
+  if (hasEraser || hasComplex) return null;  // PNG fallback (정확)
+
   const f = (n) => Math.round(n * 10) / 10;
   let paths = '';
   for (const stroke of drawStrokes) {
     if (stroke.points.length < 1) continue;
+    const spec = DRAW_TOOLS[stroke.tool] || DRAW_TOOLS.ink;
+    const op = spec.alpha < 1 ? ` stroke-opacity="${spec.alpha}" fill-opacity="${spec.alpha}"` : '';
     if (stroke.points.length === 1) {
       const p = stroke.points[0];
-      paths += `<circle cx="${f(p.x)}" cy="${f(p.y)}" r="${f(Math.max(1, stroke.width * (p.p || 0.5)))}" fill="${stroke.color}"/>`;
+      const r = f(Math.max(1, stroke.width * spec.widthMul * spec.pMax * (p.p || 0.5)));
+      paths += `<circle cx="${f(p.x)}" cy="${f(p.y)}" r="${r}" fill="${stroke.color}"${op}/>`;
     } else {
       for (let i = 1; i < stroke.points.length; i++) {
         const p1 = stroke.points[i-1];
         const p2 = stroke.points[i];
-        const sw = f(Math.max(0.5, stroke.width * 1.5 * Math.max(0.3, ((p1.p || 0.5) + (p2.p || 0.5)) / 2)));
-        paths += `<line x1="${f(p1.x)}" y1="${f(p1.y)}" x2="${f(p2.x)}" y2="${f(p2.y)}" stroke="${stroke.color}" stroke-width="${sw}" stroke-linecap="round"/>`;
+        const pAvg = ((p1.p || 0.5) + (p2.p || 0.5)) / 2;
+        const pNorm = spec.pMin + (spec.pMax - spec.pMin) * Math.max(0, Math.min(1, pAvg));
+        const sw = f(Math.max(0.4, stroke.width * spec.widthMul * pNorm));
+        paths += `<line x1="${f(p1.x)}" y1="${f(p1.y)}" x2="${f(p2.x)}" y2="${f(p2.y)}" stroke="${stroke.color}" stroke-width="${sw}" stroke-linecap="round"${op}/>`;
       }
     }
   }
@@ -426,10 +547,21 @@ function blobToDataUrl(blob) {
   });
 }
 
-// Cmd/Ctrl+Z while drawing modal open → undo last stroke
+// Cmd/Ctrl+Z → undo, Cmd/Ctrl+Shift+Z → redo (modal 열려있을 때만)
 document.addEventListener('keydown', (e) => {
   if (!document.getElementById('drawing-modal-overlay')?.classList.contains('show')) return;
-  if ((e.metaKey || e.ctrlKey) && e.key === 'z') { e.preventDefault(); undoDraw(); }
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'z' || e.key === 'Z')) {
+    e.preventDefault();
+    if (e.shiftKey) redoDraw(); else undoDraw();
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redoDraw(); return; }
   if (e.key === 'Escape') { e.preventDefault(); closeDrawingModal(); }
+  // 도구 단축키 (1-7)
+  const toolKeys = { '1': 'ink', '2': 'fine', '3': 'pencil', '4': 'fountain', '5': 'marker', '6': 'highlighter', '7': 'brush', 'e': 'eraser', 'E': 'eraser' };
+  if (toolKeys[e.key] && !e.metaKey && !e.ctrlKey) {
+    e.preventDefault();
+    setDrawTool(toolKeys[e.key]);
+  }
 });
 

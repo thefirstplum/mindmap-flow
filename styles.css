@@ -3215,6 +3215,27 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .draw-tool:hover { background: var(--surface3); }
 .draw-tool.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .draw-tool svg { width: 17px; height: 17px; }
+.draw-tool .mi { font-size: 19px; }
+
+/* 지우개 모드 토글 — 지우개 도구 선택 시 visible (CSS로 자동 표시) */
+.draw-eraser-mode-wrap {
+  display: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+#tool-eraser.active ~ .draw-eraser-mode-wrap { display: inline-flex; }
+.eraser-mode-btn {
+  background: transparent; border: none;
+  padding: 4px 10px; border-radius: 6px;
+  color: var(--text-mute); font-size: 11px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+  transition: background .12s, color .12s;
+}
+.eraser-mode-btn.active { background: var(--surface); color: var(--accent); }
 .draw-color {
   width: 26px; height: 26px; border-radius: 50%;
   cursor: pointer; border: 2px solid transparent;
