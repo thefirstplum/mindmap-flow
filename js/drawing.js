@@ -400,11 +400,8 @@ function setDrawColor(color, el) {
   // 트리거 동그라미 색 갱신
   const trigger = document.getElementById('color-picker-trigger');
   if (trigger) trigger.style.background = color;
-  // Bamboo 펜 dot 동기화 (각 펜이 현재 색으로 표시)
-  ['ink', 'marker', 'highlighter', 'pencil'].forEach(t => {
-    const dot = document.getElementById('bp-' + t + '-dot');
-    if (dot) dot.style.background = color;
-  });
+  // active 펜 dot 색을 CSS 변수로 단일 갱신 (active 펜만 dot 보임)
+  document.documentElement.style.setProperty('--bp-color', color);
   // 최근 사용 색 기록 (앞으로 + 중복 제거 + 최대 6개)
   drawRecentColors = [color, ...drawRecentColors.filter(c => c !== color)].slice(0, 6);
   save('draw_recent_colors', drawRecentColors);
