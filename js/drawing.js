@@ -21,7 +21,10 @@ let drawCtx = null;
 // Offscreen baked canvas: holds all completed strokes already rendered.
 let drawBaked = null;
 let drawBakedCtx = null;
-let drawPalmMode = 'auto';
+// 모바일은 'pen-only'를 기본 — 손바닥/손가락 오인 방지 (Apple Pencil/S Pen 전제)
+// 저장된 값 있으면 그걸 우선 사용
+const _isMobileEnv = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+let drawPalmMode = load('draw_palm_mode', _isMobileEnv ? 'pen-only' : 'auto');
 
 // Phase 3 — 종이 배경 (캔버스 배경 패턴)
 // 'blank' | 'lined' | 'grid' | 'dot' | 'cream' | 'sepia'
@@ -72,7 +75,7 @@ function openDrawingModal() {
   // Phase 5 — 페이지 reset (1페이지로 시작)
   drawPages = [[]];
   drawPageIdx = 0;
-  setTimeout(() => { _renderPageIndicator(); updateQuickDockState(); }, 50);
+  setTimeout(() => { _renderPageIndicator(); updateQuickDockState(); updatePalmModeButton(); }, 50);
   document.querySelectorAll('.draw-color').forEach(c => c.classList.toggle('active', c.dataset.color === drawColor));
   // 모든 도구 active 초기화 후 ink만 active
   document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
@@ -331,12 +334,57 @@ function closePenPicker() {
   document.getElementById('draw-pen-picker')?.classList.remove('show');
 }
 function pickTool(tool, el) {
+  // 이미 active 펜 재탭 → 굵기 슬라이더 popup을 그 펜 아래로 띄움
+  if (tool === drawTool && el && el.classList?.contains('bamboo-pen')) {
+    _showWidthPopupNear(el);
+    closePenPicker();
+    closeMorePicker();
+    return;
+  }
   setDrawTool(tool);
   closePenPicker();
+  closeMorePicker();
+  // 펜 바꿨을 때 떠있던 굵기 popup도 닫기 (다른 펜 위에 떠있으면 어색)
+  document.getElementById('draw-width-inline')?.classList.remove('show');
 }
 window.togglePenPicker = togglePenPicker;
 window.closePenPicker = closePenPicker;
 window.pickTool = pickTool;
+
+// 굵기 inline popup을 펜 버튼 아래로 띄움 (active 재탭용)
+function _showWidthPopupNear(el) {
+  const pop = document.getElementById('draw-width-inline');
+  if (!pop) return;
+  const toolbar = el.closest('.drawing-toolbar');
+  if (!toolbar) return;
+  const r = el.getBoundingClientRect();
+  const tr = toolbar.getBoundingClientRect();
+  const popWidth = 220;
+  const margin = 8;
+  // 펜 중앙 기준 + clamp (toolbar 좌우 끝과 8px 간격)
+  let left = (r.left + r.width / 2 - tr.left) - popWidth / 2;
+  left = Math.max(margin, Math.min(left, tr.width - popWidth - margin));
+  pop.style.right = 'auto';
+  pop.style.left = `${left}px`;
+  pop.classList.add('show');
+  // 슬라이더 값 동기화
+  const slider = document.getElementById('draw-width');
+  if (slider) slider.value = String(drawWidthBase);
+  const disp = document.getElementById('draw-width-display');
+  if (disp) disp.textContent = String(Math.round(drawWidthBase));
+  // 다른 곳 클릭하면 닫기
+  setTimeout(() => document.addEventListener('click', _widthInlineOutside, { once: true }), 0);
+}
+function _widthInlineOutside(e) {
+  const pop = document.getElementById('draw-width-inline');
+  if (!pop) return;
+  // popup 내부 또는 펜 버튼 위 클릭이면 유지
+  if (pop.contains(e.target) || e.target.closest?.('.bamboo-pen')) {
+    setTimeout(() => document.addEventListener('click', _widthInlineOutside, { once: true }), 0);
+    return;
+  }
+  pop.classList.remove('show');
+}
 
 // 굵기 picker 트리거 핸들러
 function toggleWidthPicker(e) {
@@ -410,11 +458,14 @@ function setDrawColor(color, el) {
   closeColorPicker();
 }
 
-// 굵기 inline popup (더보기 → 굵기)
+// 굵기 inline popup (더보기 → 굵기) — 우측 끝 고정 위치로
 window.toggleWidthInline = function(e) {
   e?.stopPropagation();
   const el = document.getElementById('draw-width-inline');
   if (!el) return;
+  // 펜 재탭에서 left를 설정했을 수 있으므로 원래 위치로 복원
+  el.style.left = 'auto';
+  el.style.right = '14px';
   el.classList.toggle('show');
   closeMorePicker();
 };
@@ -898,14 +949,22 @@ function setupDrawingPointer(canvas) {
 
 function setPalmMode(mode) {
   drawPalmMode = mode;
+  save('draw_palm_mode', drawPalmMode);
   updatePalmModeButton();
 }
 function updatePalmModeButton() {
   const btn = document.getElementById('tool-palm');
-  if (!btn) return;
   const labels = { 'auto': '🤖 자동', 'pen-only': '🖋 펜만', 'allow-touch': '✋ 손가락 OK' };
-  btn.title = `팜 리젝션: ${labels[drawPalmMode] || drawPalmMode}`;
-  btn.dataset.mode = drawPalmMode;
+  if (btn) {
+    btn.title = `팜 리젝션: ${labels[drawPalmMode] || drawPalmMode}`;
+    btn.dataset.mode = drawPalmMode;
+  }
+  // ⋯ popup의 현재 모드 라벨 갱신
+  const lbl = document.getElementById('more-palm-mode');
+  if (lbl) {
+    const short = { 'auto': '자동', 'pen-only': '펜만', 'allow-touch': '손가락 OK' };
+    lbl.textContent = short[drawPalmMode] || drawPalmMode;
+  }
 }
 function cyclePalmMode() {
   const order = ['auto', 'pen-only', 'allow-touch'];
