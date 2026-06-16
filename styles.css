@@ -3298,6 +3298,57 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .bamboo-more:hover { background: var(--surface2); color: var(--text); }
 .bamboo-more .mi { font-size: 19px; }
 
+/* 좌측 닫기 (×) — 평평한 ghost */
+.bamboo-close {
+  width: 32px; height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-dim);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background .12s, color .12s, transform .08s;
+  font-family: inherit;
+  padding: 0;
+}
+.bamboo-close:hover { background: var(--surface2); color: var(--text); }
+.bamboo-close:active { transform: scale(0.94); }
+.bamboo-close .mi { font-size: 20px; }
+
+/* 우측 끝 — 메인 commit 액션 (primary 알약) */
+.bamboo-insert {
+  display: inline-flex; align-items: center; gap: 4px;
+  height: 32px;
+  padding: 0 14px 0 10px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font: 600 13px/1 inherit;
+  flex-shrink: 0;
+  transition: background .12s, transform .08s;
+}
+.bamboo-insert:hover { background: var(--accent2, var(--accent)); }
+.bamboo-insert:active { transform: scale(0.96); }
+.bamboo-insert .mi { font-size: 18px; }
+
+/* 좁은 화면 — 텍스트 숨기고 아이콘만 */
+@media (max-width: 380px) {
+  .bamboo-insert { padding: 0; width: 32px; justify-content: center; }
+  .bamboo-insert-label { display: none; }
+}
+
+/* 기존 modal-actions 영역 — 드로잉 모달에선 사용 안 함 */
+.drawing-modal .modal-actions { display: none !important; }
+
+/* destructive separator — '모두 지우기' 위 시각 분리 */
+.draw-more-picker .more-sep.destructive-sep {
+  margin-top: 4px;
+  border-top: 1px solid rgba(212,95,90,0.18);
+}
+
 /* 굵기 inline popup (더보기 → 굵기 → 슬라이더만) */
 .draw-width-inline {
   display: none;
@@ -3510,19 +3561,53 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .drawing-canvas-wrap { will-change: transform; }
 #drawing-canvas { will-change: transform; }
 
-/* Phase 5 — 페이지 인디케이터 (캔버스 하단) */
+/* === 페이지 인디케이터 — 캔버스 좌하단 floating chip (compact, expand on tap) === */
 .draw-page-indicator {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 14px;
-  background: var(--surface);
-  border-top: 1px solid var(--border-light);
-  flex-shrink: 0;
-  justify-content: center;
+  position: absolute;
+  left: calc(env(safe-area-inset-left, 0px) + 12px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  z-index: 8;
+  opacity: 0.7;
+  transition: opacity .18s, padding .18s;
+  pointer-events: auto;
 }
+.draw-page-indicator:hover { opacity: 1; }
+.draw-page-indicator.expanded { opacity: 1; padding: 4px 8px; }
+body[data-theme="midnight"] .draw-page-indicator,
+body[data-theme="ocean"] .draw-page-indicator,
+body[data-theme="forest"] .draw-page-indicator {
+  background: rgba(20,22,28,0.78); color: #f3f3f3;
+}
+
+/* compact 상태 — chip 한 개 [1/3 ▾] */
+.draw-page-indicator .page-compact {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  border: none; background: transparent; color: var(--text-dim);
+  font: 600 12px ui-monospace, Menlo, monospace;
+  cursor: pointer;
+  border-radius: 999px;
+  transition: background .12s;
+}
+.draw-page-indicator .page-compact:hover { background: var(--surface2); color: var(--text); }
+.draw-page-indicator .page-compact .mi { font-size: 15px; }
+
+/* expanded 상태 — [‹] [1/3] [›] [+] [×] */
+.draw-page-indicator.expanded .page-compact { display: none; }
+.draw-page-indicator .page-expanded { display: none; align-items: center; gap: 2px; }
+.draw-page-indicator.expanded .page-expanded { display: inline-flex; }
 .page-nav-btn {
-  width: 30px; height: 30px;
-  border: 1px solid var(--border);
-  background: var(--surface2);
+  width: 28px; height: 28px;
+  border: none;
+  background: transparent;
   border-radius: 50%;
   color: var(--text-dim);
   display: inline-flex; align-items: center; justify-content: center;
@@ -3530,24 +3615,27 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
   flex-shrink: 0;
   transition: background .12s, color .12s;
   font-family: inherit;
+  padding: 0;
 }
-.page-nav-btn:hover:not(:disabled) { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
-.page-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-.page-nav-btn.add { background: var(--accent); color: #fff; border-color: var(--accent); }
-.page-nav-btn.add:hover:not(:disabled) { background: var(--accent2); border-color: var(--accent2); color: #fff; }
-.page-nav-btn.del { background: transparent; color: var(--red); border-color: rgba(212,95,90,0.4); }
-.page-nav-btn.del:hover:not(:disabled) { background: rgba(212,95,90,0.12); color: var(--red); }
+.page-nav-btn:hover:not(:disabled) { background: var(--accent-glow); color: var(--accent); }
+.page-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.page-nav-btn.add { color: var(--accent); }
+.page-nav-btn.add:hover:not(:disabled) { background: var(--accent-glow); }
+.page-nav-btn.del { color: var(--red); }
+.page-nav-btn.del:hover:not(:disabled) { background: rgba(212,95,90,0.12); }
 .page-count {
-  font-size: 12px; font-weight: 700;
+  font-size: 11.5px; font-weight: 700;
   color: var(--text-dim);
   font-family: ui-monospace, Menlo, monospace;
-  min-width: 50px; text-align: center;
+  min-width: 36px; text-align: center;
+  padding: 0 4px;
 }
 .page-dots {
-  display: flex; gap: 5px; align-items: center;
+  display: flex; gap: 4px; align-items: center;
+  padding: 0 4px;
 }
 .page-dot {
-  width: 8px; height: 8px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   background: var(--border);
   border: none;
@@ -3557,6 +3645,45 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 }
 .page-dot:hover { transform: scale(1.4); background: var(--text-mute); }
 .page-dot.active { background: var(--accent); transform: scale(1.4); }
+
+/* === 우하단 floating mini-dock — undo/redo (모바일 한 손 thumb-zone) === */
+.draw-quick-dock {
+  position: absolute;
+  right: calc(env(safe-area-inset-right, 0px) + 14px);
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 8;
+  transition: opacity .2s;
+}
+.draw-quick-dock.drawing { opacity: 0.22; }  /* 그리는 중 fade — 그리기 방해 방지 */
+.quick-fab {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-light);
+  color: var(--text-dim);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+  transition: background .12s, color .12s, transform .08s;
+  padding: 0;
+}
+.quick-fab:hover { background: var(--surface); color: var(--text); }
+.quick-fab:active { transform: scale(0.94); }
+.quick-fab:disabled { opacity: 0.35; cursor: not-allowed; }
+.quick-fab .mi { font-size: 20px; }
+body[data-theme="midnight"] .quick-fab,
+body[data-theme="ocean"] .quick-fab,
+body[data-theme="forest"] .quick-fab {
+  background: rgba(20,22,28,0.82); color: #f3f3f3;
+}
+
+/* 데스크탑에선 dock 숨김 (toolbar로 충분) */
+@media (min-width: 769px) {
+  .draw-quick-dock { display: none; }
+}
 
 /* === Bamboo 톤 미니멀 picker 들 === */
 
