@@ -26,6 +26,10 @@ let drawBakedCtx = null;
 const _isMobileEnv = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
 let drawPalmMode = load('draw_palm_mode', _isMobileEnv ? 'pen-only' : 'auto');
 
+// 펜별 굵기 기억 — 사장님이 펜마다 따로 굵기를 설정해놓고 펜 갈아도 그대로 유지
+const _defaultToolWidths = { ink: 2.5, fine: 1.5, pencil: 1.5, fountain: 2.5, marker: 5, highlighter: 12, brush: 4, eraser: 8 };
+let toolWidths = { ..._defaultToolWidths, ...load('draw_tool_widths', {}) };
+
 // Phase 3 — 종이 배경 (캔버스 배경 패턴)
 // 'blank' | 'lined' | 'grid' | 'dot' | 'cream' | 'sepia'
 let drawPaper = load('draw_paper', 'blank');
@@ -120,6 +124,9 @@ function resizeDrawingCanvas() {
   }
   applyPaperBg();
   rebakeAll();
+  // resize 후엔 backing이 scale 1 기준. 현재 zoom 있으면 그 비율로 다시 oversample
+  _bakedZoomFactor = 1;
+  if (drawScale !== 1) resizeBakedForZoom();
 }
 
 // Phase 3 — 종이 배경 패턴 (CSS 데이터-URL svg 패턴)
@@ -296,17 +303,14 @@ function setDrawTool(tool) {
   // 호환용 (옛 selector)
   document.getElementById('tool-eraser')?.classList.toggle('active', tool === 'eraser');
   if (drawCanvas) drawCanvas.classList.toggle('eraser-mode', tool === 'eraser');
-  // 권장 굵기 자동
-  const recommendedWidth = {
-    ink: 2.5, fine: 1.5, pencil: 1.5, fountain: 2.5,
-    marker: 5, highlighter: 12, brush: 4, eraser: 8,
-  }[tool];
-  if (recommendedWidth) {
-    drawWidthBase = recommendedWidth;
+  // 펜별 굵기 복원 — 사장님이 마지막으로 설정한 그 펜의 굵기 그대로
+  const savedWidth = toolWidths[tool] ?? _defaultToolWidths[tool];
+  if (savedWidth != null) {
+    drawWidthBase = savedWidth;
     const slider = document.getElementById('draw-width');
-    if (slider) slider.value = recommendedWidth;
+    if (slider) slider.value = savedWidth;
     const disp = document.getElementById('draw-width-display');
-    if (disp) disp.textContent = String(Math.round(recommendedWidth));
+    if (disp) disp.textContent = String(Math.round(savedWidth));
     _updateWidthDot();
     _updateMoreWidthVal();
   }
@@ -410,6 +414,12 @@ function pickWidth(w) {
   const disp = document.getElementById('draw-width-display');
   if (disp) disp.textContent = String(Math.round(drawWidthBase));
   _updateWidthDot();
+  _updateMoreWidthVal();
+  // 현재 펜에 저장
+  if (drawTool) {
+    toolWidths[drawTool] = drawWidthBase;
+    save('draw_tool_widths', toolWidths);
+  }
   closeWidthPicker();
 }
 function _updateWidthDot() {
@@ -516,6 +526,12 @@ function updateDrawWidth(v) {
   drawWidthBase = parseFloat(v) || 2;
   document.getElementById('draw-width-display').textContent = String(Math.round(drawWidthBase));
   _updateWidthDot();
+  _updateMoreWidthVal();
+  // 현재 펜의 굵기로 저장 — 펜 갈아도 그대로 유지
+  if (drawTool) {
+    toolWidths[drawTool] = drawWidthBase;
+    save('draw_tool_widths', toolWidths);
+  }
 }
 
 // 지우개 모드 토글 — 픽셀 vs 스트로크
@@ -691,11 +707,41 @@ function applyCanvasTransform() {
   const ind = document.getElementById('draw-zoom-indicator');
   if (ind) ind.textContent = `${Math.round(drawScale * 100)}%`;
 }
+
+// 핀치 줌 종료 시 backing canvas를 zoom 비율로 재구성 → stroke가 픽셀 정밀하게 같이 커짐
+// (CSS transform: scale은 raster blur 발생 — 이걸 백킹 픽셀로 보상)
+let _bakedZoomFactor = 1;
+function resizeBakedForZoom() {
+  if (!drawCanvas || !drawCtx) return;
+  // 변화가 미미하면 skip (rebake 비용 절약)
+  if (Math.abs(drawScale - _bakedZoomFactor) < 0.05) return;
+  const wrap = drawCanvas.parentElement;
+  if (!wrap) return;
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  // 백킹 픽셀 = wrap css * dpr * drawScale (zoom 비율만큼 oversample)
+  const eff = dpr * drawScale;
+  drawCanvas.width = rect.width * eff;
+  drawCanvas.height = rect.height * eff;
+  drawCanvas.style.width = rect.width + 'px';
+  drawCanvas.style.height = rect.height + 'px';
+  drawCtx.setTransform(eff, 0, 0, eff, 0, 0);
+  if (drawBaked) {
+    drawBaked.width = drawCanvas.width;
+    drawBaked.height = drawCanvas.height;
+    drawBakedCtx.setTransform(eff, 0, 0, eff, 0, 0);
+  }
+  _bakedZoomFactor = drawScale;
+  applyPaperBg();
+  rebakeAll();
+}
+
 function resetCanvasTransform() {
   drawScale = 1;
   drawPanX = 0;
   drawPanY = 0;
   applyCanvasTransform();
+  resizeBakedForZoom();  // 100%로 돌아온 backing 사이즈 복원
 }
 window.resetCanvasTransform = resetCanvasTransform;
 
@@ -730,6 +776,8 @@ function setupDrawingPointer(canvas) {
   let tapGesture = { active: false, fingers: 0, startTime: 0, startCenter: { x: 0, y: 0 }, moved: false, maxFingers: 0 };
   const GESTURE_MAX_TIME = 280;
   const GESTURE_MAX_MOVE = 16;
+  // 핀치가 한 번이라도 활성화됐는지 — 모든 손가락 떼지면 backing 재구성용
+  let _pinchEverActive = false;
 
   function shouldRejectTouch() {
     if (drawPalmMode === 'allow-touch') return false;
@@ -783,6 +831,7 @@ function setupDrawingPointer(canvas) {
       if (activePointers.size === 2) {
         const ps = [...activePointers.values()];
         pinchMode = true;
+        _pinchEverActive = true;
         pinchStartDist = Math.hypot(ps[1].x - ps[0].x, ps[1].y - ps[0].y);
         pinchStartScale = drawScale;
         pinchStartCenter = { x: (ps[0].x + ps[1].x) / 2, y: (ps[0].y + ps[1].y) / 2 };
@@ -904,6 +953,14 @@ function setupDrawingPointer(canvas) {
     if (e.pointerType === 'touch') {
       activePointers.delete(e.pointerId);
       if (activePointers.size < 2) pinchMode = false;
+
+      // 모든 손가락 떼지고 핀치가 있었으면 backing 재구성 (stroke 픽셀 정밀)
+      if (activePointers.size === 0 && _pinchEverActive && tapGesture.moved) {
+        resizeBakedForZoom();
+        _pinchEverActive = false;
+      } else if (activePointers.size === 0) {
+        _pinchEverActive = false;  // 핀치 안 했어도 reset
+      }
 
       // tap 제스처 — 모든 손가락 떼졌을 때 tap 여부 판정
       if (activePointers.size === 0 && tapGesture.active) {
