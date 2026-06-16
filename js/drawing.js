@@ -72,7 +72,7 @@ function openDrawingModal() {
   // Phase 5 — 페이지 reset (1페이지로 시작)
   drawPages = [[]];
   drawPageIdx = 0;
-  setTimeout(() => _renderPageIndicator(), 50);
+  setTimeout(() => { _renderPageIndicator(); updateQuickDockState(); }, 50);
   document.querySelectorAll('.draw-color').forEach(c => c.classList.toggle('active', c.dataset.color === drawColor));
   // 모든 도구 active 초기화 후 ink만 active
   document.querySelectorAll('.draw-tool').forEach(b => b.classList.remove('active'));
@@ -498,6 +498,7 @@ function undoDraw() {
   drawRedoStack.push(last);
   redrawAllStrokes();
   updateDrawEmptyHint();
+  updateQuickDockState();
 }
 
 // Phase 6 — Redo
@@ -507,8 +508,27 @@ function redoDraw() {
   drawStrokes.push(s);
   redrawAllStrokes();
   updateDrawEmptyHint();
+  updateQuickDockState();
 }
 window.redoDraw = redoDraw;
+
+// quick FAB 상태 갱신 (undo/redo disabled 토글)
+function updateQuickDockState() {
+  const undoBtn = document.getElementById('quick-undo');
+  const redoBtn = document.getElementById('quick-redo');
+  if (undoBtn) undoBtn.disabled = drawStrokes.length === 0;
+  if (redoBtn) redoBtn.disabled = drawRedoStack.length === 0;
+}
+window.updateQuickDockState = updateQuickDockState;
+
+// 최초 1회 제스처 안내 toast
+function _maybeShowGestureHint() {
+  try {
+    if (localStorage.getItem('mindflow_draw_gesture_hint_shown')) return;
+    if (typeof toast === 'function') toast('💡 두 손가락 탭 = 되돌리기, 세 손가락 탭 = 다시 실행');
+    localStorage.setItem('mindflow_draw_gesture_hint_shown', '1');
+  } catch {}
+}
 
 function clearDraw() {
   if (drawStrokes.length === 0) return;
@@ -565,23 +585,47 @@ function _renderPageIndicator() {
   const dots = drawPages.map((_, i) =>
     `<button class="page-dot${i === drawPageIdx ? ' active' : ''}" onclick="gotoPage(${i})" aria-label="페이지 ${i + 1}"></button>`
   ).join('');
+  // compact chip 1개 (탭 시 expand) + expanded 영역
   host.innerHTML = `
-    <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx - 1})" ${drawPageIdx === 0 ? 'disabled' : ''} aria-label="이전 페이지">
-      <span class="mi mi-sm">chevron_left</span>
+    <button class="page-compact" onclick="togglePageExpand(event)" aria-label="페이지 ${drawPageIdx + 1} / ${drawPages.length}">
+      ${drawPageIdx + 1}/${drawPages.length}
+      <span class="mi">expand_less</span>
     </button>
-    <span class="page-count">${drawPageIdx + 1} / ${drawPages.length}</span>
-    <div class="page-dots">${dots}</div>
-    <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx + 1})" ${drawPageIdx === drawPages.length - 1 ? 'disabled' : ''} aria-label="다음 페이지">
-      <span class="mi mi-sm">chevron_right</span>
-    </button>
-    <button class="page-nav-btn add" onclick="addPage()" title="새 페이지 추가" aria-label="새 페이지">
-      <span class="mi mi-sm">add</span>
-    </button>
-    <button class="page-nav-btn del" onclick="deletePage()" title="페이지 삭제" aria-label="페이지 삭제" ${drawPages.length === 1 ? 'disabled' : ''}>
-      <span class="mi mi-sm">delete</span>
-    </button>
+    <div class="page-expanded">
+      <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx - 1})" ${drawPageIdx === 0 ? 'disabled' : ''} aria-label="이전 페이지">
+        <span class="mi mi-sm">chevron_left</span>
+      </button>
+      <span class="page-count">${drawPageIdx + 1} / ${drawPages.length}</span>
+      <div class="page-dots">${dots}</div>
+      <button class="page-nav-btn" onclick="gotoPage(${drawPageIdx + 1})" ${drawPageIdx === drawPages.length - 1 ? 'disabled' : ''} aria-label="다음 페이지">
+        <span class="mi mi-sm">chevron_right</span>
+      </button>
+      <button class="page-nav-btn add" onclick="addPage()" title="새 페이지 추가" aria-label="새 페이지">
+        <span class="mi mi-sm">add</span>
+      </button>
+      <button class="page-nav-btn del" onclick="deletePage()" title="페이지 삭제" aria-label="페이지 삭제" ${drawPages.length === 1 ? 'disabled' : ''}>
+        <span class="mi mi-sm">delete</span>
+      </button>
+      <button class="page-nav-btn" onclick="togglePageExpand(event)" title="닫기" aria-label="닫기">
+        <span class="mi mi-sm">close</span>
+      </button>
+    </div>
   `;
 }
+
+// 페이지 chip 탭 시 compact ↔ expanded 토글
+window.togglePageExpand = function(e) {
+  e?.stopPropagation();
+  const host = document.getElementById('draw-page-indicator');
+  if (!host) return;
+  host.classList.toggle('expanded');
+};
+// 캔버스 어디든 탭하면 expanded 닫기
+document.addEventListener('click', (e) => {
+  const host = document.getElementById('draw-page-indicator');
+  if (!host || !host.classList.contains('expanded')) return;
+  if (!host.contains(e.target)) host.classList.remove('expanded');
+});
 
 function updateDrawEmptyHint() {
   const hint = document.getElementById('draw-empty-hint');
@@ -631,6 +675,11 @@ function setupDrawingPointer(canvas) {
   let pinchStartCenter = { x: 0, y: 0 };
   let pinchStartPan = { x: 0, y: 0 };
 
+  // === 멀티터치 tap 제스처 (2-finger = undo, 3-finger = redo) ===
+  let tapGesture = { active: false, fingers: 0, startTime: 0, startCenter: { x: 0, y: 0 }, moved: false, maxFingers: 0 };
+  const GESTURE_MAX_TIME = 280;
+  const GESTURE_MAX_MOVE = 16;
+
   function shouldRejectTouch() {
     if (drawPalmMode === 'allow-touch') return false;
     if (drawPalmMode === 'pen-only') return true;          // strict: always reject finger
@@ -663,6 +712,22 @@ function setupDrawingPointer(canvas) {
     // Phase 4 — 멀티터치 추적
     if (e.pointerType === 'touch') {
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // tap 제스처 트래커 — 손가락 도착 추적 (2개 이상)
+      if (activePointers.size >= 2) {
+        const ps = [...activePointers.values()];
+        const cx = ps.reduce((s, p) => s + p.x, 0) / ps.length;
+        const cy = ps.reduce((s, p) => s + p.y, 0) / ps.length;
+        if (!tapGesture.active) {
+          tapGesture.active = true;
+          tapGesture.startTime = Date.now();
+          tapGesture.startCenter = { x: cx, y: cy };
+          tapGesture.moved = false;
+        }
+        tapGesture.fingers = activePointers.size;
+        if (activePointers.size > tapGesture.maxFingers) tapGesture.maxFingers = activePointers.size;
+      }
+
       // 두 번째 손가락 도착 → pinch 모드로 전환
       if (activePointers.size === 2) {
         const ps = [...activePointers.values()];
@@ -724,12 +789,24 @@ function setupDrawingPointer(canvas) {
     };
     drawCompositeFromBaked();
     updateDrawEmptyHint();
+    // 그리는 중 dock fade (방해 방지)
+    document.getElementById('draw-quick-dock')?.classList.add('drawing');
   };
 
   const move = (e) => {
     // Phase 4 — pinch 모드 중: 핀치 줌 + 팬
     if (e.pointerType === 'touch' && activePointers.has(e.pointerId)) {
       activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      // tap 제스처 — 이동 거리가 임계 초과면 tap 아님 (핀치/팬으로 판정)
+      if (tapGesture.active) {
+        const ps = [...activePointers.values()];
+        const cx = ps.reduce((s, p) => s + p.x, 0) / ps.length;
+        const cy = ps.reduce((s, p) => s + p.y, 0) / ps.length;
+        const dist = Math.hypot(cx - tapGesture.startCenter.x, cy - tapGesture.startCenter.y);
+        if (dist > GESTURE_MAX_MOVE) tapGesture.moved = true;
+      }
+
       if (pinchMode && activePointers.size === 2) {
         e.preventDefault();
         const ps = [...activePointers.values()];
@@ -776,6 +853,20 @@ function setupDrawingPointer(canvas) {
     if (e.pointerType === 'touch') {
       activePointers.delete(e.pointerId);
       if (activePointers.size < 2) pinchMode = false;
+
+      // tap 제스처 — 모든 손가락 떼졌을 때 tap 여부 판정
+      if (activePointers.size === 0 && tapGesture.active) {
+        const elapsed = Date.now() - tapGesture.startTime;
+        if (!tapGesture.moved && elapsed < GESTURE_MAX_TIME) {
+          if (tapGesture.maxFingers === 2) {
+            undoDraw();
+            _maybeShowGestureHint();
+          } else if (tapGesture.maxFingers === 3) {
+            redoDraw();
+          }
+        }
+        tapGesture = { active: false, fingers: 0, startTime: 0, startCenter: { x: 0, y: 0 }, moved: false, maxFingers: 0 };
+      }
     }
     if (drawCurrentStroke && e.pointerId !== drawCurrentStroke.pointerId) return;
     if (e.pointerType === 'pen') {
@@ -790,6 +881,8 @@ function setupDrawingPointer(canvas) {
     drawCurrentStroke = null;
     drawCompositeFromBaked();
     updateDrawEmptyHint();
+    updateQuickDockState();
+    document.getElementById('draw-quick-dock')?.classList.remove('drawing');
   };
 
   canvas.addEventListener('pointerdown', start);

@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260616a">
+<link rel="stylesheet" href="styles.css?v=20260616b">
 </head>
 <body>
 <div class="app">
@@ -604,8 +604,13 @@
 
 <div class="drawing-modal-overlay" id="drawing-modal-overlay" onclick="if(event.target===this)closeDrawingModal()">
   <div class="drawing-modal">
-    <!-- Bamboo Paper 스타일 — 상단 floating capsule, 펜 4개 직접 노출 -->
+    <!-- 통합 toolbar — [좌: × 닫기] [중: 펜·색] [우: ⋯ ✓삽입] -->
     <div class="drawing-toolbar bamboo-style">
+      <!-- 좌측: 닫기 -->
+      <button class="bamboo-close" onclick="closeDrawingModal()" title="닫기" aria-label="닫기">
+        <span class="mi">close</span>
+      </button>
+
       <div class="bamboo-tools">
         <!-- 펜 4개 메인 (Bamboo 톤 — 각 펜이 책상 위 도구처럼 시각화, active 펜은 솟아오름) -->
         <button class="bamboo-pen active" id="bp-ink" data-tool="ink" onclick="pickTool('ink', this)" title="잉크 펜">
@@ -629,7 +634,7 @@
         </button>
       </div>
 
-      <!-- 우측 — 색상 + 더보기 -->
+      <!-- 우측 — 색상 + 더보기 + 삽입 -->
       <div class="bamboo-right">
         <div class="draw-tool-wrap" style="position:relative;">
           <button class="bamboo-color-trigger" id="color-picker-trigger" onclick="toggleColorPicker(event)" style="background:#1d1a14" title="색상"></button>
@@ -640,15 +645,6 @@
             <span class="mi">more_horiz</span>
           </button>
           <div class="draw-more-picker" id="draw-more-picker">
-            <button class="more-item" onclick="undoDraw()">
-              <span class="mi">undo</span><span>되돌리기</span>
-              <span class="more-kbd">⌘Z</span>
-            </button>
-            <button class="more-item" onclick="redoDraw()">
-              <span class="mi">redo</span><span>다시 실행</span>
-              <span class="more-kbd">⌘⇧Z</span>
-            </button>
-            <div class="more-sep"></div>
             <!-- 추가 펜 종류 (Bamboo 4종 외 — 만년필/파인/붓) -->
             <button class="more-item" onclick="pickTool('fountain', this)">
               <span class="mi">ink_pen</span><span>만년필</span>
@@ -670,12 +666,17 @@
             <button class="more-item" onclick="cyclePalmMode()">
               <span class="mi">pan_tool</span><span>팜 리젝션</span>
             </button>
-            <div class="more-sep"></div>
+            <div class="more-sep destructive-sep"></div>
             <button class="more-item danger" onclick="clearDraw()">
               <span class="mi">delete_sweep</span><span>모두 지우기</span>
             </button>
           </div>
         </div>
+        <!-- 우측 끝: 메인 commit 액션 — primary 알약 -->
+        <button class="bamboo-insert" onclick="insertDrawing()" title="메모에 삽입" aria-label="메모에 삽입">
+          <span class="mi">check</span>
+          <span class="bamboo-insert-label">삽입</span>
+        </button>
       </div>
 
       <!-- 지우개 모드 (지우개 active 시 표시) -->
@@ -720,14 +721,19 @@
     <div class="drawing-canvas-wrap">
       <canvas id="drawing-canvas"></canvas>
       <div class="draw-empty-hint" id="draw-empty-hint">Apple Pencil · 손가락 · 마우스로 그리세요</div>
-      <!-- Phase 4 — 줌 인디케이터 + reset (캔버스 우상단 floating) -->
+      <!-- 줌 인디케이터 (우상단 floating) -->
       <button class="draw-zoom-indicator" id="draw-zoom-indicator" onclick="resetCanvasTransform()" title="100% 리셋">100%</button>
-    </div>
-    <!-- Phase 5 — 페이지 인디케이터 (캔버스 하단) -->
-    <div class="draw-page-indicator" id="draw-page-indicator"></div>
-    <div class="modal-actions">
-      <button onclick="closeDrawingModal()">취소</button>
-      <button class="primary" onclick="insertDrawing()">메모에 삽입</button>
+      <!-- 페이지 인디케이터 — 좌하단 floating chip (탭 시 expand) -->
+      <div class="draw-page-indicator" id="draw-page-indicator"></div>
+      <!-- 우하단 floating mini-dock — undo/redo (모바일 한 손 thumb-zone) -->
+      <div class="draw-quick-dock" id="draw-quick-dock">
+        <button class="quick-fab" id="quick-undo" onclick="undoDraw()" title="되돌리기" aria-label="되돌리기">
+          <span class="mi">undo</span>
+        </button>
+        <button class="quick-fab" id="quick-redo" onclick="redoDraw()" title="다시 실행" aria-label="다시 실행">
+          <span class="mi">redo</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -819,7 +825,7 @@
 <script src="js/calendar.js?v=20260605y" defer></script>
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
-<script src="js/drawing.js?v=20260616a" defer></script>
+<script src="js/drawing.js?v=20260616b" defer></script>
 <script src="js/sync.js?v=20260605o" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260605t" defer></script>
