@@ -1,5 +1,5 @@
 /* ════════════════════════════════════════════════════════════════
-   MindFlow — Bear Design System
+   Memo — Bear Design System
    Rewritten from scratch · ?v=20260429f
    13 sections · target ≤ 3 000 lines · ≤ 50 !important
    ════════════════════════════════════════════════════════════════ */
@@ -836,7 +836,43 @@ body.tag-drawer-open .header-tag-btn {
   font-variation-settings: "FILL" 0, "wght" 380, "GRAD" -25, "opsz" 24;
   color: inherit;
 }
+/* 상태 라벨 — 평상시(동기화됨/미연결)엔 점만 보여 헤더를 조용히 두고,
+   사용자가 알아야 하는 상태(동기화 중·실패·오프라인)일 때만 알약으로 펼쳐 텍스트를 노출한다.
+   (이전엔 index.html의 hidden 속성 + 이 줄의 display:none 이중으로 가려져 있어서
+    updateHeaderSyncPill()이 계산한 상태 텍스트가 전부 화면에 못 나왔다) */
 .sync-dot-btn .sync-label { display: none; }
+.sync-dot-btn.syncing,
+.sync-dot-btn.error,
+.sync-dot-btn.offline {
+  width: auto;
+  border-radius: 999px;
+  padding: 0 11px 0 8px;
+  gap: 5px;
+  background: var(--surface2);
+}
+.sync-dot-btn.syncing .sync-label,
+.sync-dot-btn.error .sync-label,
+.sync-dot-btn.offline .sync-label {
+  display: inline;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+/* 펼쳐진 상태에선 우상단 절대배치 dot이 텍스트와 겹치므로 숨기고,
+   구름 아이콘 자체를 상태색으로 칠해 신호를 유지한다 */
+.sync-dot-btn.syncing .sync-dot,
+.sync-dot-btn.error   .sync-dot,
+.sync-dot-btn.offline .sync-dot { display: none; }
+.sync-dot-btn.syncing { color: var(--orange); }
+.sync-dot-btn.error   { color: var(--red); }
+.sync-dot-btn.offline { color: var(--text-mute); }
+/* 점(dot)용 syncpulse는 scale까지 흔들어서 글자 옆 아이콘에 쓰면 산만하다.
+   아이콘은 투명도만 부드럽게 오가도록 별도 keyframe 사용. */
+.sync-dot-btn.syncing::before { content: 'cloud_sync'; animation: syncfade 1.4s ease-in-out infinite; }
+.sync-dot-btn.error::before   { content: 'cloud_off'; }
+.sync-dot-btn.offline::before { content: 'cloud_off'; }
 .header-spacer { flex: 1; }
 .header-btn {
   height: 32px;
@@ -889,6 +925,11 @@ body.tag-drawer-open .header-tag-btn {
 @keyframes syncpulse {
   0%, 100% { opacity: 0.5; transform: scale(0.85); }
   50%       { opacity: 1;   transform: scale(1.15); }
+}
+/* 아이콘 글리프용 — 크기는 고정하고 투명도만 (syncpulse의 scale은 글자 옆에서 튄다) */
+@keyframes syncfade {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
 }
 .sync-pill .sync-label { font-weight: 600; font-variant-numeric: tabular-nums; }
 

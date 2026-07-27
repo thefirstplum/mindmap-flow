@@ -1,6 +1,6 @@
 {
-  "name": "MindFlow — 마인드맵 · 메모 · 캘린더",
-  "short_name": "MindFlow",
+  "name": "Memo — 노트 · 마인드맵 · 캘린더",
+  "short_name": "Memo",
   "description": "마인드맵·메모·캘린더·루틴·일기·가계부를 한 곳에서. 옵시디언 친화 .md, Google Drive 자동 동기화, 100% 오프라인 PWA.",
   "start_url": "./",
   "scope": "./",
