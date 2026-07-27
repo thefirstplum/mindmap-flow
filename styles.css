@@ -4133,8 +4133,13 @@ body[data-theme="forest"] .quick-fab {
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  height: 56px;          /* 고정 — safe-bot 미포함 */
-  padding: 0 4px;        /* 좌우만, padding-bottom 제거 */
+  /* 홈 인디케이터(safe-area-inset-bottom) 영역까지 탭바 배경이 이어지게 한다.
+     이전엔 height 56px + padding-bottom 없음이라, bottom:0에 붙어도 홈바 구간을
+     탭바 배경(--surface)이 못 덮고 body의 --bg가 비쳐 "하단에 색 다른 띠"로 보였다.
+     box-sizing:border-box라 height에 padding이 포함 → 버튼 행은 56px 그대로 유지되고
+     늘어난 만큼은 배경으로만 쓰인다 (버튼이 홈바에 안 겹침). */
+  height: calc(56px + var(--safe-bot));
+  padding: 0 4px var(--safe-bot);
   background: var(--surface);
   border-top: 1px solid var(--border-light);
   z-index: 40;
@@ -4212,9 +4217,10 @@ body[data-theme="charcoal"] .m-bottom-tabs {
 
 @media (max-width: 768px) {
   .m-bottom-tabs { display: flex; }
-  /* 페이지 하단 padding 확보 (탭바에 가려지지 않게) */
+  /* 페이지 하단 padding 확보 (탭바에 가려지지 않게).
+     탭바가 safe-bot만큼 높아졌으므로 스크롤 여백도 같이 늘린다. */
   .memo-items, .timeblock-body, .calendar-detail-body,
-  .routine-body, .journal-list { padding-bottom: 90px !important; }
+  .routine-body, .journal-list { padding-bottom: calc(90px + var(--safe-bot)) !important; }
 }
 
 /* ────────────────────────────────────────────────────────────────

@@ -210,11 +210,8 @@ if (window.SyncEvents) {
   });
 }
 
-// Initialize persistent folder handle
-initFolder();
-// Initialize Gist sync (silently pulls latest if connected)
-initGist();
 // Initialize Drive sync (silently re-auths and pulls if connected before)
+// 유일한 동기화 경로. 폴더 vault(initFolder)와 Gist(initGist)는 제거됨.
 initDrive();
 // Initial header pill render
 updateHeaderSyncPill();
@@ -223,13 +220,6 @@ updateHeaderSyncPill();
 // not in navigation.js — so every page renderer is already defined.
 if (typeof initRoute === 'function') initRoute();
 
-// When sync modal opens, attempt to verify folder permission silently
-async function tryRestoreFolder() {
-  if (folderHandle && folderHandle.queryPermission) {
-    const perm = await folderHandle.queryPermission({ mode: 'readwrite' });
-    if (perm === 'granted') {
-      await loadFromFolder({ silent: true });
-    }
-  }
-}
-tryRestoreFolder();
+// (폴더 vault 자동 복원 tryRestoreFolder 제거 — 폴더 동기화 기능 자체가 삭제됨.
+//  참고로 이 함수는 initFolder()를 await하지 않아 folderHandle이 채워지기 전에
+//  검사가 끝났고, 부팅 시 한 번도 실제로 동작한 적이 없었다.)

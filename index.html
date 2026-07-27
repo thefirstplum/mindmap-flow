@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260727a">
+<link rel="stylesheet" href="styles.css?v=20260727b">
 </head>
 <body>
 <div class="app">
@@ -406,7 +406,7 @@
   <div class="modal">
     <h3>📦 동기화 / 백업</h3>
     <div class="modal-desc">
-      옵시디언처럼 폴더를 지정하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
+      Google Drive를 연결하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 옵시디언에서 그대로 열 수 있어요. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
     </div>
 
     <label>🅖 Google Drive 자동 동기화 <span style="background:var(--accent);color:#fff;font-weight:700;font-size:10px;padding:2px 7px;border-radius:4px;">추천</span></label>
@@ -545,32 +545,7 @@
     </details>
 
     <details style="margin-top:22px;">
-      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 다른 동기화 옵션 (로컬 폴더 · JSON)</summary>
-
-    <label style="margin-top:14px;">📁 Vault 폴더 (자동 동기화)</label>
-    <div class="folder-status" id="folder-status">
-      <div class="icon-circle" style="background:var(--surface3)">📁</div>
-      <div class="text-area">
-        <div class="name" style="color:var(--text-dim)">폴더가 연결되지 않음</div>
-        <div class="desc">폴더를 선택하면 .md 파일을 자동으로 동기화합니다</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-      <button class="tb-btn" onclick="pickFolder()" style="flex:1;min-width:110px;justify-content:center;">
-        📁 폴더 선택
-      </button>
-      <button class="tb-btn" onclick="reloadFromFolder()" id="reload-folder-btn" style="flex:1;min-width:110px;justify-content:center;display:none;">
-        🔄 다시 불러오기
-      </button>
-      <button class="tb-btn danger" onclick="disconnectFolder()" id="disconnect-folder-btn" style="flex:1;min-width:110px;justify-content:center;display:none;">
-        ✕ 연결 해제
-      </button>
-    </div>
-    <div style="font-size:11px;color:var(--text-mute);margin-top:8px;line-height:1.6;">
-      💡 <strong>옵시디언 vault</strong>나 <strong>iCloud Drive 폴더</strong>를 선택하면 그곳의 .md 파일을 메모로 불러오고, 변경사항이 실시간으로 그 폴더에 저장됩니다<br>
-      💡 데스크톱 Chrome / Edge / Brave에서 동작합니다 (Safari·iOS 미지원)<br>
-      💡 외부에서 .md 파일을 수정한 경우 "다시 불러오기"로 동기화하세요
-    </div>
+      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 데이터 백업 (JSON)</summary>
 
     <label style="margin-top:18px;">📊 현재 데이터</label>
     <div id="sync-stats" style="background:var(--surface2);padding:12px 14px;border-radius:10px;font-size:13px;color:var(--text-dim);line-height:1.7;"></div>
@@ -794,7 +769,7 @@
 <!-- CodeMirror 6 bundle (local, no CDN) -->
 <script src="js/vendor/cm6.bundle.js?v=20260605e" defer></script>
 <!-- App scripts (order = dependency order) -->
-<script src="js/utils.js?v=20260606d" defer></script>
+<script src="js/utils.js?v=20260727b" defer></script>
 <script src="js/backup.js?v=20260509a" defer></script>
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
@@ -828,9 +803,9 @@
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260616d" defer></script>
-<script src="js/sync.js?v=20260727a" defer></script>
+<script src="js/sync.js?v=20260727b" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
-<script src="js/main.js?v=20260605t" defer></script>
+<script src="js/main.js?v=20260727b" defer></script>
 
 </body>
 </html>
