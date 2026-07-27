@@ -410,6 +410,94 @@ function hasValidDriveToken() { return driveClient.hasValidToken(); }
 async function ensureDriveToken() { return driveClient.ensureToken(); }
 async function driveApi(method, path, body, query = {}) { return driveClient.request(method, path, body, query); }
 async function driveDownloadFile(fileId) { return driveClient.download(fileId); }
+
+// =================== DRIVE DOWNLOAD CACHE ===================
+// Every pull re-downloaded all of memos/*.md + mindmaps/*.json + timeblocks/*.json,
+// even on a cold boot where nothing had changed. With N memos that is N HTTPS
+// round trips per launch (8 at a time) — the main reason startup felt slow.
+//
+// Drive bumps modifiedTime whenever a file's content changes, so (fileId,
+// modifiedTime) is a sound content key: a hit guarantees identical bytes.
+//
+// SCOPE — this is a *transport* cache and nothing more. Callers still receive the
+// exact text the network would have returned, so applyDriveData's merge sees
+// byte-identical input and its semantics are completely untouched. Do NOT extend
+// this into "skip the file entirely": mergeMemos reads a memo's absence from the
+// remote list as "deleted on another device" and would drop it locally.
+const DL_CACHE_DB = 'mindflow-dlcache';
+const DL_CACHE_STORE = 'files';
+
+function dlCacheOpen() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DL_CACHE_DB, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(DL_CACHE_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// All cache helpers swallow their own errors — a broken/blocked IndexedDB must
+// degrade to plain network fetches, never break sync.
+async function dlCacheGet(key) {
+  try {
+    const db = await dlCacheOpen();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(DL_CACHE_STORE, 'readonly');
+      const req = tx.objectStore(DL_CACHE_STORE).get(key);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(undefined);
+    });
+  } catch { return undefined; }
+}
+
+async function dlCachePut(key, text) {
+  try {
+    const db = await dlCacheOpen();
+    await new Promise((resolve) => {
+      const tx = db.transaction(DL_CACHE_STORE, 'readwrite');
+      tx.objectStore(DL_CACHE_STORE).put(text, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {}
+}
+
+// Drop entries not present in the current listing. Without this the store grows
+// forever as files are edited (each edit mints a new modifiedTime → new key).
+async function dlCachePrune(validKeys) {
+  try {
+    const db = await dlCacheOpen();
+    await new Promise((resolve) => {
+      const tx = db.transaction(DL_CACHE_STORE, 'readwrite');
+      const store = tx.objectStore(DL_CACHE_STORE);
+      const req = store.getAllKeys();
+      req.onsuccess = () => {
+        for (const k of (req.result || [])) {
+          if (!validKeys.has(k)) store.delete(k);
+        }
+      };
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  } catch {}
+}
+
+function dlCacheKey(f) {
+  return f && f.id && f.modifiedTime ? `${f.id}@${f.modifiedTime}` : null;
+}
+
+// Download `f` (a Drive file object with id + modifiedTime), reusing the cached
+// body when this exact revision was fetched before. Falls back to a direct
+// download whenever the key can't be formed or the cache misses.
+async function driveDownloadCached(f) {
+  const key = dlCacheKey(f);
+  if (!key) return driveDownloadFile(f.id);
+  const hit = await dlCacheGet(key);
+  if (typeof hit === 'string') return hit;
+  const text = await driveDownloadFile(f.id);
+  if (typeof text === 'string') dlCachePut(key, text).catch(() => {});
+  return text;
+}
 async function driveUploadFile(name, content, mimeType, parentId, appProperties) {
   return driveClient.upload(name, content, mimeType, parentId, appProperties);
 }
@@ -1790,6 +1878,18 @@ async function applyDriveData(files) {
   }
   isLoadingFromDrive = true;
   try {
+    // Pre-merge fingerprints. Every pull used to emit itemsMerged for all four
+    // types unconditionally, so the UI re-rendered on every poll even when Drive
+    // returned byte-identical data — that's the "화면이 늦게 툭 바뀐다" symptom.
+    // We compare the stored JSON before/after the merge and only notify for the
+    // domains that actually moved. Read-only: this cannot alter merge results.
+    const _before = {
+      memo: localStorage.getItem('mindflow_memos'),
+      mindmap: localStorage.getItem('mindflow_mindmaps'),
+      timeblock: localStorage.getItem('mindflow_tb_blocks'),
+      journal: localStorage.getItem('mindflow_journal_entries'),
+    };
+
     // Capture focus so we can restore it after renders disrupt the DOM
     const focusedEl = document.activeElement;
     const focusSel = (focusedEl && focusedEl.setSelectionRange)
@@ -1813,25 +1913,32 @@ async function applyDriveData(files) {
     const routineF = files.find(f => f.name === 'routine.json');
     const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'));
 
-    // Download everything in batches of 8 concurrent — fast but rate-limit safe
+    // Download everything in batches of 8 concurrent — fast but rate-limit safe.
+    // driveDownloadCached serves unchanged revisions from IndexedDB, so a boot
+    // where nothing moved on Drive costs one listing call instead of N downloads.
+    // Every merge below still receives the true remote bytes either way.
     const [mmRaws, tbRaws, mdRaws, appParsed, journalParsed, prefixParsed, routineParsed] = await Promise.all([
       batchAll(remoteMmFiles, f =>
-        driveDownloadFile(f.id).then(t => JSON.parse(t)).catch(() => null)),
+        driveDownloadCached(f).then(t => JSON.parse(t)).catch(() => null)),
       batchAll(remoteTbFiles, async f => {
         const dayKey = f.name.slice('timeblock-'.length, -'.json'.length);
-        try { return { dayKey, ...JSON.parse(await driveDownloadFile(f.id)) }; } catch { return null; }
+        try { return { dayKey, ...JSON.parse(await driveDownloadCached(f)) }; } catch { return null; }
       }),
       batchAll(mdFiles, async f => {
         // Carry appProperties + filename so we can recover the memo id even if
         // the markdown frontmatter is missing/corrupt — prevents duplicate-memo
         // explosion when files lose their `id:` line.
-        try { return { text: await driveDownloadFile(f.id), name: f.name, appProperties: f.appProperties, modifiedTime: f.modifiedTime }; } catch { return null; }
+        try { return { text: await driveDownloadCached(f), name: f.name, appProperties: f.appProperties, modifiedTime: f.modifiedTime }; } catch { return null; }
       }),
-      appFile ? driveDownloadFile(appFile.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
-      journalF ? driveDownloadFile(journalF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
-      prefixF ? driveDownloadFile(prefixF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
-      routineF ? driveDownloadFile(routineF.id).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      appFile ? driveDownloadCached(appFile).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      journalF ? driveDownloadCached(journalF).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      prefixF ? driveDownloadCached(prefixF).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
+      routineF ? driveDownloadCached(routineF).then(t => JSON.parse(t)).catch(() => null) : Promise.resolve(null),
     ]);
+
+    // Evict revisions Drive no longer lists (superseded edits, deleted files).
+    // Fire-and-forget: pruning must never delay or fail the merge below.
+    dlCachePrune(new Set(files.map(dlCacheKey).filter(Boolean))).catch(() => {});
 
     // Snapshot loaded once for all 3-way deletion detections below
     // (memo/mindmap/timeblock all read it). Must be declared BEFORE the merges
@@ -2051,15 +2158,28 @@ async function applyDriveData(files) {
     }
 
     // --- Notify UI to re-render ---
-    // Renders are now handled by main.js subscribers (SyncEvents.on('itemsMerged', ...))
-    // so sync logic stays unaware of DOM. We pass editingMemoId so memo editor
+    // Renders are handled by main.js subscribers (SyncEvents.on('itemsMerged', ...))
+    // so sync logic stays unaware of DOM. We pass editingMemoId so the memo editor
     // skips redrawing the focused textarea (preserves typing position).
-    SyncEvents.emit('itemsMerged', {
-      types: ['mindmap', 'memo', 'timeblock', 'journal'],
-      editingMemoId,
-      focusedEl,
-      focusSel
-    });
+    //
+    // Only the domains whose stored JSON actually changed are announced. A poll
+    // that merges to an identical result now emits nothing at all, so the screen
+    // stays put instead of flashing a full re-render every 15s.
+    const changedTypes = [];
+    if (localStorage.getItem('mindflow_memos') !== _before.memo) changedTypes.push('memo');
+    if (localStorage.getItem('mindflow_mindmaps') !== _before.mindmap) changedTypes.push('mindmap');
+    if (localStorage.getItem('mindflow_tb_blocks') !== _before.timeblock) changedTypes.push('timeblock');
+    if (localStorage.getItem('mindflow_journal_entries') !== _before.journal) changedTypes.push('journal');
+
+    if (changedTypes.length > 0) {
+      SyncEvents.emit('itemsMerged', {
+        types: changedTypes,
+        editingMemoId,
+        focusedEl,
+        focusSel
+      });
+    }
+    return { changedTypes };
   } finally {
     isLoadingFromDrive = false;
   }
@@ -2072,11 +2192,17 @@ async function drivePullAll(skipConfirm = false) {
   try {
     setDriveStatus('saving');
     const { files, latestMtime } = await driveListAllFiles();
-    await applyDriveData(files);
+    const res = await applyDriveData(files);
     driveLastSyncAt = Date.now();
     driveLastModifiedTime = latestMtime;
     setDriveStatus('saved');
-    toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
+    // Only announce when something actually arrived. A silent boot pull that
+    // changes nothing shouldn't interrupt with a toast — the header pill already
+    // showed 동기화 중 → 동기화됨. Manual pulls always confirm, so the user knows
+    // their button press did something.
+    const changed = res?.changedTypes?.length > 0;
+    if (changed) toast(`동기화 완료 (메모 ${memos.length}개)`, 'success');
+    else if (!skipConfirm) toast('이미 최신 상태예요', 'success');
     setTimeout(() => { if (driveStatus === 'saved') setDriveStatus('idle') }, 1800);
   } catch (e) {
     setDriveStatus('error');

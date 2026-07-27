@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v8'; // 펜별 굵기 기억 + 핀치 줌 backing 재구성
+const CACHE_NAME = 'mindflow-cache-v9'; // 앱 이름 Memo + 동기화 상태 표시·다운로드 캐시
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
