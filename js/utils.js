@@ -284,7 +284,7 @@ function toast(msg, type = '') {
 //   - _kvCache 즉시 갱신 (load는 다음 tick에 새 값 봄)
 //   - IDB write-behind (await 없음, fire-and-forget)
 //   - localStorage 미러 (실패해도 IDB가 살아있음)
-//   - 기존 동기화 트리거(scheduleAutoSave 등)
+//   - 기존 동기화 트리거(scheduleDriveSave 등)
 
 const _kvCache = new Map();
 let _kvDb = null;
@@ -389,9 +389,9 @@ function save(key, data) {
     // 한계 도달 — IDB가 primary니까 silent OK, 모니터링만
     console.warn('[save] LS mirror failed (IDB OK):', key);
   }
-  // 동기화 트리거 (기존 동작)
-  scheduleAutoSave();
-  scheduleGistSave();
+  // 동기화 트리거 — Google Drive 단일 경로.
+  // (폴더 vault의 scheduleAutoSave, Gist의 scheduleGistSave는 해당 기능을
+  //  걷어내면서 함께 제거. 여기 남겨두면 매 save()마다 ReferenceError가 난다)
   scheduleDriveSave();
   _maybeCheckQuota();
 }
