@@ -1,4 +1,25 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Memo">
+  <!-- 파비콘/탭 아이콘용 평면 버전. icon-*.png(유리 재질 3D)와 같은 모티프지만
+       16~32px에서 뭉개지지 않도록 그라디언트·광택을 뺀 단색으로 그린다.
+       색은 icon-src.png에서 실제로 추출한 값. -->
   <rect width="512" height="512" rx="96" fill="#0f1117"/>
-  <text x="256" y="356" font-family="Inter, system-ui, sans-serif" font-weight="800" font-size="320" fill="#fdf6e3" text-anchor="middle">M</text>
+
+  <!-- 유리 타일 (테두리만 암시) -->
+  <rect x="96" y="96" width="320" height="320" rx="72" fill="none" stroke="#9ea3b1" stroke-width="10" opacity="0.55"/>
+
+  <!-- 메모지 — 우상단 모서리가 접힌 형태 -->
+  <path d="M172 140 H302 L360 198 V344 Q360 372 332 372 H172 Q144 372 144 344 V168 Q144 140 172 140 Z"
+        fill="#e7e4df"/>
+  <!-- 접힌 플랩 -->
+  <path d="M302 140 L360 198 H302 Z" fill="#eaaf29"/>
+
+  <!-- 본문 줄 2개 -->
+  <g stroke="#ababa7" stroke-width="15" stroke-linecap="round">
+    <line x1="180" y1="238" x2="324" y2="238"/>
+    <line x1="180" y1="285" x2="324" y2="285"/>
+  </g>
+
+  <!-- 손글씨 물결선 -->
+  <path d="M182 330 Q206 310 228 328 Q250 346 272 330 Q294 314 322 326"
+        fill="none" stroke="#dd9f19" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
