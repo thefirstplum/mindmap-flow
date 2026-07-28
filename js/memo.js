@@ -986,17 +986,6 @@ function renderMemoEditor() {
     <div class="memo-editor-header">
       <input type="text" value="${escapeHtml(memo.title)}" oninput="updateMemoTitle(this.value)" placeholder="제목 없음">
     </div>
-    <div class="memo-meta">
-      <span title="수정 시각">수정 ${meta.updatedRel}</span>
-      <span class="dot"></span>
-      <span title="작성 시각">작성 ${meta.createdRel}</span>
-      <span class="dot"></span>
-      <span>${meta.charCount}자</span>
-      <span class="dot"></span>
-      <span>읽기 ${meta.readMin}분</span>
-      ${meta.imageCount > 0 ? `<span class="dot"></span><span>이미지 ${meta.imageCount}</span>` : ''}
-      ${(memo.tags || []).length > 0 ? `<span class="dot"></span><span>태그 ${(memo.tags || []).length}</span>` : ''}
-    </div>
     <div class="memo-tags-row">
       <div id="memo-tag-chips">
         ${(memo.tags || []).map(t => `<span class="memo-tag-chip">${escapeHtml(t)}<button onclick="removeMemoTag(${JSON.stringify(t).replace(/"/g, '&quot;')})" class="memo-tag-del">✕</button></span>`).join('')}
@@ -1005,6 +994,12 @@ function renderMemoEditor() {
       <input type="text" id="memo-tag-input" class="memo-tag-input" placeholder="태그명..."
         onkeydown="if(event.key==='Enter'&&!event.isComposing){addMemoTagFromInput();} if(event.key==='Escape'){hideMemoTagInput();}"
         onblur="setTimeout(hideMemoTagInput,150)">
+    </div>
+    <!-- 메타는 수정 시각 한 줄만. 예전엔 수정·작성·글자수·읽기시간·이미지·태그
+         6개가 가운뎃점으로 이어져 제목 바로 밑에서 시선을 뺏었다.
+         나머지는 hover 툴팁으로 옮겨 필요할 때만 보이게 한다. -->
+    <div class="memo-meta" title="작성 ${meta.createdRel} · ${meta.charCount}자 · 읽기 ${meta.readMin}분${meta.imageCount > 0 ? ` · 이미지 ${meta.imageCount}` : ''}">
+      ${meta.updatedRel}
     </div>
     ${bodyHtml}
     ${_renderBacklinkPanel(memo)}
