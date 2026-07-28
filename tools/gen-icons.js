@@ -108,21 +108,29 @@ function encodePNG(W, H, rgb) {
 const src = decodePNG('icon-src.png');
 const BG = { r: 0x0f, g: 0x11, b: 0x17 }; // app background_color / theme
 
-// Square crop around the tile centre. Core measured x236-785, y213-796
-// → 550 wide x 584 tall.
-//
-// 1차 생성 때 CROP=640에 fill 0.80을 곱해 타일이 최종 아이콘의 69%밖에 안 됐고
-// (재측정으로 확인), 홈화면에서 "꽉 안 찬다"는 지적이 나왔다. crop을 타일 높이
-// (584)에 딱 맞춰 좁혀서, fill 값이 곧 타일 크기가 되도록 한다.
+// 유리 타일 실측: x236-785, y213-796 → 550 wide x 584 tall (세로가 34px 더 김).
+// 타일 중심.
 const cx = (236 + 785) / 2, cy = (213 + 796) / 2;
-const CROP = 596; // 584 타일 + 글로우 약간. 타일이 crop의 98%를 차지
-const cx0 = Math.round(cx - CROP / 2), cy0 = Math.round(cy - CROP / 2);
-if (cx0 < 0 || cy0 < 0 || cx0 + CROP > src.W || cy0 + CROP > src.H) {
-  throw new Error(`crop ${CROP} at ${cx0},${cy0} falls outside the source`);
+
+// crop 크기를 용도별로 다르게 잡는다.
+//   TIGHT(550) — 타일 '폭'에 맞춘 정사각형. 세로는 타일보다 34px 짧으므로
+//                타일의 위아래 둥근 모서리가 약간 잘리고, 좌우는 정확히
+//                가장자리에 닿는다 → fill 1.0으로 렌더하면 남색 여백 없이
+//                꽉 찬다. 왜곡(비균등 스케일) 없이 순수 crop만 사용.
+//   LOOSE(620) — 타일 전체 + 글로우까지 포함. 안드로이드 maskable용으로
+//                작게 배치할 때 잘린 모서리가 보이면 어색하므로 원형 그대로.
+const CROP_TIGHT = 550;
+const CROP_LOOSE = 620;
+function cropOrigin(size) {
+  const x0 = Math.round(cx - size / 2), y0 = Math.round(cy - size / 2);
+  if (x0 < 0 || y0 < 0 || x0 + size > src.W || y0 + size > src.H) {
+    throw new Error(`crop ${size} at ${x0},${y0} falls outside the source`);
+  }
+  return { x0, y0 };
 }
 
 // Bilinear sample of the cropped square, returning premultiplied-over-BG RGB.
-function sampleOverBG(u, v) { // u,v in [0,1) within the crop
+function sampleOverBG(u, v, cx0, cy0, CROP) { // u,v in [0,1) within the crop
   const fx = cx0 + u * (CROP - 1), fy = cy0 + v * (CROP - 1);
   const x0 = Math.floor(fx), y0 = Math.floor(fy);
   const x1 = Math.min(x0 + 1, src.W - 1), y1 = Math.min(y0 + 1, src.H - 1);
@@ -145,7 +153,8 @@ function sampleOverBG(u, v) { // u,v in [0,1) within the crop
   };
 }
 
-function render(N, fill) {
+function render(N, fill, CROP) {
+  const { x0: cx0, y0: cy0 } = cropOrigin(CROP);
   const rgb = Buffer.alloc(N * N * 3);
   // fill background
   for (let i = 0; i < N * N; i++) { rgb[i * 3] = BG.r; rgb[i * 3 + 1] = BG.g; rgb[i * 3 + 2] = BG.b; }
@@ -157,7 +166,7 @@ function render(N, fill) {
     for (let x = 0; x < artN; x++) {
       let r = 0, g = 0, b = 0;
       for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
-        const c = sampleOverBG((x + (sx + 0.5) / SS) / artN, (y + (sy + 0.5) / SS) / artN);
+        const c = sampleOverBG((x + (sx + 0.5) / SS) / artN, (y + (sy + 0.5) / SS) / artN, cx0, cy0, CROP);
         r += c.r; g += c.g; b += c.b;
       }
       const n = SS * SS, i = ((y + off) * N + (x + off)) * 3;
@@ -167,21 +176,20 @@ function render(N, fill) {
   return encodePNG(N, N, rgb);
 }
 
-// CROP이 타일에 딱 맞으므로 fill ≈ 최종 아이콘에서 타일이 차지하는 비율.
-//   any / apple : 0.98 — iOS·안드로이드가 어차피 자체 마스크(squircle)를 씌우므로
-//                 거의 가장자리까지 채운다. 타일의 둥근 모서리가 OS 마스크와
-//                 대체로 맞아떨어진다.
-//   maskable    : 0.61 — 안드로이드는 지름 80% 원으로 잘라낸다. 그 원에 내접하는
-//                 정사각형 한 변은 0.8/√2 ≈ 0.566이므로 이보다 크면 모서리가
-//                 잘린다. 타일이 둥근 사각형이라 0.61까지는 안전.
+//   any / apple : TIGHT crop + fill 1.0 → 타일이 캔버스 가장자리에 정확히 닿는다.
+//                 남색 배경은 타일의 둥근 모서리 안쪽에만 남고, 그마저 iOS의
+//                 squircle 마스크가 잘라내므로 홈화면에선 완전히 꽉 차 보인다.
+//   maskable    : LOOSE crop + fill 0.62 — 안드로이드는 지름 80% 원으로 잘라낸다.
+//                 그 원에 내접하는 정사각형 한 변이 0.8/√2 ≈ 0.566이라 이보다
+//                 크면 모서리가 잘린다. 단독으로 보면 작지만 이게 정상 동작.
 const jobs = [
-  ['icon-192.png', 192, 0.98],
-  ['icon-512.png', 512, 0.98],
-  ['icon-192-maskable.png', 192, 0.61],
-  ['icon-512-maskable.png', 512, 0.61],
-  ['apple-touch-icon-180.png', 180, 0.98],
+  ['icon-192.png', 192, 1.0, CROP_TIGHT],
+  ['icon-512.png', 512, 1.0, CROP_TIGHT],
+  ['icon-192-maskable.png', 192, 0.62, CROP_LOOSE],
+  ['icon-512-maskable.png', 512, 0.62, CROP_LOOSE],
+  ['apple-touch-icon-180.png', 180, 1.0, CROP_TIGHT],
 ];
-for (const [name, N, fill] of jobs) {
-  fs.writeFileSync(name, render(N, fill));
-  console.log(`${name.padEnd(26)} ${N}x${N}  아트 ${Math.round(fill * 100)}%  ${(fs.statSync(name).size / 1024).toFixed(1)} KB`);
+for (const [name, N, fill, crop] of jobs) {
+  fs.writeFileSync(name, render(N, fill, crop));
+  console.log(`${name.padEnd(26)} ${N}x${N}  fill ${Math.round(fill * 100)}%  crop ${crop}  ${(fs.statSync(name).size / 1024).toFixed(1)} KB`);
 }
