@@ -108,9 +108,14 @@ function encodePNG(W, H, rgb) {
 const src = decodePNG('icon-src.png');
 const BG = { r: 0x0f, g: 0x11, b: 0x17 }; // app background_color / theme
 
-// Square crop around the tile centre. Core measured x236-785, y213-796.
+// Square crop around the tile centre. Core measured x236-785, y213-796
+// → 550 wide x 584 tall.
+//
+// 1차 생성 때 CROP=640에 fill 0.80을 곱해 타일이 최종 아이콘의 69%밖에 안 됐고
+// (재측정으로 확인), 홈화면에서 "꽉 안 찬다"는 지적이 나왔다. crop을 타일 높이
+// (584)에 딱 맞춰 좁혀서, fill 값이 곧 타일 크기가 되도록 한다.
 const cx = (236 + 785) / 2, cy = (213 + 796) / 2;
-const CROP = 640; // covers the 584px tile plus its glow, stays inside 1024
+const CROP = 596; // 584 타일 + 글로우 약간. 타일이 crop의 98%를 차지
 const cx0 = Math.round(cx - CROP / 2), cy0 = Math.round(cy - CROP / 2);
 if (cx0 < 0 || cy0 < 0 || cx0 + CROP > src.W || cy0 + CROP > src.H) {
   throw new Error(`crop ${CROP} at ${cx0},${cy0} falls outside the source`);
@@ -162,12 +167,19 @@ function render(N, fill) {
   return encodePNG(N, N, rgb);
 }
 
+// CROP이 타일에 딱 맞으므로 fill ≈ 최종 아이콘에서 타일이 차지하는 비율.
+//   any / apple : 0.98 — iOS·안드로이드가 어차피 자체 마스크(squircle)를 씌우므로
+//                 거의 가장자리까지 채운다. 타일의 둥근 모서리가 OS 마스크와
+//                 대체로 맞아떨어진다.
+//   maskable    : 0.61 — 안드로이드는 지름 80% 원으로 잘라낸다. 그 원에 내접하는
+//                 정사각형 한 변은 0.8/√2 ≈ 0.566이므로 이보다 크면 모서리가
+//                 잘린다. 타일이 둥근 사각형이라 0.61까지는 안전.
 const jobs = [
-  ['icon-192.png', 192, 0.80],
-  ['icon-512.png', 512, 0.80],
-  ['icon-192-maskable.png', 192, 0.60],
-  ['icon-512-maskable.png', 512, 0.60],
-  ['apple-touch-icon-180.png', 180, 0.80],
+  ['icon-192.png', 192, 0.98],
+  ['icon-512.png', 512, 0.98],
+  ['icon-192-maskable.png', 192, 0.61],
+  ['icon-512-maskable.png', 512, 0.61],
+  ['apple-touch-icon-180.png', 180, 0.98],
 ];
 for (const [name, N, fill] of jobs) {
   fs.writeFileSync(name, render(N, fill));
