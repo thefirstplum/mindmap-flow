@@ -5,7 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- black-translucent → default (2026-07-28)
+     black-translucent은 "내용을 상태바 아래까지 그려라"는 뜻인데, 사장님 iPhone
+     16 Pro Max 실측에서 100vh=956(실제 화면) 대비 innerHeight=894로 정확히
+     safe-top(62px)만큼 앱이 짧았다. 안드로이드엔 이 meta가 없어서 안드로이드만
+     정상이었던 것. default로 두면 iOS가 상태바를 직접 관리하고 앱은 나머지를
+     꽉 채운다. safe-top이 0이 되므로 헤더의 calc(50px + safe-top)도 자동으로
+     50px로 줄어든다. 되돌리려면 이 줄만 black-translucent로 복구. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Memo">
 <meta name="theme-color" content="#FDF6E3" id="meta-theme-color">
 <link rel="manifest" href="manifest.json">
