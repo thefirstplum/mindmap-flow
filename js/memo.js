@@ -708,9 +708,22 @@ function renderMemoList() {
       <button class="${noteTypeFilter === 'memo' ? 'active' : ''}" onclick="setNoteTypeFilter('memo')">메모</button>
       <button class="${noteTypeFilter === 'mindmap' ? 'active' : ''}" onclick="setNoteTypeFilter('mindmap')">마인드맵</button>
     </div>`;
+    // 활성 태그 필터 칩 — 모바일에선 사이드바(태그 트리)가 서랍이라 필터가
+    // 걸려 있어도 보이지 않았고, 그래서 홈에서 태그를 누른 뒤 노트 탭이
+    // 계속 걸러진 채로 보이는 게 버그처럼 느껴졌다. 여기 항상 노출하고
+    // ✕로 바로 풀 수 있게 한다.
+    const filterChip = activeTagFilter
+      ? `<div class="memo-filter-chip">
+           <span class="mi mi-sm">label</span>
+           <span class="memo-filter-name">${activeTagFilter === '__untagged__' ? '태그 없음' : escapeHtml(activeTagFilter)}</span>
+           <button onclick="setTagFilter(null)" aria-label="필터 해제" title="필터 해제">
+             <span class="mi mi-sm">close</span>
+           </button>
+         </div>`
+      : '';
     sortBar.innerHTML = `<div class="memo-sort-row">${typeSeg}<button class="memo-sort-btn" onclick="cycleMemoSort()" title="정렬 기준 변경">
       <span class="mi mi-sm">swap_vert</span>
-      <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button></div>`;
+      <span>${MEMO_SORT_LABELS[memoSortMode]}</span></button></div>${filterChip}`;
   }
 
   // Tag tree — lives in the sidebar: "전체 노트" + 계층형 #태그 + "태그 없음"
