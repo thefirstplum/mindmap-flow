@@ -66,32 +66,82 @@ function renderHome() {
 
   // ── 1. 이어서 하기 ────────────────────────────────
   // 프로젝트별로 가장 최근 노트 하나만. 정렬은 최근 작업 순.
+  // 프로젝트별로 소속 노트를 전부 모아 카드 한 장을 만든다.
+  // 카드에 들어가는 수치는 전부 노트 내용에서 실제로 계산한 값이다.
   const byProject = new Map();
   for (const n of notes) {
     const proj = noteProject(n);
     if (!proj) continue;
-    const cur = byProject.get(proj);
-    const t = new Date(n.updatedAt || n.createdAt || 0).getTime();
-    if (!cur || t > cur.t) byProject.set(proj, { note: n, t });
+    if (!byProject.has(proj)) byProject.set(proj, []);
+    byProject.get(proj).push(n);
   }
-  const projects = [...byProject.entries()]
-    .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.t - a.t);
+  const projects = [...byProject.entries()].map(([name, list]) => {
+    list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    const latest = list[0];
+    const stats = projectStats(list);
+    return { name, latest, list, stats, t: new Date(latest.updatedAt || 0).getTime() };
+  }).sort((a, b) => b.t - a.t);
 
   const projectHtml = projects.length
-    ? projects.map(p => `
-        <div class="home-row" onclick="selectNote('${p.note.type}', ${p.note.id})">
-          <span class="home-proj-chip">${escapeHtml(p.name)}</span>
-          <div class="home-row-body">
-            <div class="home-row-title">${escapeHtml(stripProjectPrefix(p.note.title))}</div>
-            <div class="home-row-sub">${escapeHtml(homeSnippet(p.note))}</div>
+    ? projects.map(p => {
+        const s = p.stats;
+        // 진행률은 체크박스가 하나라도 있을 때만 의미가 있다
+        const bar = s.todoTotal > 0 ? `
+          <div class="home-progress">
+            <span class="home-progress-label">할 일 ${s.todoDone}/${s.todoTotal}</span>
+            <div class="home-progress-track"><div class="home-progress-fill" style="width:${s.pct}%"></div></div>
+            <span class="home-progress-pct">${s.pct}%</span>
+          </div>` : `
+          <div class="home-progress">
+            <span class="home-progress-label">노트 ${p.list.length}개</span>
+            <div class="home-progress-track"></div>
+          </div>`;
+        const tile = (icon, label, n) =>
+          `<div class="home-tile${n ? '' : ' is-zero'}"><span class="mi mi-sm">${icon}</span><b>${n}</b><span class="home-tile-label">${label}</span></div>`;
+        return `
+        <div class="home-card home-card-proj" onclick="goToTag('${PROJECT_TAG_PREFIX}${escapeHtml(p.name).replace(/'/g, "\\'")}')">
+          <div class="home-card-head">
+            <div class="home-card-title">${escapeHtml(p.name)}</div>
+            <div class="home-card-time">${homeRelDate(p.latest.updatedAt)}</div>
           </div>
-          <span class="home-row-date">${homeRelDate(p.note.updatedAt)}</span>
-        </div>`).join('')
-    : `<div class="home-empty">
+          <div class="home-card-sub">${escapeHtml(homeSnippet(p.latest, 80))}</div>
+          ${bar}
+          <div class="home-tiles">
+            ${tile('edit_note', '메모', s.memo)}
+            ${tile('account_tree', '마인드맵', s.mindmap)}
+            ${tile('check_box', '할 일', s.todoTotal)}
+            ${tile('image', '이미지', s.image)}
+          </div>
+        </div>`;
+      }).join('')
+    : `<div class="home-card home-empty">
          아직 프로젝트 기록이 없어요.<br>
          메모에 <code>프로젝트/이름</code> 태그를 붙이면 여기 모입니다.
        </div>`;
+
+  // ── 1-b. 오늘의 할 일 ────────────────────────────
+  // 프로젝트 노트의 미완료 체크박스(`- [ ]`)를 모은다. 별도 할 일 저장소를
+  // 만들지 않는 이유: 관리할 대상이 하나 더 늘면 그 자체가 부담이 된다.
+  // 에이전트가 `## 다음`에 적어둔 항목이 자연스럽게 여기로 올라온다.
+  const todos = [];
+  for (const p of projects) {
+    for (const n of p.list) {
+      for (const m of (n.content || '').matchAll(/^[-*+]\s*\[ \]\s*(.+)$/gm)) {
+        todos.push({ proj: p.name, text: m[1].trim(), note: n });
+        if (todos.length >= 6) break;
+      }
+      if (todos.length >= 6) break;
+    }
+    if (todos.length >= 6) break;
+  }
+  const todoHtml = todos.length
+    ? `<div class="home-card">${todos.map(t => `
+        <div class="home-todo" onclick="selectNote('${t.note.type}', ${t.note.id})">
+          <span class="home-todo-box"></span>
+          <span class="home-todo-text">${escapeHtml(t.text)}</span>
+          <span class="home-todo-tag">${escapeHtml(t.proj)}</span>
+        </div>`).join('')}</div>`
+    : '';
 
   // ── 2. 최근 메모 (프로젝트 아닌 것) ──────────────────
   const general = notes
@@ -100,7 +150,7 @@ function renderHome() {
     .slice(0, 6);
 
   const generalHtml = general.length
-    ? general.map(n => `
+    ? `<div class="home-card">${general.map(n => `
         <div class="home-row" onclick="selectNote('${n.type}', ${n.id})">
           <span class="mi mi-sm home-row-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
           <div class="home-row-body">
@@ -108,8 +158,8 @@ function renderHome() {
             <div class="home-row-sub">${escapeHtml(homeSnippet(n))}</div>
           </div>
           <span class="home-row-date">${homeRelDate(n.updatedAt)}</span>
-        </div>`).join('')
-    : `<div class="home-empty">메모가 없어요.</div>`;
+        </div>`).join('')}</div>`
+    : `<div class="home-card home-empty">메모가 없어요.</div>`;
 
   // ── 3. 묶음 (최상위 태그별 개수) ─────────────────────
   // '프로젝트/타로' → '프로젝트' 로 묶어서 최상위만 센다.
@@ -130,17 +180,42 @@ function renderHome() {
 
   root.innerHTML = `
     <section class="home-sec">
-      <div class="home-sec-head">이어서 하기</div>
+      <div class="home-sec-head"><span>이어서 하기</span></div>
       ${projectHtml}
     </section>
+    ${todoHtml ? `
     <section class="home-sec">
-      <div class="home-sec-head">최근 메모</div>
+      <div class="home-sec-head"><span>오늘의 할 일</span></div>
+      ${todoHtml}
+    </section>` : ''}
+    <section class="home-sec">
+      <div class="home-sec-head">
+        <span>최근 메모</span>
+        <button class="home-sec-more" onclick="navigateTo('memo')">전체 보기</button>
+      </div>
       ${generalHtml}
     </section>
     <section class="home-sec">
-      <div class="home-sec-head">묶음</div>
+      <div class="home-sec-head"><span>묶음</span></div>
       <div class="home-groups">${groupHtml}</div>
     </section>`;
+}
+
+// 프로젝트에 속한 노트들에서 카드에 쓸 수치를 뽑는다.
+// 전부 노트 내용에서 계산 — 별도로 저장하는 상태값은 없다.
+function projectStats(list) {
+  let memo = 0, mindmap = 0, image = 0, todoTotal = 0, todoDone = 0;
+  for (const n of list) {
+    if (n.type === 'mindmap') mindmap++; else memo++;
+    const c = n.content || '';
+    image += (c.match(/!\[[^\]]*\]\(/g) || []).length;
+    const open = (c.match(/^[-*+]\s*\[ \]/gm) || []).length;
+    const done = (c.match(/^[-*+]\s*\[x\]/gmi) || []).length;
+    todoTotal += open + done;
+    todoDone += done;
+  }
+  const pct = todoTotal ? Math.round((todoDone / todoTotal) * 100) : 0;
+  return { memo, mindmap, image, todoTotal, todoDone, pct };
 }
 
 // 제목이 '[타로] 프롬프트 최적화' 형태면 앞의 프로젝트 태그를 뗀다.
