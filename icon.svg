@@ -2,25 +2,25 @@
   <!-- 파비콘/탭 아이콘용 평면 버전. icon-*.png(유리 재질 3D)와 같은 모티프지만
        16~32px에서 뭉개지지 않도록 그라디언트·광택을 뺀 단색으로 그린다.
        색은 icon-src.png에서 실제로 추출한 값.
-       PNG와 마찬가지로 아트워크가 캔버스를 거의 꽉 채우게 배치 (이전 62% → 90%). -->
-  <rect width="512" height="512" rx="96" fill="#0f1117"/>
+       PNG와 동일하게 유리 타일이 캔버스 가장자리까지 닿는 구도. -->
+  <rect width="512" height="512" rx="112" fill="#0f1117"/>
 
-  <!-- 유리 타일 (테두리만 암시) -->
-  <rect x="52" y="52" width="408" height="408" rx="94" fill="none" stroke="#9ea3b1" stroke-width="12" opacity="0.55"/>
+  <!-- 유리 타일 — 가장자리에 붙임 (테두리만 암시) -->
+  <rect x="7" y="7" width="498" height="498" rx="108" fill="none" stroke="#9ea3b1" stroke-width="14" opacity="0.55"/>
 
   <!-- 메모지 — 우상단 모서리가 접힌 형태 -->
-  <path d="M146 100 H322 L400 178 V378 Q400 412 366 412 H146 Q112 412 112 378 V134 Q112 100 146 100 Z"
+  <path d="M132 48 H350 L440 138 V428 Q440 468 400 468 H132 Q92 468 92 428 V88 Q92 48 132 48 Z"
         fill="#e7e4df"/>
   <!-- 접힌 플랩 -->
-  <path d="M322 100 L400 178 H322 Z" fill="#eaaf29"/>
+  <path d="M350 48 L440 138 H350 Z" fill="#eaaf29"/>
 
   <!-- 본문 줄 2개 -->
-  <g stroke="#ababa7" stroke-width="19" stroke-linecap="round">
-    <line x1="154" y1="236" x2="358" y2="236"/>
-    <line x1="154" y1="294" x2="358" y2="294"/>
+  <g stroke="#ababa7" stroke-width="23" stroke-linecap="round">
+    <line x1="136" y1="220" x2="396" y2="220"/>
+    <line x1="136" y1="288" x2="396" y2="288"/>
   </g>
 
   <!-- 손글씨 물결선 -->
-  <path d="M156 352 Q190 328 222 350 Q254 372 286 350 Q318 328 356 346"
-        fill="none" stroke="#dd9f19" stroke-width="21" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M138 362 Q182 334 222 358 Q262 382 302 358 Q342 334 394 354"
+        fill="none" stroke="#dd9f19" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
