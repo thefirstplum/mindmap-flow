@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v20'; // 메모 목록·상세 레이아웃 정리
+const CACHE_NAME = 'mindflow-cache-v21'; // 홈 클릭 이동 수정 + 필터 잔류 해소
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {

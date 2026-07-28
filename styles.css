@@ -470,6 +470,18 @@ body[data-theme="sunset"] {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .home-card-time { font-size: 11.5px; color: var(--text-mute); flex-shrink: 0; }
+/* 카드 본체는 최신 노트를 열고, 이 작은 버튼만 그 프로젝트 기록 전체로 보낸다.
+   카드 전체를 태그 필터로 두면 필터가 계속 남아 나중에 노트 탭이 걸러진 채로
+   보이는 문제가 있었다. */
+.home-card-all {
+  flex-shrink: 0;
+  background: var(--surface2); border: none;
+  padding: 2px 8px; border-radius: 99px;
+  font-family: inherit; font-size: 10.5px; font-weight: 700;
+  color: var(--text-mute); cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.home-card-all:hover { background: var(--accent-glow); color: var(--accent); }
 .home-card-sub {
   font-size: 12.5px; color: var(--text-mute);
   margin-top: 3px; line-height: 1.5;
