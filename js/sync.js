@@ -2723,6 +2723,135 @@ async function initDrive() {
 }
 
 
+// =================== SAFE-AREA 진단 ===================
+// iOS(특히 iPad)에서 상단 상태바 겹침 / 하단 잔여 여백을 진단하기 위한 패널.
+// 별도 테스트 페이지 대신 앱 안에 두는 이유:
+//   1) manifest scope가 './' 라서 같은 경로의 별도 HTML을 열면 iOS가 설치된
+//      PWA를 대신 띄워버려 페이지가 안 열린다.
+//   2) 여기서 재면 복사본이 아니라 실제 앱의 실제 CSS가 적용된 값이 나온다.
+//      특히 .app의 computed padding과 탭바 높이는 수정이 먹었는지 직접 보여준다.
+function _saInsets() {
+  // env(safe-area-inset-*)는 JS에서 직접 못 읽으므로 probe 엘리먼트의 padding으로 환산
+  const p = document.createElement('div');
+  p.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;'
+    + 'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);'
+    + 'padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);';
+  document.body.appendChild(p);
+  const s = getComputedStyle(p);
+  const v = {
+    top: parseFloat(s.paddingTop) || 0,
+    bottom: parseFloat(s.paddingBottom) || 0,
+    left: parseFloat(s.paddingLeft) || 0,
+    right: parseFloat(s.paddingRight) || 0,
+  };
+  p.remove();
+  return v;
+}
+
+// 지정한 CSS 길이가 실제 몇 px로 해석되는지 실측 (100dvh 등)
+function _measureLen(cssHeight) {
+  const d = document.createElement('div');
+  d.style.cssText = 'position:absolute;left:-9999px;top:0;width:1px;visibility:hidden;height:' + cssHeight;
+  document.body.appendChild(d);
+  const h = d.getBoundingClientRect().height;
+  d.remove();
+  return h;
+}
+
+function renderAreaDiag() {
+  const out = document.getElementById('area-diag-out');
+  if (!out) return;
+  const ins = _saInsets();
+  const app = document.querySelector('.app');
+  const tabs = document.getElementById('m-bottom-tabs');
+  const appCS = app ? getComputedStyle(app) : null;
+  const tabsCS = tabs ? getComputedStyle(tabs) : null;
+  const standalone = navigator.standalone === true
+    || matchMedia('(display-mode: standalone)').matches;
+
+  const dvh = _measureLen('100dvh');
+  const vh = _measureLen('100vh');
+  const fill = _measureLen('-webkit-fill-available');
+  const appRect = app ? app.getBoundingClientRect() : null;
+
+  const rows = [
+    ['SEC', 'safe-area 인셋 (실측)'],
+    ['상단', ins.top + ' px'],
+    ['하단', ins.bottom + ' px'],
+    ['좌 / 우', ins.left + ' / ' + ins.right + ' px'],
+
+    ['SEC', '.app 에 실제 적용된 padding'],
+    ['padding-top', appCS ? appCS.paddingTop : '—'],
+    ['padding-bottom', appCS ? appCS.paddingBottom : '—'],
+    ['.app 실제 높이', appRect ? appRect.height.toFixed(1) + ' px' : '—'],
+    ['.app 하단 y좌표', appRect ? appRect.bottom.toFixed(1) + ' px' : '—'],
+
+    ['SEC', '뷰포트 높이 — 서로 다르면 원인'],
+    ['innerHeight', window.innerHeight + ' px'],
+    ['100dvh', dvh.toFixed(1) + ' px'],
+    ['100vh', vh.toFixed(1) + ' px'],
+    ['-webkit-fill-available', fill.toFixed(1) + ' px'],
+    ['visualViewport.height', window.visualViewport ? window.visualViewport.height.toFixed(1) + ' px' : '—'],
+
+    ['SEC', '하단 탭바'],
+    ['표시 여부', tabsCS ? tabsCS.display : '—'],
+    ['높이', tabs ? tabs.getBoundingClientRect().height.toFixed(1) + ' px' : '—'],
+    ['padding-bottom', tabsCS ? tabsCS.paddingBottom : '—'],
+
+    ['SEC', '환경'],
+    ['화면 크기', window.innerWidth + ' × ' + window.innerHeight],
+    ['PWA 앱으로 실행?', standalone ? '예' : '아니오 (Safari 탭)'],
+    ['≤768px 규칙 적용?', matchMedia('(max-width: 768px)').matches ? '예' : '아니오'],
+  ];
+
+  // 자동 판정 — 수치가 모순되는 지점을 직접 지목
+  const warn = [];
+  if (!standalone) warn.push('홈화면 앱으로 열어야 정확합니다 (지금은 Safari 탭)');
+  if (Math.abs(fill - dvh) > 1) {
+    warn.push(`-webkit-fill-available(${fill.toFixed(0)}) ≠ 100dvh(${dvh.toFixed(0)}) — .app의 min-height가 height를 이겨 화면보다 길어질 수 있음`);
+  }
+  if (appRect && Math.abs(appRect.bottom - window.innerHeight) > 1) {
+    warn.push(`.app 하단(${appRect.bottom.toFixed(0)})이 innerHeight(${window.innerHeight})와 어긋남 — 하단 여백의 직접 원인`);
+  }
+  if (standalone && ins.bottom === 0 && ins.top === 0) {
+    warn.push('인셋이 모두 0 — viewport-fit=cover가 안 먹는 중일 수 있음');
+  }
+
+  let h = '<table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;">';
+  for (const [k, v] of rows) {
+    if (k === 'SEC') {
+      h += `</table><div style="margin-top:12px;font-size:11px;color:var(--accent2);font-weight:800;letter-spacing:.06em;">${v}</div>`
+         + '<table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;">';
+      continue;
+    }
+    h += `<tr><td style="padding:4px 4px;border-bottom:1px solid var(--border-light);color:var(--text-mute);">${k}</td>`
+       + `<td style="padding:4px 4px;border-bottom:1px solid var(--border-light);text-align:right;font-weight:700;">${v}</td></tr>`;
+  }
+  h += '</table>';
+  h += `<div style="margin-top:12px;font-size:11px;color:var(--accent2);font-weight:800;letter-spacing:.06em;">자동 판정</div>`;
+  h += warn.length
+    ? '<div style="margin-top:6px;font-size:11.5px;line-height:1.6;color:var(--orange);">⚠️ ' + warn.join('<br>⚠️ ') + '</div>'
+    : '<div style="margin-top:6px;font-size:11.5px;color:var(--green);">✅ 수치상 어긋난 곳 없음</div>';
+  out.innerHTML = h;
+}
+
+// safe-area 영역과 화면 최상/최하단을 색으로 덮어 눈으로 확인 (토글)
+function toggleAreaOverlay() {
+  const id = 'area-diag-overlay';
+  const cur = document.getElementById(id);
+  if (cur) { cur.remove(); return; }
+  const el = document.createElement('div');
+  el.id = id;
+  el.style.cssText = 'position:fixed;inset:0;z-index:99999;pointer-events:none;';
+  el.innerHTML = `
+    <div style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:rgba(255,214,10,.45);"></div>
+    <div style="position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0px);background:rgba(255,214,10,.45);"></div>
+    <div style="position:fixed;top:0;left:0;right:0;height:3px;background:#ff5f56;"></div>
+    <div style="position:fixed;bottom:0;left:0;right:0;height:3px;background:#27c93f;"></div>`;
+  document.body.appendChild(el);
+  if (typeof toast === 'function') toast('노랑=safe-area · 빨강=최상단 · 초록=최하단 (다시 누르면 끄기)');
+}
+
 // =================== STORAGE USAGE PANEL ===================
 // 동기화 모달의 저장공간 사용량 시각화. navigator.storage.estimate()는 전체
 // origin 합계 (IDB + LS + Cache 등 모두 포함). 항목별 내역은 직접 계산해서
