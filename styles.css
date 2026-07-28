@@ -429,40 +429,119 @@ body[data-theme="sunset"] {
   padding: 22px 20px var(--scroll-bot);
   -webkit-overflow-scrolling: touch;
 }
-.home-sec { margin-bottom: 30px; }
+.home-sec { margin-bottom: 26px; }
 .home-sec:last-child { margin-bottom: 0; }
 .home-sec-head {
-  font-size: 12px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text-mute);
-  letter-spacing: 0.04em;
-  margin-bottom: 6px;
-  padding: 0 4px;
+  color: var(--text-dim);
+  margin-bottom: 9px;
+  padding: 0 2px;
 }
+.home-sec-more {
+  background: none; border: none; padding: 2px 4px;
+  font-family: inherit; font-size: 11.5px; font-weight: 600;
+  color: var(--text-mute); cursor: pointer;
+}
+.home-sec-more:hover { color: var(--accent); }
+
+/* 카드 — 목업의 기본 컨테이너. 섹션 내용은 카드 하나에 담긴다. */
+.home-card {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 6px;
+  overflow: hidden;
+}
+/* 프로젝트 카드는 내부 여백이 더 필요 — 제목·진행바·타일이 들어간다 */
+.home-card-proj {
+  padding: 14px 14px 10px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.14s, background 0.14s;
+}
+.home-card-proj:hover { border-color: var(--accent); }
+.home-card-proj:last-child { margin-bottom: 0; }
+.home-card-head { display: flex; align-items: baseline; gap: 8px; }
+.home-card-title {
+  font-size: 15px; font-weight: 700; color: var(--text);
+  flex: 1; min-width: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.home-card-time { font-size: 11.5px; color: var(--text-mute); flex-shrink: 0; }
+.home-card-sub {
+  font-size: 12.5px; color: var(--text-mute);
+  margin-top: 3px; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 진행바 */
+.home-progress { display: flex; align-items: center; gap: 8px; margin-top: 11px; }
+.home-progress-label { font-size: 11.5px; color: var(--text-mute); flex-shrink: 0; }
+.home-progress-track {
+  flex: 1; height: 5px; border-radius: 99px;
+  background: var(--surface3); overflow: hidden;
+}
+.home-progress-fill {
+  height: 100%; border-radius: 99px;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+.home-progress-pct {
+  font-size: 11.5px; font-weight: 700; color: var(--accent);
+  font-variant-numeric: tabular-nums; flex-shrink: 0;
+}
+
+/* 타입별 타일 4개 — 목업의 메모/마인드맵/일정/드로잉 자리 */
+.home-tiles {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 6px; margin-top: 11px;
+}
+.home-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 2px;
+  border-radius: 9px;
+  background: var(--surface2);
+  color: var(--text-dim);
+}
+.home-tile b { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1; }
+.home-tile-label { font-size: 10px; color: var(--text-mute); }
+.home-tile.is-zero { opacity: 0.4; }
+
+/* 할 일 행 */
+.home-todo {
+  display: flex; align-items: center; gap: 9px;
+  padding: 10px 8px; border-radius: 9px;
+  cursor: pointer; transition: background 0.12s;
+}
+.home-todo:hover { background: var(--surface2); }
+.home-todo-box {
+  width: 15px; height: 15px; flex-shrink: 0;
+  border: 1.5px solid var(--border); border-radius: 4px;
+}
+.home-todo-text {
+  flex: 1; min-width: 0; font-size: 13.5px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.home-todo-tag {
+  flex-shrink: 0; font-size: 10.5px; font-weight: 700;
+  padding: 2px 7px; border-radius: 5px;
+  background: var(--surface3); color: var(--text-mute);
+}
+
 .home-row {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 11px 8px;
-  border-radius: 10px;
+  padding: 10px 8px;
+  border-radius: 9px;
   cursor: pointer;
   transition: background 0.12s;
 }
 .home-row:hover { background: var(--surface2); }
 .home-row:active { background: var(--surface3); }
-/* 프로젝트 이름 칩 — 왼쪽에 고정폭으로 두어 세로로 줄이 맞는다 */
-.home-proj-chip {
-  flex-shrink: 0;
-  min-width: 52px;
-  text-align: center;
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: var(--accent-glow, var(--surface3));
-  color: var(--accent);
-  letter-spacing: -0.01em;
-}
 .home-row-icon { flex-shrink: 0; color: var(--text-mute); width: 20px; text-align: center; }
 .home-row-body { flex: 1; min-width: 0; }
 .home-row-title {
