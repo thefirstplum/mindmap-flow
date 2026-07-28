@@ -383,8 +383,19 @@ body[data-theme="sunset"] {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: var(--bg);
-  /* safe-area padding은 .app에서 하지 않음 — schedule 패턴.
-     body/html 배경이 노치까지 채우고, 헤더·fixed bar가 자체 safe-area 처리. */
+  /* safe-area는 폭에 상관없이 적용한다.
+     이전엔 이 padding이 @media (max-width:768px) 안에만 있었는데, iPad는
+     834~1024px라 그 블록에 안 걸렸다. index.html의 status-bar-style이
+     black-translucent라 내용이 상태바 아래로 들어가는데 패딩이 없으니
+     iPad에서 헤더가 상태바에 겹쳤다. */
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+/* 하단: ≤768px에선 fixed .m-bottom-tabs가 홈바 영역을 배경으로 덮으므로
+   .app에 padding-bottom을 주면 이중이 된다. 탭바가 없는 넓은 화면에서만 준다. */
+@media (min-width: 769px) {
+  .app { padding-bottom: var(--safe-bot); }
 }
 .main {
   flex: 1;
@@ -4299,12 +4310,10 @@ body[data-theme="charcoal"] .m-bottom-tabs {
 /* ── Mobile ≤ 768px ── */
 @media (max-width: 768px) {
 
-  /* App shell — schedule 패턴: body bg가 노치 영역 채우고, .app은 safe-area 안에 */
+  /* App shell — safe-area padding은 §4의 기본 .app 규칙으로 옮겼다 (iPad 포함
+     모든 폭에 적용되어야 하므로). 여기선 세로 배치만. */
   .app {
     flex-direction: column;
-    padding-top: var(--safe-top);  /* ⬅ 상단 노치는 .app(=body bg)에서 처리, 헤더는 노치 아래 */
-    padding-left: var(--safe-left);
-    padding-right: var(--safe-right);
   }
   .main {
     order: 1;
