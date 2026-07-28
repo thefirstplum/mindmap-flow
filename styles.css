@@ -120,6 +120,12 @@ button { cursor: pointer; font-family: inherit; }
   /* Safe areas */
   --safe-top:   env(safe-area-inset-top,    0px);
   --safe-bot:   env(safe-area-inset-bottom, 0px);
+  /* 모바일 하단 탭바 높이 — 스크롤 여백들이 여기서 파생된다.
+     예전엔 탭바 56px인데 목록은 90px, 캘린더는 134px(=100+safe-bot)로 제각각
+     하드코딩돼 있어서 콘텐츠 아래 34~78px씩 빈 공간이 남았다.
+     탭바 높이를 바꾸면 여백도 같이 따라오게 한 곳에서 관리한다. */
+  --tabbar-h:   56px;
+  --scroll-bot: calc(var(--tabbar-h) + 14px);  /* 탭바 + 숨쉴 틈 = 70px */
   --safe-left:  env(safe-area-inset-left,   0px);
   --safe-right: env(safe-area-inset-right,  0px);
   color-scheme: light;
@@ -4147,7 +4153,7 @@ body[data-theme="forest"] .quick-fab {
   /* 높이 56px 고정, safe-bot 미포함 — 사장님 선택(2026-07-28).
      safe-bot(iPhone 34px)을 더하면 90px이 되어 하단이 너무 두꺼워진다는 판단.
      대신 버튼 행이 홈 인디케이터에 가깝게 붙는다는 점은 인지하고 채택. */
-  height: 56px;
+  height: var(--tabbar-h);
   padding: 0 4px;
   background: var(--surface);
   border-top: 1px solid var(--border-light);
@@ -4226,9 +4232,9 @@ body[data-theme="charcoal"] .m-bottom-tabs {
 
 @media (max-width: 768px) {
   .m-bottom-tabs { display: flex; }
-  /* 페이지 하단 padding 확보 (56px 탭바에 가려지지 않게) */
+  /* 페이지 하단 padding — 탭바 높이에서 파생 (90px 하드코딩 → 70px) */
   .memo-items, .timeblock-body, .calendar-detail-body,
-  .routine-body, .journal-list { padding-bottom: 90px !important; }
+  .routine-body, .journal-list { padding-bottom: var(--scroll-bot) !important; }
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -4330,7 +4336,9 @@ body[data-theme="charcoal"] .m-bottom-tabs {
     padding-top: var(--safe-top);
   }
   /* 하단 fixed bar에 가려지지 않도록 스크롤 가능 영역 자체에 여백 */
-  .cal-mobile { padding-bottom: calc(100px + var(--safe-bot)) !important; }
+  /* 캘린더는 100px + safe-bot = iPhone 134px이라 탭바(56px) 대비 78px이 빈
+     공간으로 남았다. 다른 페이지와 같은 기준으로 통일. */
+  .cal-mobile { padding-bottom: var(--scroll-bot) !important; }
 
   /* Header — 높이/상단 padding은 위 safe-area 규칙에서 정하므로
      여기선 좌우 padding만 지정한다 (shorthand로 쓰면 padding-top이 0으로
@@ -5027,7 +5035,7 @@ body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .
   .calendar-page { grid-template-columns: 1fr; }
   .cal-side { display: none; }
   .week-main { display: none; }
-  .cal-mobile { display: flex; flex-direction: column; flex: 1; background: var(--bg); overflow-y: auto; padding-bottom: 100px; }
+  .cal-mobile { display: flex; flex-direction: column; flex: 1; background: var(--bg); overflow-y: auto; padding-bottom: var(--scroll-bot); }
   .cal-mobile .mob-cal-month-row {
     display: flex; align-items: center; gap: 6px;
     padding: 10px 12px 6px;
