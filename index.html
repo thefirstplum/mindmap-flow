@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260728b">
+<link rel="stylesheet" href="styles.css?v=20260729a">
 </head>
 <body>
 <div class="app">
@@ -36,6 +36,10 @@
       <div class="logo">M</div>
       <div class="sidebar-name">Memo</div>
     </div>
+    <button class="nav-btn" data-page="home" aria-label="홈">
+      <span class="mi">home</span>
+      <span class="label">홈</span>
+    </button>
     <button class="nav-btn" data-page="calendar" aria-label="캘린더">
       <span class="mi">calendar_month</span>
       <span class="label">캘린더</span>
@@ -109,6 +113,12 @@
       <div class="tag-drawer-body" id="tag-drawer-body"></div>
     </aside>
     <div class="content">
+      <!-- ===== HOME PAGE ===== -->
+      <!-- 이어서 하기 / 최근 메모 / 묶음 — 내용은 js/home.js의 renderHome()이 채운다 -->
+      <div class="page" id="page-home">
+        <div class="home-scroll" id="home-body"></div>
+      </div>
+
       <!-- ===== CALENDAR PAGE (주간 시간표) ===== -->
       <div class="page" id="page-calendar">
         <div class="calendar-page" id="calendar-page-root">
@@ -797,12 +807,18 @@
 <script src="js/drive-client.js?v=20260513a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
-<script src="js/navigation.js?v=20260606i" defer></script>
+<script src="js/navigation.js?v=20260729a" defer></script>
 <script src="js/mindmap.js?v=20260606h" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
 <script src="js/memo.js?v=20260606a" defer></script>
+<!-- 홈 화면 — getAllNotes()(memo.js)에 의존하므로 반드시 그 뒤에 -->
+<script src="js/home.js?v=20260729a" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->
 <div class="m-bottom-tabs" id="m-bottom-tabs">
+  <button class="m-tab-btn" data-page="home" aria-label="홈">
+    <span class="mi">home</span>
+    <span class="label">홈</span>
+  </button>
   <button class="m-tab-btn" data-page="calendar" aria-label="캘린더">
     <span class="mi">calendar_month</span>
     <span class="label">캘린더</span>

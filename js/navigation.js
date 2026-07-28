@@ -1,9 +1,14 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
 // 루틴 제거 (2026-06-05 사장님 결정)
-const pages = { memo: '노트', mindmap: '마인드맵', calendar: '캘린더', ledger: '가계부', journal: '감정일기' };
+const pages = { home: '홈', memo: '노트', mindmap: '마인드맵', calendar: '캘린더', ledger: '가계부', journal: '감정일기' };
 
 // Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
 const headerActions = {
+  home:     { label: '새 메모',     fn: () => {
+    // 홈에서 만들면 노트 페이지로 넘어가며 편집기가 열린다
+    if (typeof navigateTo === 'function') navigateTo('memo');
+    if (typeof createMemo === 'function') createMemo();
+  } },
   memo:     { label: '새 메모',     fn: () => (typeof createMemo === 'function' && createMemo()) },
   mindmap:  { label: '새 마인드맵', fn: () => (typeof createMindmap === 'function' && createMindmap()) },
   calendar: { label: '일정',        fn: () => {
@@ -34,6 +39,7 @@ const headerActions = {
 
 // Header search-pill placeholder per page
 const headerSearchPlaceholder = {
+  home:     '메모, 태그, 액션 검색…',
   memo:     '메모, 태그, 액션 검색…',
   mindmap:  '마인드맵 검색…',
   calendar: '일정 검색…',
@@ -157,6 +163,11 @@ function navigateTo(page, opts) {
   document.body.classList.add('page-' + page);
 
   // memo/mindmap 분리: 페이지 진입 시 노트 타입 필터 강제
+  if (page === 'home') {
+    // 홈은 진입할 때마다 다시 그린다 — 다른 화면에서 메모를 고쳤을 수 있으므로
+    if (typeof renderHome === 'function') renderHome();
+  }
+
   if (page === 'mindmap') {
     if (typeof noteTypeFilter !== 'undefined' && noteTypeFilter !== 'mindmap') {
       noteTypeFilter = 'mindmap';
@@ -251,7 +262,14 @@ window.addEventListener('hashchange', () => {
 // renderers exist — called from main.js after every module has loaded.
 function initRoute() {
   const page = location.hash.slice(1);
-  if (pages[page] && page !== 'memo') navigateTo(page, { updateHash: false });
+  // 해시가 있으면 그 페이지로, 없으면 홈으로.
+  // (index.html의 .page.active는 여전히 #page-memo라서, 홈으로 보내려면
+  //  해시가 없을 때도 명시적으로 navigateTo를 불러야 한다)
+  if (pages[page]) {
+    if (page !== 'memo') navigateTo(page, { updateHash: false });
+  } else {
+    navigateTo('home', { updateHash: false });
+  }
 }
 
 // Wrap in arrow so the reference is resolved at click time — sync.js loads
