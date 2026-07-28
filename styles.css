@@ -1630,38 +1630,35 @@ body.tag-drawer-open .header-tag-btn {
 .wikilink:hover { filter: brightness(1.1); text-decoration: underline; }
 
 /* ── Backlink panel (메모 에디터 하단) ── */
+/* 연결된 내용 — 홈 카드와 같은 형태(표면 + 얇은 테두리 + 14px 라운드)로 통일.
+   이전엔 surface2 덩어리라 본문과 경계가 흐릿했다. */
 .backlink-panel {
   margin: 32px 26px 60px;
-  padding: 16px 18px;
-  background: var(--surface2);
-  border-radius: 12px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
 }
-/* 모바일에서 하단 탭바와 안 겹치게 여유 — 사장님: 여전히 겹침 */
 @media (max-width: 768px) {
-  .backlink-panel {
-    margin: 24px 14px calc(96px + var(--safe-bot));
-  }
+  .backlink-panel { margin: 24px 14px var(--scroll-bot); }
 }
 .backlink-header {
   display: flex; align-items: center; gap: 6px;
-  font-size: var(--fs-section); font-weight: 700;
-  color: var(--text-mute);
-  letter-spacing: var(--tracking-section);
-  text-transform: uppercase;
-  margin-bottom: 12px;
+  font-size: 12.5px; font-weight: 700;
+  color: var(--text-dim);
+  margin: 8px 8px 6px;
   line-height: 1.4;
 }
 .backlink-list {
   display: flex; flex-direction: column; gap: 4px;
 }
 .backlink-item {
-  padding: 10px 14px;
-  background: var(--surface);
-  border-radius: 8px;
+  padding: 10px 8px;
+  border-radius: 9px;
   cursor: pointer;
   transition: background 0.12s;
 }
-.backlink-item:hover { background: var(--bg-soft, var(--surface3)); }
+.backlink-item:hover { background: var(--surface2); }
 .backlink-title {
   font-size: var(--fs-sub); font-weight: 600;
   color: var(--text);
@@ -2784,10 +2781,15 @@ body.tag-drawer-open .header-tag-btn {
 }
 .memo-empty .big-icon { font-size: 38px; opacity: 0.35; margin-bottom: 10px; display: block; }
 
+/* 목록 항목 — 홈 화면과 같은 결로 통일.
+   줄마다 그어져 있던 border-bottom을 없애고 여백으로만 나눈다. 항목이
+   많을수록 가로줄이 시각 노이즈가 되고, 콘텐츠보다 격자가 먼저 읽힌다.
+   대신 hover/active에서만 둥근 배경이 나타나 지금 보는 줄이 분명해진다. */
 .memo-item {
-  padding: 14px 18px;
+  padding: 12px 14px;
+  margin: 1px 6px;
+  border-radius: 10px;
   cursor: pointer; transition: background 0.12s;
-  border-bottom: 1px solid var(--border-light);
   position: relative;
   /* iOS: long-press triggers our context menu, not the system "Copy/Look up" callout */
   -webkit-touch-callout: none;
@@ -2801,7 +2803,7 @@ body.tag-drawer-open .header-tag-btn {
 .memo-item.active::before {
   content: '';
   position: absolute;
-  left: 0; top: 12px; bottom: 12px; width: 3px;
+  left: 0; top: 14px; bottom: 14px; width: 3px;
   background: var(--accent);
   border-radius: 0 3px 3px 0;
 }
@@ -3089,13 +3091,14 @@ body.tag-drawer-open .header-tag-btn {
   padding: 3px 0;
 }
 .memo-editor-header input::placeholder { color: var(--text-mute); font-weight: 600; }
+/* 태그행 다음에 오는 한 줄 메타(수정 시각).
+   uppercase/letter-spacing은 대문자 영문 전용 장식이라 한국어에선 자간만
+   벌어져 읽기 나빠진다 — 제거하고 조용한 캡션으로 둔다. */
 .memo-meta {
-  padding: 0 48px 14px;
+  padding: 0 48px 24px;
   color: var(--text-mute);
   font-size: var(--fs-meta);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-weight: 500;
   flex-shrink: 0;
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   line-height: 1.4;
@@ -3110,9 +3113,11 @@ body.tag-drawer-open .header-tag-btn {
 }
 
 /* Tags row — accent-glow capsule (mockup) */
+/* 제목 바로 아래 — 목업 순서(제목 → 태그 → 시간 → 본문)에 맞춰
+   메타보다 위로 올라왔다. 아래 여백은 메타가 받으므로 여기선 좁게. */
 .memo-tags-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
-  padding: 0 48px 28px; min-height: 26px;
+  padding: 0 48px 8px; min-height: 26px;
 }
 .memo-tag-chip {
   display: inline-flex; align-items: center; gap: 4px;
