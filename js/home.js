@@ -99,10 +99,10 @@ function renderHome() {
         const tile = (icon, label, n) =>
           `<div class="home-tile${n ? '' : ' is-zero'}"><span class="mi mi-sm">${icon}</span><b>${n}</b><span class="home-tile-label">${label}</span></div>`;
         return `
-        <div class="home-card home-card-proj" onclick="openNote('${p.latest.type}', ${p.latest.id})">
+        <div class="home-card home-card-proj" onclick="openProject('${escapeHtml(p.name).replace(/'/g, "\\'")}', '${p.latest.type}', ${p.latest.id})">
           <div class="home-card-head">
             <div class="home-card-title">${escapeHtml(p.name)}</div>
-            <button class="home-card-all" onclick="event.stopPropagation();goToTag('${PROJECT_TAG_PREFIX}${escapeHtml(p.name).replace(/'/g, "\\'")}')" title="이 프로젝트 기록 전체">${p.list.length}건</button>
+            <span class="home-card-all">${p.list.length}건</span>
             <div class="home-card-time">${homeRelDate(p.latest.updatedAt)}</div>
           </div>
           <div class="home-card-sub">${escapeHtml(homeSnippet(p.latest, 80))}</div>
@@ -233,6 +233,18 @@ function stripProjectPrefix(title) {
 function openNote(type, id) {
   if (typeof navigateTo === 'function') navigateTo(type === 'mindmap' ? 'mindmap' : 'memo');
   if (typeof selectNote === 'function') selectNote(type, id);
+}
+
+// 프로젝트 카드 — 목록을 그 프로젝트로 걸러서 무엇이 들어있는지 보이게 하고,
+// 동시에 최신 노트를 연다. 필터만 걸면 "이어서 하기"가 안 되고, 노트만 열면
+// 그 프로젝트에 뭐가 있는지 알 수 없다. 둘 다 필요하다.
+// 걸린 필터는 목록 상단 칩(renderMemoList)에서 언제든 해제할 수 있다.
+function openProject(name, latestType, latestId) {
+  if (typeof setTagFilter === 'function') setTagFilter(PROJECT_TAG_PREFIX + name);
+  // setTagFilter는 항상 'memo' 페이지로 보낸다. 최신 항목이 마인드맵이면
+  // 목록 타입 필터가 memo로 고정돼 열린 마인드맵과 어긋나므로 바로잡는다.
+  if (latestType === 'mindmap' && typeof navigateTo === 'function') navigateTo('mindmap');
+  if (typeof selectNote === 'function') selectNote(latestType, latestId);
 }
 
 // 묶음 칩 → 노트 페이지로 이동하면서 해당 태그 필터 적용.
