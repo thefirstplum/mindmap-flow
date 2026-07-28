@@ -2764,8 +2764,10 @@ function renderAreaDiag() {
   const ins = _saInsets();
   const app = document.querySelector('.app');
   const tabs = document.getElementById('m-bottom-tabs');
+  const hdr = document.querySelector('.header');
   const appCS = app ? getComputedStyle(app) : null;
   const tabsCS = tabs ? getComputedStyle(tabs) : null;
+  const hdrCS = hdr ? getComputedStyle(hdr) : null;
   const standalone = navigator.standalone === true
     || matchMedia('(display-mode: standalone)').matches;
 
@@ -2793,6 +2795,12 @@ function renderAreaDiag() {
     ['-webkit-fill-available', fill.toFixed(1) + ' px'],
     ['visualViewport.height', window.visualViewport ? window.visualViewport.height.toFixed(1) + ' px' : '—'],
 
+    ['SEC', '헤더 — 상태바 영역을 덮는가'],
+    ['높이', hdr ? hdr.getBoundingClientRect().height.toFixed(1) + ' px' : '—'],
+    ['padding-top', hdrCS ? hdrCS.paddingTop : '—'],
+    ['상단 y좌표', hdr ? hdr.getBoundingClientRect().top.toFixed(1) + ' px' : '—'],
+    ['배경색', hdrCS ? hdrCS.backgroundColor : '—'],
+
     ['SEC', '하단 탭바'],
     ['표시 여부', tabsCS ? tabsCS.display : '—'],
     ['높이', tabs ? tabs.getBoundingClientRect().height.toFixed(1) + ' px' : '—'],
@@ -2815,6 +2823,15 @@ function renderAreaDiag() {
   }
   if (standalone && ins.bottom === 0 && ins.top === 0) {
     warn.push('인셋이 모두 0 — viewport-fit=cover가 안 먹는 중일 수 있음');
+  }
+  // 헤더가 상태바 자리를 자기 배경으로 덮고 있는지 (색 다른 띠의 원인)
+  if (hdr && ins.top > 0 && matchMedia('(max-width: 768px)').matches) {
+    const r = hdr.getBoundingClientRect();
+    if (r.top > 1) {
+      warn.push(`헤더 상단이 y=${r.top.toFixed(0)} — 상태바 자리(${ins.top}px)를 헤더가 안 덮어 색이 다른 띠가 보임`);
+    } else if (parseFloat(hdrCS.paddingTop) < ins.top - 1) {
+      warn.push(`헤더 padding-top(${hdrCS.paddingTop})이 인셋(${ins.top}px)보다 작음 — 컨트롤이 상태바에 겹칠 수 있음`);
+    }
   }
 
   let h = '<table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;">';
