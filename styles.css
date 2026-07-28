@@ -4144,13 +4144,11 @@ body[data-theme="forest"] .quick-fab {
   display: none;
   position: fixed;
   left: 0; right: 0; bottom: 0;
-  /* 홈 인디케이터(safe-area-inset-bottom) 영역까지 탭바 배경이 이어지게 한다.
-     이전엔 height 56px + padding-bottom 없음이라, bottom:0에 붙어도 홈바 구간을
-     탭바 배경(--surface)이 못 덮고 body의 --bg가 비쳐 "하단에 색 다른 띠"로 보였다.
-     box-sizing:border-box라 height에 padding이 포함 → 버튼 행은 56px 그대로 유지되고
-     늘어난 만큼은 배경으로만 쓰인다 (버튼이 홈바에 안 겹침). */
-  height: calc(56px + var(--safe-bot));
-  padding: 0 4px var(--safe-bot);
+  /* 높이 56px 고정, safe-bot 미포함 — 사장님 선택(2026-07-28).
+     safe-bot(iPhone 34px)을 더하면 90px이 되어 하단이 너무 두꺼워진다는 판단.
+     대신 버튼 행이 홈 인디케이터에 가깝게 붙는다는 점은 인지하고 채택. */
+  height: 56px;
+  padding: 0 4px;
   background: var(--surface);
   border-top: 1px solid var(--border-light);
   z-index: 40;
@@ -4228,10 +4226,9 @@ body[data-theme="charcoal"] .m-bottom-tabs {
 
 @media (max-width: 768px) {
   .m-bottom-tabs { display: flex; }
-  /* 페이지 하단 padding 확보 (탭바에 가려지지 않게).
-     탭바가 safe-bot만큼 높아졌으므로 스크롤 여백도 같이 늘린다. */
+  /* 페이지 하단 padding 확보 (56px 탭바에 가려지지 않게) */
   .memo-items, .timeblock-body, .calendar-detail-body,
-  .routine-body, .journal-list { padding-bottom: calc(90px + var(--safe-bot)) !important; }
+  .routine-body, .journal-list { padding-bottom: 90px !important; }
 }
 
 /* ────────────────────────────────────────────────────────────────
@@ -4321,14 +4318,25 @@ body[data-theme="charcoal"] .m-bottom-tabs {
     padding-bottom: 0;
     background: var(--bg);
   }
-  /* 헤더는 본래 사이즈 그대로 — 노치 영역은 .app padding으로 처리 */
-  .header { height: 50px; padding-top: 0; }
+  /* 상태바 영역을 헤더가 직접 먹는다.
+     이전엔 .app이 padding-top: safe-top을 갖고 그 자리에 --bg가 보였는데,
+     바로 아래 .header는 --surface2라 상태바 자리에 색이 다른 띠가 생겼다.
+     (실기기 측정: iPhone safe-top 62px, iPad 32px — 그만큼 다른 색 띠)
+     iOS 기본 앱처럼 상태바와 헤더가 한 덩어리로 보이게 헤더를 위로 확장.
+     border-box라 실제 컨트롤 행 높이는 50px 그대로 유지된다. */
+  .app { padding-top: 0; }
+  .header {
+    height: calc(50px + var(--safe-top));
+    padding-top: var(--safe-top);
+  }
   /* 하단 fixed bar에 가려지지 않도록 스크롤 가능 영역 자체에 여백 */
   .cal-mobile { padding-bottom: calc(100px + var(--safe-bot)) !important; }
 
-  /* Header */
+  /* Header — 높이/상단 padding은 위 safe-area 규칙에서 정하므로
+     여기선 좌우 padding만 지정한다 (shorthand로 쓰면 padding-top이 0으로
+     덮여서 상태바 확장이 풀린다). */
   .header {
-    padding: 0 8px 0 6px; height: 50px; gap: 6px;
+    padding-left: 6px; padding-right: 8px; gap: 6px;
     background: var(--surface2);
   }
   .header h1 {
