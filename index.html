@@ -544,6 +544,22 @@
       </div>
     </details>
 
+    <details style="margin-top:22px;" id="area-diag-section" ontoggle="if(this.open)renderAreaDiag()">
+      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 화면 영역 진단 (safe-area)</summary>
+      <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
+        노치·홈바 여백이 이상할 때 실제 수치를 확인합니다. 이 화면을 캡처해서 전달하세요.
+      </div>
+      <div id="area-diag-out" style="margin-top:10px;font-size:12px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="tb-btn" onclick="renderAreaDiag()" style="flex:1;min-width:100px;justify-content:center;">
+          <span class="mi mi-sm">refresh</span> 다시 측정
+        </button>
+        <button class="tb-btn" onclick="toggleAreaOverlay()" style="flex:1;min-width:100px;justify-content:center;">
+          <span class="mi mi-sm">visibility</span> 영역 표시
+        </button>
+      </div>
+    </details>
+
     <details style="margin-top:22px;">
       <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 데이터 백업 (JSON)</summary>
 
@@ -803,7 +819,7 @@
 <script src="js/routine.js?v=20260520d" defer></script>
 <script src="js/ledger.js?v=20260509a" defer></script>
 <script src="js/drawing.js?v=20260616d" defer></script>
-<script src="js/sync.js?v=20260727b" defer></script>
+<script src="js/sync.js?v=20260727c" defer></script>
 <script src="js/gcal.js?v=20260605j" defer></script>
 <script src="js/main.js?v=20260727b" defer></script>
 
