@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<!-- index.html과 동일한 viewport / status-bar 설정을 그대로 복제해야
+     실제 앱과 같은 조건에서 측정된다. 한 글자도 바꾸지 말 것. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SafeArea">
+<title>Safe Area 진단</title>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; background:#0f1117; color:#fdf6e3;
+    font:13px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; }
+
+  /* 화면 맨 위/맨 아래에 붙는 띠. 스크린샷에서 이게 상태바나 홈바에
+     가려지는지 보면 viewport-fit=cover가 실제로 먹는지 바로 알 수 있다. */
+  .edge { position:fixed; left:0; right:0; height:28px; z-index:10;
+    font-size:11px; font-weight:800; letter-spacing:.06em;
+    display:flex; align-items:center; justify-content:center; color:#000; }
+  .edge.top    { top:0;    background:#ff5f56; }
+  .edge.bottom { bottom:0; background:#27c93f; }
+
+  /* safe-area 영역을 반투명 노랑으로 덮어 실제 인셋 크기를 눈으로 보여준다 */
+  .inset { position:fixed; background:rgba(255,214,10,.45); z-index:9; pointer-events:none; }
+  .inset.t { top:0; left:0; right:0; height:env(safe-area-inset-top, 0px); }
+  .inset.b { bottom:0; left:0; right:0; height:env(safe-area-inset-bottom, 0px); }
+  .inset.l { top:0; bottom:0; left:0; width:env(safe-area-inset-left, 0px); }
+  .inset.r { top:0; bottom:0; right:0; width:env(safe-area-inset-right, 0px); }
+
+  .wrap { height:100dvh; overflow-y:auto;
+    padding: calc(env(safe-area-inset-top,0px) + 34px) 14px calc(env(safe-area-inset-bottom,0px) + 34px); }
+  h1 { font-size:15px; margin-bottom:10px; }
+  table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+  td { padding:5px 6px; border-bottom:1px solid #23262e; vertical-align:top; }
+  td:first-child { color:#9aa0ad; white-space:nowrap; width:52%; }
+  td:last-child { text-align:right; font-weight:700; }
+  .sec { margin-top:16px; font-size:11px; color:#eaaf29; font-weight:800;
+    letter-spacing:.08em; text-transform:uppercase; }
+  .hi { color:#27c93f; }
+  .warn { color:#ff5f56; }
+  /* 실제 100dvh / 100vh 높이를 재기 위한 보이지 않는 자
+     (getComputedStyle 대신 실측해야 iOS의 실제 동작을 알 수 있다) */
+  .ruler { position:absolute; visibility:hidden; width:1px; left:-9999px; top:0; }
+</style>
+</head>
+<body>
+<div class="inset t"></div><div class="inset b"></div>
+<div class="inset l"></div><div class="inset r"></div>
+<div class="edge top">화면 최상단 — 이 띠가 안 보이면 상단이 잘리는 것</div>
+<div class="edge bottom">화면 최하단 — 이 띠가 안 보이면 하단이 잘리는 것</div>
+
+<div class="ruler" id="r-dvh" style="height:100dvh"></div>
+<div class="ruler" id="r-vh"  style="height:100vh"></div>
+<div class="ruler" id="r-svh" style="height:100svh"></div>
+<div class="ruler" id="r-lvh" style="height:100lvh"></div>
+<div class="ruler" id="r-fill" style="height:-webkit-fill-available"></div>
+
+<div class="wrap">
+  <h1>📐 Safe Area 진단</h1>
+  <div id="out">측정 중…</div>
+  <div class="sec">읽는 법</div>
+  <table>
+    <tr><td>노란 띠</td><td>= safe-area 인셋 실제 크기</td></tr>
+    <tr><td>빨강/초록 띠</td><td>= 화면 진짜 최상단/최하단</td></tr>
+  </table>
+</div>
+
+<script>
+function px(el) { return el.getBoundingClientRect().height; }
+function render() {
+  const cs = getComputedStyle(document.documentElement);
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;visibility:hidden;'
+    + 'padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);'
+    + 'padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px);';
+  document.body.appendChild(probe);
+  const ps = getComputedStyle(probe);
+  const inset = {
+    top: parseFloat(ps.paddingTop) || 0,
+    bottom: parseFloat(ps.paddingBottom) || 0,
+    left: parseFloat(ps.paddingLeft) || 0,
+    right: parseFloat(ps.paddingRight) || 0,
+  };
+  probe.remove();
+
+  const vv = window.visualViewport;
+  const standalone = (navigator.standalone === true)
+    || matchMedia('(display-mode: standalone)').matches;
+
+  const rows = [
+    ['SEC', 'safe-area 인셋 (핵심)'],
+    ['inset-top', inset.top + ' px'],
+    ['inset-bottom', inset.bottom + ' px'],
+    ['inset-left', inset.left + ' px'],
+    ['inset-right', inset.right + ' px'],
+
+    ['SEC', '뷰포트 높이 — 이 값들이 다르면 문제'],
+    ['window.innerHeight', window.innerHeight + ' px'],
+    ['documentElement.clientHeight', document.documentElement.clientHeight + ' px'],
+    ['100dvh 실측', px(document.getElementById('r-dvh')).toFixed(1) + ' px'],
+    ['100vh 실측', px(document.getElementById('r-vh')).toFixed(1) + ' px'],
+    ['100svh 실측', px(document.getElementById('r-svh')).toFixed(1) + ' px'],
+    ['100lvh 실측', px(document.getElementById('r-lvh')).toFixed(1) + ' px'],
+    ['-webkit-fill-available 실측', px(document.getElementById('r-fill')).toFixed(1) + ' px'],
+    ['visualViewport.height', vv ? vv.height.toFixed(1) + ' px' : '—'],
+    ['visualViewport.offsetTop', vv ? vv.offsetTop.toFixed(1) + ' px' : '—'],
+
+    ['SEC', '화면'],
+    ['screen.height', screen.height + ' px'],
+    ['screen.availHeight', screen.availHeight + ' px'],
+    ['innerWidth × innerHeight', window.innerWidth + ' × ' + window.innerHeight],
+    ['devicePixelRatio', window.devicePixelRatio],
+    ['방향', (screen.orientation && screen.orientation.type) || '—'],
+
+    ['SEC', '실행 모드'],
+    ['PWA standalone?', standalone ? '예 (홈화면 앱)' : '아니오 (Safari 탭)'],
+    ['navigator.standalone', String(navigator.standalone)],
+    ['≤768px 미디어쿼리 적용?', matchMedia('(max-width: 768px)').matches ? '예' : '아니오'],
+    ['UA', navigator.userAgent],
+  ];
+
+  let html = '<table>';
+  for (const [k, v] of rows) {
+    if (k === 'SEC') { html += '</table><div class="sec">' + v + '</div><table>'; continue; }
+    html += '<tr><td>' + k + '</td><td>' + v + '</td></tr>';
+  }
+  html += '</table>';
+
+  // 자동 판정
+  const diag = [];
+  if (!standalone) diag.push('<span class="warn">⚠️ 홈화면 앱으로 열어야 정확합니다 (지금은 Safari 탭)</span>');
+  const dvh = px(document.getElementById('r-dvh'));
+  if (Math.abs(dvh - window.innerHeight) > 1) {
+    diag.push('<span class="warn">⚠️ 100dvh(' + dvh.toFixed(0) + ')와 innerHeight(' + window.innerHeight + ')가 다름</span>');
+  }
+  if (inset.bottom === 0 && standalone) {
+    diag.push('<span class="warn">⚠️ inset-bottom이 0 — viewport-fit=cover가 안 먹는 중일 수 있음</span>');
+  }
+  if (diag.length === 0) diag.push('<span class="hi">✅ 뷰포트 수치 자체는 정상</span>');
+  html += '<div class="sec">자동 판정</div><table><tr><td colspan="2">' + diag.join('<br>') + '</td></tr></table>';
+
+  document.getElementById('out').innerHTML = html;
+}
+render();
+addEventListener('resize', render);
+addEventListener('orientationchange', () => setTimeout(render, 300));
+if (window.visualViewport) visualViewport.addEventListener('resize', render);
+</script>
+</body>
+</html>
