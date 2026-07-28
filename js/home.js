@@ -99,9 +99,10 @@ function renderHome() {
         const tile = (icon, label, n) =>
           `<div class="home-tile${n ? '' : ' is-zero'}"><span class="mi mi-sm">${icon}</span><b>${n}</b><span class="home-tile-label">${label}</span></div>`;
         return `
-        <div class="home-card home-card-proj" onclick="goToTag('${PROJECT_TAG_PREFIX}${escapeHtml(p.name).replace(/'/g, "\\'")}')">
+        <div class="home-card home-card-proj" onclick="openNote('${p.latest.type}', ${p.latest.id})">
           <div class="home-card-head">
             <div class="home-card-title">${escapeHtml(p.name)}</div>
+            <button class="home-card-all" onclick="event.stopPropagation();goToTag('${PROJECT_TAG_PREFIX}${escapeHtml(p.name).replace(/'/g, "\\'")}')" title="이 프로젝트 기록 전체">${p.list.length}건</button>
             <div class="home-card-time">${homeRelDate(p.latest.updatedAt)}</div>
           </div>
           <div class="home-card-sub">${escapeHtml(homeSnippet(p.latest, 80))}</div>
@@ -136,7 +137,7 @@ function renderHome() {
   }
   const todoHtml = todos.length
     ? `<div class="home-card">${todos.map(t => `
-        <div class="home-todo" onclick="selectNote('${t.note.type}', ${t.note.id})">
+        <div class="home-todo" onclick="openNote('${t.note.type}', ${t.note.id})">
           <span class="home-todo-box"></span>
           <span class="home-todo-text">${escapeHtml(t.text)}</span>
           <span class="home-todo-tag">${escapeHtml(t.proj)}</span>
@@ -151,7 +152,7 @@ function renderHome() {
 
   const generalHtml = general.length
     ? `<div class="home-card">${general.map(n => `
-        <div class="home-row" onclick="selectNote('${n.type}', ${n.id})">
+        <div class="home-row" onclick="openNote('${n.type}', ${n.id})">
           <span class="mi mi-sm home-row-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
           <div class="home-row-body">
             <div class="home-row-title">${escapeHtml(n.title) || '제목 없음'}</div>
@@ -191,7 +192,7 @@ function renderHome() {
     <section class="home-sec">
       <div class="home-sec-head">
         <span>최근 메모</span>
-        <button class="home-sec-more" onclick="navigateTo('memo')">전체 보기</button>
+        <button class="home-sec-more" onclick="goToTag(null)">전체 보기</button>
       </div>
       ${generalHtml}
     </section>
@@ -224,8 +225,19 @@ function stripProjectPrefix(title) {
   return (title || '').replace(/^\s*\[[^\]]+\]\s*/, '') || (title || '');
 }
 
-// 묶음 칩 → 노트 페이지로 이동하면서 해당 태그 필터 적용
+// 홈에서 노트를 여는 진입점.
+// selectNote()는 상태만 바꾸고 페이지 전환을 하지 않는다 — 원래 사이드바
+// 태그에서 쓰던 함수라 "이미 노트 화면에 있다"를 전제하기 때문. 홈에서 그냥
+// 부르면 노트 페이지가 활성화되지 않아 아무 일도 안 일어난 것처럼 보인다.
+// 그래서 navigateTo를 먼저 부른 뒤 selectNote를 호출한다.
+function openNote(type, id) {
+  if (typeof navigateTo === 'function') navigateTo(type === 'mindmap' ? 'mindmap' : 'memo');
+  if (typeof selectNote === 'function') selectNote(type, id);
+}
+
+// 묶음 칩 → 노트 페이지로 이동하면서 해당 태그 필터 적용.
+// setTagFilter가 내부에서 navigateTo('memo')를 부르므로 여기서 또 부르지 않는다.
 function goToTag(tag) {
-  if (typeof navigateTo === 'function') navigateTo('memo');
   if (typeof setTagFilter === 'function') setTagFilter(tag);
+  else if (typeof navigateTo === 'function') navigateTo('memo');
 }
