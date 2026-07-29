@@ -208,6 +208,30 @@ function setGCalEnabled(on) {
   save('gcal_enabled', gcalEnabled);
 }
 
+// 사용자가 설정에서 직접 껐는지 여부.
+// gcal_enabled는 Drive 동기화 대상이 아니라 기기마다 따로다(getAllData 참고).
+// 그래서 새 기기에서는 항상 꺼진 상태로 시작하고, 캘린더를 '전체'로 열어도
+// fetch 조건(enabled)에 걸려 아무것도 안 나왔다. 모드 탭을 누르면 자동으로
+// 켜지기 때문에 "탭을 눌러야만 불러온다"처럼 보였다.
+// 진입 시에도 자동으로 켜주되, 사용자가 명시적으로 끈 경우는 존중한다.
+let gcalUserOff = load('gcal_user_off', false);
+function setGCalUserOff(off) {
+  gcalUserOff = !!off;
+  save('gcal_user_off', gcalUserOff);
+}
+// 캘린더 진입 시 호출 — 켤 만한 상황이면 켜고 true를 돌려준다.
+function maybeAutoEnableGCal() {
+  if (gcalEnabled) return true;
+  if (gcalUserOff) return false;                    // 사용자가 끈 건 건드리지 않음
+  // 토큰 유무로 판단하면 안 된다 — 앱 시작 직후엔 initDrive의 토큰 복원이
+  // 아직 안 끝나 항상 false라서, 첫 진입에서 또 안 켜진다.
+  // "Drive를 연결한 적이 있는가"로 보고, 토큰은 fetch가 ensureToken으로 알아서 확보한다.
+  const connected = (typeof driveFolderId !== 'undefined' && !!driveFolderId);
+  if (!connected) return false;
+  setGCalEnabled(true);
+  return true;
+}
+
 function setCalendarMode(mode) {
   // 'all' | 'mine' | 'google'
   calendarMode = (mode === 'google' || mode === 'mine' || mode === 'all') ? mode : 'all';
@@ -290,6 +314,8 @@ window.onToggleGCalEnabled = async function() {
   const cb = document.getElementById('setting-gcal-enabled');
   if (!cb) return;
   setGCalEnabled(cb.checked);
+  // 여기서 끈 건 사용자의 명시적 의사 — 캘린더 진입 시 자동으로 다시 켜지 않는다
+  setGCalUserOff(!cb.checked);
   if (cb.checked) {
     // 처음 켜면 캘린더 목록 자동 로드
     if (gcalCalendars.length === 0) await loadGCalCalendars();
