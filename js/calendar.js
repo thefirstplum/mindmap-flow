@@ -71,6 +71,28 @@ function _notesByDay() {
 }
 function _notesOnDay(key) { return _notesByDay().get(key) || []; }
 
+// 그날 남긴 노트 목록 마크업. 데스크톱 사이드 패널과 모바일 1일 뷰가
+// 같은 것을 쓴다 — 한쪽에만 있으면 화면 크기에 따라 정보가 사라진다.
+function _dayNotesCard(key) {
+  const list = _notesOnDay(key);
+  if (!list.length) return '';
+  const rows = list.slice()
+    .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+    .map(n => {
+      const t = new Date(n.updatedAt || n.createdAt);
+      const hh = isNaN(t) ? '' : `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
+      return `<div class="day-note-row" onclick="openNote('${n.type}', ${n.id})">
+        <span class="mi mi-sm day-note-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
+        <span class="day-note-title">${_escapeHtml(n.title) || '제목 없음'}</span>
+        <span class="day-note-time">${hh}</span>
+      </div>`;
+    }).join('');
+  return `<div class="day-notes-card">
+    <div class="day-notes-head">이날 남긴 흔적 ${list.length}</div>
+    ${rows}
+  </div>`;
+}
+
 // ===== 미니 월간 =====
 function _renderMiniCal() {
   const grid = document.getElementById('mini-cal-grid');
@@ -520,6 +542,10 @@ function _renderSummary() {
     <div class="summary-row"><span class="lbl">완료</span><span class="val accent">${doneCount} / ${totalBlocks}</span></div>
     <div class="summary-row"><span class="lbl">계획 시간</span><span class="val">${hh}h ${mm}m</span></div>
   `;
+  // 선택일에 남긴 노트 (데스크톱 사이드 패널)
+  const notesHost = document.getElementById('cal-day-notes');
+  if (notesHost) notesHost.innerHTML = _dayNotesCard(calSelectedKey);
+
   _renderDayJournal();  // cal-side 하단 감정일기 패널
 }
 
@@ -603,23 +629,7 @@ function _renderMobileCal() {
   `;
 
   // 그날 남긴 노트 — 일정과 별개로 "이날 무엇을 남겼나"를 보여준다.
-  // 클릭하면 해당 노트로 이동한다.
-  const notesSection = dayNotes.length ? `
-    <div class="mob-notes-sec">
-      <div class="mob-notes-head">이날 남긴 흔적 ${dayNotes.length}</div>
-      ${dayNotes
-        .slice()
-        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
-        .map(n => {
-          const t = new Date(n.updatedAt || n.createdAt);
-          const hh = isNaN(t) ? '' : `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
-          return `<div class="mob-note-row" onclick="openNote('${n.type}', ${n.id})">
-            <span class="mi mi-sm mob-note-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
-            <span class="mob-note-title">${_escapeHtml(n.title) || '제목 없음'}</span>
-            <span class="mob-note-time">${hh}</span>
-          </div>`;
-        }).join('')}
-    </div>` : '';
+  const notesSection = _dayNotesCard(calSelectedKey);
 
   // 1일 시간표
   const START_H = 7, END_H = 22;
