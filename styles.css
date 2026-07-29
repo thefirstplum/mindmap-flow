@@ -1348,6 +1348,16 @@ body.tag-drawer-open .header-tag-btn {
   background: var(--accent); border-color: var(--accent); color: #fff;
 }
 .modal-actions button.primary:hover { background: var(--accent2); border-color: var(--accent2); }
+/* 타임블록 삭제 — 저장과 나란히 서는 부차적 동작이라 꽉 찬 빨강은 과하다.
+   테두리만 남겨 존재는 알리되 시선은 저장 쪽에 두게 한다. */
+#tb-delete-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent;
+  border-color: var(--red);
+  color: var(--red);
+}
+#tb-delete-btn:hover { background: rgba(212, 95, 90, 0.12); }
+
 .modal-actions button.danger {
   background: var(--red); border-color: var(--red); color: #fff;
 }

@@ -28,6 +28,7 @@ function updateTbMeta(key) {
 let tbSelectedColor = 'yellow';
 let tbClickedHour = null;
 let tbEditingIdx = null;
+let tbEditingKey = null;   // 편집 중인 블록이 원래 속한 날짜 (날짜 변경 시 이동 처리용)
 let tbTodos = [];
 let _tbModalDuration = 60; // minutes — preserved when start time changes
 
@@ -506,7 +507,11 @@ function renderTimeblockList() {
 function openTbModal(hour) {
   tbClickedHour = hour;
   tbEditingIdx = null;
+  tbEditingKey = null;
   document.getElementById('tb-modal-title').textContent = '타임블록 추가';
+  document.getElementById('tb-date').value = dateKey(currentDate);
+  const delBtn = document.getElementById('tb-delete-btn');
+  if (delBtn) delBtn.style.display = 'none';
   document.getElementById('tb-title').value = '';
   document.getElementById('tb-start').value = hour.toString().padStart(2, '0') + ':00';
   document.getElementById('tb-end').value = (hour + 1).toString().padStart(2, '0') + ':00';
@@ -530,7 +535,13 @@ function editTbBlock(key, idx) {
   const block = timeBlocks[key][idx];
   if (!block) return;
   tbEditingIdx = idx;
+  // 어느 날짜의 블록을 편집 중인지 기억한다. 예전엔 저장할 때 전역
+  // currentDate만 봤기 때문에, 날짜를 바꾸면 원래 날의 블록을 못 지웠다.
+  tbEditingKey = key;
   document.getElementById('tb-modal-title').textContent = '타임블록 편집';
+  document.getElementById('tb-date').value = key;
+  const delBtn = document.getElementById('tb-delete-btn');
+  if (delBtn) delBtn.style.display = '';
   document.getElementById('tb-title').value = block.title;
   document.getElementById('tb-start').value = block.start;
   document.getElementById('tb-end').value = block.end;
@@ -549,7 +560,10 @@ function editTbBlock(key, idx) {
   document.getElementById('tb-modal').classList.add('show');
 }
 
-function closeTbModal() { document.getElementById('tb-modal').classList.remove('show'); tbEditingIdx = null; tbTodos = []; }
+function closeTbModal() {
+  document.getElementById('tb-modal').classList.remove('show');
+  tbEditingIdx = null; tbEditingKey = null; tbTodos = [];
+}
 
 function renderTbTodos() {
   const list = document.getElementById('tb-todo-list');
@@ -599,7 +613,8 @@ function saveTbBlock() {
   const start = document.getElementById('tb-start').value;
   const end = document.getElementById('tb-end').value;
   if (!start || !end) { toast('시간을 설정하세요'); return; }
-  const key = dateKey(currentDate);
+  // 날짜 입력값이 우선. 비어 있으면(구버전 캐시 등) 기존처럼 현재 날짜.
+  const key = document.getElementById('tb-date')?.value || dateKey(currentDate);
   if (!timeBlocks[key]) timeBlocks[key] = [];
 
   // 프리픽스가 있으면 현재 선택 색상을 해당 프리픽스에 저장 (수동 변경도 반영)
@@ -617,19 +632,49 @@ function saveTbBlock() {
     todos: tbTodos.filter(t => t.text.trim())
   };
 
-  if (tbEditingIdx !== null) {
+  const movedDay = tbEditingIdx !== null && tbEditingKey && tbEditingKey !== key;
+
+  if (tbEditingIdx !== null && !movedDay) {
     timeBlocks[key][tbEditingIdx] = data;
     toast('수정되었습니다', 'success');
+  } else if (movedDay) {
+    // 다른 날짜로 이동 — 원래 날에서 빼고 새 날에 넣는다.
+    // 원본 제거를 빠뜨리면 블록이 양쪽 날짜에 복제된다.
+    timeBlocks[tbEditingKey].splice(tbEditingIdx, 1);
+    if (timeBlocks[tbEditingKey].length === 0) {
+      delete timeBlocks[tbEditingKey];
+      delete tbMeta[tbEditingKey];
+    } else {
+      updateTbMeta(tbEditingKey);
+    }
+    timeBlocks[key].push(data);
+    const [, mm, dd] = key.split('-');
+    toast(`${Number(mm)}월 ${Number(dd)}일로 옮겼습니다`, 'success');
   } else {
     timeBlocks[key].push(data);
     toast('추가되었습니다', 'success');
   }
   timeBlocks[key].sort((a, b) => a.start.localeCompare(b.start));
   save('tb_blocks', timeBlocks);
+  save('tb_meta', tbMeta);
   updateTbMeta(key);
   closeTbModal();
   renderTimeBlocks();
   renderTimeblockList();
+  if (typeof renderCalendar === 'function') renderCalendar();
+}
+
+// 모달의 삭제 버튼 — 편집 중인 블록을 지운다.
+// deleteTbBlock 자체는 예전부터 있었지만 모달에서 부를 방법이 없었다.
+function deleteTbFromModal() {
+  if (tbEditingIdx === null || !tbEditingKey) return;
+  const block = (timeBlocks[tbEditingKey] || [])[tbEditingIdx];
+  const name = block ? block.title : '이 블록';
+  if (!confirm(`"${name}"을(를) 삭제할까요?`)) return;
+  deleteTbBlock(tbEditingKey, tbEditingIdx);
+  closeTbModal();
+  toast('삭제되었습니다', 'success');
+  if (typeof renderCalendar === 'function') renderCalendar();
 }
 
 function deleteTbBlock(key, idx) {

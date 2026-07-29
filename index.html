@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260729j">
+<link rel="stylesheet" href="styles.css?v=20260729k">
 </head>
 <body>
 <div class="app">
@@ -375,6 +375,10 @@
     <h3 id="tb-modal-title">타임블록 추가</h3>
     <label>제목</label>
     <input type="text" id="tb-title" placeholder="할 일을 입력하세요">
+    <!-- 날짜 — 예전엔 클릭한 날로 고정이라 다른 날로 옮길 방법이 없었다.
+         편집 중 이 값을 바꾸면 블록이 그 날짜로 이동한다. -->
+    <label>날짜</label>
+    <input type="date" id="tb-date">
     <div class="time-row-input" style="margin-top:14px;">
       <div>
         <label style="margin-top:0;">시작</label>
@@ -414,6 +418,10 @@
       완료 표시
     </label>
     <div class="modal-actions">
+      <!-- 편집일 때만 보인다 (openTbModal/editTbBlock에서 display 토글) -->
+      <button class="danger" id="tb-delete-btn" onclick="deleteTbFromModal()" style="display:none;margin-right:auto;">
+        <span class="mi mi-sm">delete</span> 삭제
+      </button>
       <button onclick="closeTbModal()">취소</button>
       <button class="primary" onclick="saveTbBlock()">저장</button>
     </div>
@@ -817,7 +825,7 @@
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
 <script src="js/navigation.js?v=20260729a" defer></script>
 <script src="js/mindmap.js?v=20260606h" defer></script>
-<script src="js/timeblock.js?v=20260528e" defer></script>
+<script src="js/timeblock.js?v=20260729a" defer></script>
 <script src="js/memo.js?v=20260729d" defer></script>
 <!-- 홈 화면 — getAllNotes()(memo.js)에 의존하므로 반드시 그 뒤에 -->
 <script src="js/home.js?v=20260729e" defer></script>
