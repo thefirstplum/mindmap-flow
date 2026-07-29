@@ -194,10 +194,18 @@ function navigateTo(page, opts) {
     }
     renderCalendar();
     renderCalDetail();
-    // 'google' 또는 '전체' 모드면 보이는 주 일정 자동 fetch
-    if (typeof window.gcal !== 'undefined' && window.gcal.enabled
+    // 'google' 또는 '전체' 모드면 보이는 주 일정 자동 fetch.
+    // gcal_enabled는 기기별 로컬 값이라 새 기기에선 항상 꺼져 있고, 그러면
+    // 여기서 fetch를 안 해 '전체'로 열어도 Google 일정이 안 보였다.
+    // 모드 탭을 누르면 자동으로 켜지므로 "탭을 눌러야만 불러온다"처럼 보였던 것.
+    // 진입 시에도 같은 판단을 하되, 설정에서 직접 끈 경우는 존중한다.
+    if (typeof window.gcal !== 'undefined'
         && (window.gcal.mode === 'google' || window.gcal.mode === 'all')) {
-      if (typeof refreshGCalEventsForVisibleWeek === 'function') refreshGCalEventsForVisibleWeek();
+      const on = (typeof maybeAutoEnableGCal === 'function')
+        ? maybeAutoEnableGCal() : window.gcal.enabled;
+      if (on && typeof refreshGCalEventsForVisibleWeek === 'function') {
+        refreshGCalEventsForVisibleWeek();
+      }
     }
     // 토글 UI 활성 표시 복원
     if (typeof window.gcal !== 'undefined') {
