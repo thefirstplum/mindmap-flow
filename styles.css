@@ -250,15 +250,90 @@ body[data-theme="book"] {
   --green:#5E7A4E; --orange:#B58840; --red:#A85647; --blue:#5C7A8C; --pink:#A8784C; --cyan:#5E7A4E;
   color-scheme: light;
 }
-/* Book 본문 — 이롭게 바탕 세리프 (책 읽는 느낌) */
+/* ── Book 테마 — 전자책 리더처럼 ──────────────────────────────
+   기존엔 본문 폰트만 세리프라 "책"보다 "베이지 테마"에 가까웠다.
+   읽는 느낌을 만드는 건 색이 아니라 (1) 활자 (2) 행간 (3) 한 줄 길이
+   (4) 낮은 대비 — 네 가지라서 그쪽을 손본다. */
+
+/* (1) 활자 — 본문뿐 아니라 제목·목록·태그까지 세리프로 통일.
+   UI만 산세리프로 남으면 책 안에 앱이 끼어든 것처럼 보인다. */
 body[data-theme="book"] #memo-live-editor .cm-content,
 body[data-theme="book"] .bear-editor,
 body[data-theme="book"] .memo-editor textarea,
 body[data-theme="book"] .markdown-body,
 body[data-theme="book"] .memo-editor-header input,
-body[data-theme="book"] .journal-textarea {
+body[data-theme="book"] .journal-textarea,
+body[data-theme="book"] .memo-item-title,
+body[data-theme="book"] .memo-item-preview,
+body[data-theme="book"] .home-row-title,
+body[data-theme="book"] .home-card-title,
+body[data-theme="book"] .home-card-sub,
+body[data-theme="book"] .day-note-title,
+body[data-theme="book"] h1,
+body[data-theme="book"] h3 {
   font-family: 'IropkeBatang', 'Apple SD Gothic Neo', -apple-system, serif;
   letter-spacing: -0.005em;
+}
+
+/* (2) 행간 + (3) 한 줄 길이 — 종이책의 읽기 리듬.
+   실제 편집기는 CodeMirror라서 .cm-content / .cm-line을 직접 잡아야 한다.
+   (.bear-editor는 마운트 지점일 뿐이고 CM이 자체 font-size·max-width를 갖는다)
+   한 줄을 34em 안쪽으로 묶는 이유: 넓은 화면에서 글이 끝까지 늘어지면
+   다음 줄 첫 글자를 찾기 어려워 읽는 속도가 떨어진다. */
+body[data-theme="book"] #memo-live-editor .cm-content {
+  font-size: 15.5px;
+  max-width: 34em;
+  padding: 34px 24px 80px;
+  margin: 0 auto;
+}
+body[data-theme="book"] #memo-live-editor .cm-line {
+  min-height: 34px;
+  line-height: 34px;
+  /* 공책 괘선 제거 — 전자책엔 줄이 없다 */
+  border-bottom: none;
+}
+body[data-theme="book"] .markdown-body {
+  font-size: 15.5px;
+  line-height: 2.0;
+  padding: 34px 24px 60px;
+  max-width: 34em;
+  margin: 0 auto;
+  width: 100%;
+}
+@media (max-width: 768px) {
+  /* 모바일 기본 규칙이 가독성 때문에 16.5px로 키우므로 북 테마도 맞춘다.
+     좁은 화면에선 한 줄 제한이 의미 없으니 폭 제한도 푼다. */
+  body[data-theme="book"] #memo-live-editor .cm-content {
+    padding: 18px 18px 140px !important;
+    max-width: 100%;
+    font-size: 16.5px;
+  }
+  body[data-theme="book"] .markdown-body {
+    padding: 18px 18px 60px; max-width: 100%; font-size: 16.5px;
+  }
+}
+
+/* 문단 사이를 벌려 장(章) 구분처럼 — 종이책의 여백감 */
+body[data-theme="book"] .markdown-body p { margin: 0 0 1.1em; }
+body[data-theme="book"] .markdown-body h1 {
+  font-size: 24px; border-bottom: none;
+  margin: 32px 0 14px; text-align: center; letter-spacing: 0.02em;
+}
+body[data-theme="book"] .markdown-body h2 { font-size: 19px; margin: 26px 0 10px; }
+
+/* (4) 낮은 대비 — 전자잉크는 새까맣지 않다.
+   본문 잉크를 살짝 눅이고 종이도 한 톤 가라앉혀 눈부심을 줄인다. */
+body[data-theme="book"] {
+  --text: #4A3927;
+  --bg: #F3EAD6;
+  --surface: #F8F1DF;
+}
+/* 구분선은 거의 지운다 — 책에는 격자가 없다 */
+body[data-theme="book"] .memo-item { border-bottom: none; }
+body[data-theme="book"] .home-card,
+body[data-theme="book"] .set-group,
+body[data-theme="book"] .day-notes-card {
+  border-color: rgba(124, 92, 58, 0.16);
 }
 
 /* Handwritten — 따뜻한 살구 + 손글씨(메모먼트 꾸꾸꾹) 모든 글자에 적용 */
