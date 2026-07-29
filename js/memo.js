@@ -980,9 +980,13 @@ function renderMemoEditor() {
       </button>
       <button class="memo-back" onclick="backToList()" aria-label="뒤로">‹</button>
       <div class="memo-toolbar-spacer"></div>
-      <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
-        <span class="mi mi-sm">brush</span>
-      </button>
+      <!-- 드로잉 버튼 숨김 (2026-07-29) — 필기는 아이패드 전용 앱에서 하고
+           이 앱은 결과물을 보관하는 쪽으로 역할을 나눴다. drawing.js와 모달
+           마크업은 그대로 두었으므로, 되살리려면 아래 3줄만 복구하면 된다.
+        <button class="memo-icon-btn" onclick="openDrawingModal()" title="드로잉 (Apple Pencil)">
+          <span class="mi mi-sm">brush</span>
+        </button>
+      -->
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
         <span class="mi mi-sm">image</span>
       </button>

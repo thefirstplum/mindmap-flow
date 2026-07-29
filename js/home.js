@@ -82,8 +82,10 @@ function renderHome() {
     return { name, latest, list, stats, t: new Date(latest.updatedAt || 0).getTime() };
   }).sort((a, b) => b.t - a.t);
 
+  // 프로젝트가 늘어나도 홈이 세로로 늘어지지 않게 가로 스크롤로 늘어놓는다.
+  // 카드는 고정폭이라 개수와 무관하게 홈의 높이는 항상 같다.
   const projectHtml = projects.length
-    ? projects.map(p => {
+    ? `<div class="home-proj-scroll">` + projects.map(p => {
         const s = p.stats;
         // 진행률은 체크박스가 하나라도 있을 때만 의미가 있다
         const bar = s.todoTotal > 0 ? `
@@ -114,7 +116,7 @@ function renderHome() {
             ${tile('image', '이미지', s.image)}
           </div>
         </div>`;
-      }).join('')
+      }).join('') + `</div>`
     : `<div class="home-card home-empty">
          아직 프로젝트 기록이 없어요.<br>
          메모에 <code>프로젝트/이름</code> 태그를 붙이면 여기 모입니다.
