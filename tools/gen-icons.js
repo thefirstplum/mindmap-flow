@@ -185,8 +185,8 @@ function render(N, fill, CROP) {
 const jobs = [
   ['icon-192.png', 192, 1.0, CROP_TIGHT],
   ['icon-512.png', 512, 1.0, CROP_TIGHT],
-  ['icon-192-maskable.png', 192, 0.62, CROP_LOOSE],
-  ['icon-512-maskable.png', 512, 0.62, CROP_LOOSE],
+  ['icon-192-maskable.png', 192, 0.74, CROP_LOOSE],
+  ['icon-512-maskable.png', 512, 0.74, CROP_LOOSE],
   ['apple-touch-icon-180.png', 180, 1.0, CROP_TIGHT],
 ];
 for (const [name, N, fill, crop] of jobs) {
