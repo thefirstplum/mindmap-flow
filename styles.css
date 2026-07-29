@@ -5068,6 +5068,19 @@ select:focus:not(:focus-visible),
   background: var(--accent); border-radius: 50%;
 }
 .mini-cal-cell.today.has-event::after { background: #fff; }
+/* 그날 메모를 남겼다는 표식. 일정 점(::after)과 색·요소를 분리해
+   "일정이 있던 날"과 "기록을 남긴 날"이 구분되게 한다. */
+.mini-cal-cell.has-note::before {
+  content: '';
+  position: absolute; bottom: 1px; left: 50%;
+  transform: translateX(-50%);
+  width: 3px; height: 3px;
+  background: var(--accent2, var(--text-mute)); border-radius: 50%;
+}
+/* 둘 다 있는 날은 겹치지 않게 좌우로 벌린다 */
+.mini-cal-cell.has-event.has-note::after  { transform: translateX(-160%); }
+.mini-cal-cell.has-event.has-note::before { transform: translateX(60%); }
+.mini-cal-cell.today.has-note::before { background: #fff; opacity: 0.7; }
 
 .cal-side-sec-title {
   font-size: var(--fs-mini); font-weight: 700;
@@ -5356,6 +5369,43 @@ body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .
     background: var(--accent); border-radius: 50%;
   }
   .cal-mobile .mob-day.active.has-event::after { background: var(--bg); }
+  .cal-mobile .mob-day.has-note::before {
+    content: ''; position: absolute; bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px;
+    background: var(--accent2, var(--text-mute)); border-radius: 50%;
+  }
+  .cal-mobile .mob-day.has-event.has-note::after  { transform: translateX(-150%); }
+  .cal-mobile .mob-day.has-event.has-note::before { transform: translateX(50%); }
+  .cal-mobile .mob-day.active.has-note::before { background: var(--bg); opacity: 0.7; }
+
+  /* 선택일에 남긴 노트 목록 — 일정과 별개로 그날의 기록을 보여준다 */
+  .mob-notes-sec {
+    margin: 4px 14px 0;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: 14px;
+  }
+  .mob-notes-head {
+    font-size: 12.5px; font-weight: 700; color: var(--text-dim);
+    margin: 8px 8px 6px;
+  }
+  .mob-note-row {
+    display: flex; align-items: center; gap: 9px;
+    padding: 9px 8px; border-radius: 9px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .mob-note-row:hover { background: var(--surface2); }
+  .mob-note-icon { flex-shrink: 0; color: var(--text-mute); }
+  .mob-note-title {
+    flex: 1; min-width: 0; font-size: 13.5px; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .mob-note-time {
+    flex-shrink: 0; font-size: 11px; color: var(--text-mute);
+    font-variant-numeric: tabular-nums;
+  }
   .cal-mobile .mob-day-head {
     padding: 8px 16px 14px;
     display: flex; align-items: baseline; flex-wrap: wrap;
