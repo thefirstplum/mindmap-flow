@@ -340,18 +340,38 @@ window.onGCalWriteCalendarChange = function() {
 let _gcalEditingKey = null;  // 'calId:eventId' 또는 null (신규)
 let _gcalEditingNewSlot = null; // {dayKey, hour, minute} 신규 시간 미리채움
 
+// 종일 일정의 end.date는 Google 규약상 '미포함'이다.
+// 7월 29일 하루짜리 = start 07-29 / end 07-30.
+// 사용자에게는 '포함' 종료일(07-29)을 보여야 하므로 열 때 하루 빼고,
+// 저장할 때 다시 하루 더한다. 이 변환이 없으면 편집 화면의 종료일이
+// 하루 밀려 보이고, 새로 만들면 start==end라 길이 0이 되어 아예 안 보인다.
+function _gcalShiftDays(d, n) {
+  const r = new Date(d);
+  r.setDate(r.getDate() + n);
+  return r;
+}
+function _gcalShiftDateStr(s, n) {
+  if (!s) return s;
+  const [y, m, d] = s.split('-').map(Number);
+  const r = new Date(y, m - 1, d + n);
+  const p = x => String(x).padStart(2, '0');
+  return `${r.getFullYear()}-${p(r.getMonth() + 1)}-${p(r.getDate())}`;
+}
+
 window.openGCalEditor = function(calId, eventId) {
   const ev = gcalEvents[`${calId}:${eventId}`];
   if (!ev) { toast('일정을 찾을 수 없어요'); return; }
   _gcalEditingKey = `${calId}:${eventId}`;
   _gcalEditingNewSlot = null;
+  const allDay = gcalEventIsAllDay(ev);
+  const endDate = allDay ? _gcalShiftDays(gcalEventEnd(ev), -1) : gcalEventEnd(ev);
   _openGCalModal({
     title: ev.summary || '',
     description: ev.description || '',
     location: ev.location || '',
     start: gcalEventStart(ev),
-    end: gcalEventEnd(ev),
-    allDay: gcalEventIsAllDay(ev),
+    end: endDate,
+    allDay,
     calId,
     eventId,
     canDelete: true,
@@ -448,13 +468,16 @@ window._gcalEditorSave = async function() {
   const et = document.getElementById('gcal-edit-end-time').value;
   const description = document.getElementById('gcal-edit-description').value;
   const location = document.getElementById('gcal-edit-location').value;
+  // 종일이면 종료일을 하루 더해 보낸다 (Google의 end.date는 미포함).
+  // 비어 있거나 시작보다 앞서면 시작일로 맞춰 하루짜리로 만든다.
+  let allDayEnd = ed && ed >= sd ? ed : sd;
   const payload = {
     summary: title,
     description,
     location,
     allDay,
     start: allDay ? sd : new Date(`${sd}T${st}:00`).toISOString(),
-    end:   allDay ? ed : new Date(`${ed}T${et}:00`).toISOString(),
+    end:   allDay ? _gcalShiftDateStr(allDayEnd, 1) : new Date(`${ed}T${et}:00`).toISOString(),
   };
   try {
     if (_gcalEditingKey) {
