@@ -115,8 +115,14 @@ button { cursor: pointer; font-family: inherit; }
   --fs-num:          22px;   /* 큰 숫자 (summary stat) */
   --tracking-tight:  -0.025em;   /* H1 */
   --tracking-body:   -0.01em;    /* 본문 살짝 */
-  --tracking-meta:   0.04em;     /* meta uppercase */
-  --tracking-section:0.1em;      /* section uppercase */
+  /* 섹션/메타 라벨 자간.
+     원래 영문 대문자 소제목용 값(0.04 / 0.1em)이었는데, 이 앱의 라벨은
+     대부분 한국어다. 한글은 대소문자가 없어 uppercase는 아무 효과가 없고
+     자간만 그대로 먹어서 음절이 벌어져 읽기 나빠진다.
+     (12px에서 0.1em이면 글자마다 1.2px씩 벌어짐)
+     영문이 섞여도 어색하지 않을 만큼만 남긴다. */
+  --tracking-meta:   0.02em;
+  --tracking-section:0.03em;
   /* Safe areas */
   --safe-top:   env(safe-area-inset-top,    0px);
   --safe-bot:   env(safe-area-inset-bottom, 0px);
@@ -2765,7 +2771,7 @@ body.tag-drawer-open .header-tag-btn {
 }
 .tag-tree-label {
   font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.1em;
+  text-transform: uppercase; letter-spacing: var(--tracking-section);
   color: var(--text-mute);
   padding: 13px 10px 5px;
 }
@@ -3154,6 +3160,28 @@ body.tag-drawer-open .header-tag-btn {
 .memo-tags-row {
   display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
   padding: 0 48px 8px; min-height: 26px;
+}
+/* 태그 자동완성 — 이미 쓰고 있는 태그를 보여줘 오타로 유령 태그가
+   생기는 걸 막는다. 새 태그는 그냥 엔터를 치면 만들어진다. */
+.tag-suggest {
+  display: flex; flex-wrap: wrap; gap: 5px;
+  width: 100%;
+}
+.tag-suggest:empty { display: none; }
+.tag-suggest-item {
+  padding: 4px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--text-mute);
+  font-family: inherit; font-size: 11.5px; font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.tag-suggest-item:hover {
+  background: var(--accent-glow);
+  color: var(--accent);
+  border-color: transparent;
 }
 .memo-tag-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -3724,7 +3752,7 @@ body.no-ruled #memo-live-editor .cm-line { border-bottom: none; }
 .draw-color-picker .cp-section-title {
   font-size: 10.5px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  letter-spacing: var(--tracking-section); text-transform: uppercase;
   margin: 0 0 6px;
 }
 .draw-color-picker .cp-section-title ~ .cp-section-title { margin-top: 12px; }
@@ -3988,7 +4016,7 @@ body[data-theme="forest"] .quick-fab {
 .pp-section-title {
   font-size: 10.5px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  letter-spacing: var(--tracking-section); text-transform: uppercase;
 }
 .pen-pick-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
@@ -4330,7 +4358,7 @@ body[data-theme="forest"] .quick-fab {
 .theme-dd-section {
   font-size: 10px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: 0.1em; text-transform: uppercase;
+  letter-spacing: var(--tracking-section); text-transform: uppercase;
   padding: 8px 10px 4px;
 }
 .theme-dd-item {
@@ -5001,7 +5029,8 @@ select:focus:not(:focus-visible),
   text-align: center;
   font-size: 9.5px; font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: var(--tracking-meta); text-transform: uppercase;
+  /* 한 글자 요일 — 자간이 붙으면 칸 중앙에서 오른쪽으로 밀린다 */
+  letter-spacing: 0;
   padding: 4px 0;
   line-height: 1.4;
 }
@@ -5077,9 +5106,10 @@ select:focus:not(:focus-visible),
 }
 .mob-journal-sec .cal-mood-row { margin-bottom: 10px; }
 .mob-journal-sec .cal-journal-ta { min-height: 110px; }
+/* 홈 카드(.home-card)와 같은 14px 라운드로 통일 */
 .summary-card {
   background: var(--surface);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 12px 14px;
   border: 1px solid var(--border-light);
 }
@@ -5300,10 +5330,11 @@ body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .
     cursor: pointer; font-family: inherit;
     position: relative;
   }
+  /* 요일(일·월·화…) — 한 글자 한글이라 자간이 붙으면 칸 중앙에서 밀려 보인다 */
   .cal-mobile .mob-day .dow {
     font-size: 10px; font-weight: 700;
     color: var(--text-mute);
-    letter-spacing: 0.06em; text-transform: uppercase;
+    letter-spacing: 0; text-transform: uppercase;
   }
   .cal-mobile .mob-day .num {
     font-size: 16px; font-weight: 700;
@@ -5483,8 +5514,8 @@ body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .
   text-align: center;
   font-size: var(--fs-section); font-weight: 700;
   color: var(--text-mute);
-  letter-spacing: var(--tracking-section);
-  text-transform: uppercase;
+  /* 한 글자 요일 — 중앙 정렬 유지 위해 자간 제거 */
+  letter-spacing: 0;
   padding: 4px 0;
 }
 .calendar-weekdays .is-sun { color: var(--accent2, var(--red)); }
@@ -5989,7 +6020,7 @@ body[data-theme="midnight"] .event-card .ev-title, body[data-theme="midnight"] .
   display: flex; align-items: center; gap: 6px;
   font-size: 11px; font-weight: 700;
   color: var(--text-mute);
-  text-transform: uppercase; letter-spacing: 0.06em;
+  text-transform: uppercase; letter-spacing: var(--tracking-section);
   padding: 4px 4px 8px;
   border-bottom: 1px solid var(--border-light);
   margin-bottom: 4px;

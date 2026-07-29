@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v22'; // 프로젝트 필터 + 해제 가능한 필터 칩
+const CACHE_NAME = 'mindflow-cache-v23'; // 태그 자동완성 + 한글 자간 정리
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
