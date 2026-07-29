@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260729h">
+<link rel="stylesheet" href="styles.css?v=20260729i">
 </head>
 <body>
 <div class="app">
@@ -423,12 +423,15 @@
 <!-- Sync Modal -->
 <div class="modal-overlay" id="sync-modal" onclick="if(event.target===this)closeSyncModal()">
   <div class="modal">
-    <h3>📦 동기화 / 백업</h3>
+    <h3>설정</h3>
     <div class="modal-desc">
       Google Drive를 연결하면 메모는 <strong style="color:var(--accent2)">.md 파일로 자동 저장·동기화</strong>됩니다. 옵시디언에서 그대로 열 수 있어요. 마인드맵·타임블록은 같은 폴더의 <code style="color:var(--accent2)">_mindflow-app.json</code>에 저장돼요.
     </div>
 
-    <label>🅖 Google Drive 자동 동기화 <span style="background:var(--accent);color:#fff;font-weight:700;font-size:10px;padding:2px 7px;border-radius:4px;">추천</span></label>
+    <!-- ── 연결 ───────────────────────────────── -->
+    <div class="set-head"><span class="mi mi-sm">cloud</span>연결</div>
+    <div class="set-group">
+      <div class="set-sub"><span class="mi mi-sm">cloud_done</span>Google Drive</div>
     <div class="folder-status" id="drive-status">
       <div class="icon-circle" style="background:var(--surface3)">G</div>
       <div class="text-area">
@@ -455,6 +458,16 @@
         📂 외부 폴더에서 .md 가져오기
       </button>
     </div>
+    <div style="font-size:11px;color:var(--text-mute);margin-top:8px;line-height:1.5;">
+      💡 본인 Google 계정으로 로그인 → <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code> 폴더에 자동 저장 · 이미지는 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">assets/</code>에 (drive.file 스코프, 본 앱이 만든 파일만 접근)<br>
+      Drive 폴더 이름은 기존 동기화를 유지하려고 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code>(이전 앱 이름) 그대로 둡니다.
+    </div>
+      <details class="set-adv">
+        <summary>고급 · 문제 해결</summary>
+        <div class="set-adv-body">
+    <div style="font-size:11px;color:var(--yellow,#f5b400);background:rgba(245,180,0,0.08);border:1px solid rgba(245,180,0,0.25);border-radius:6px;padding:8px 10px;margin-top:6px;line-height:1.5;">
+      ⚠️ <strong>첨부 파일·이미지 프라이버시:</strong> 메모에 붙인 이미지·파일은 표시 속도와 다운로드를 위해 <strong>공개 링크</strong>(URL을 아는 사람만 접근)로 업로드돼요. 민감한 자료는 첨부 전 한 번 더 확인하세요. 메모 본문(.md)·마인드맵·타임블록 데이터는 본인 Drive에만 비공개로 저장됩니다.
+    </div>
     <div id="drive-cleanup-row" style="display:none;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border);">
       <div style="font-size:11px;color:var(--text-mute);margin-bottom:6px;line-height:1.5;">
         🧹 Drive 정리 도구 — 중복 파일이나 충돌 사본을 발견하면 여기서 정리하세요. 실행 전 자동 백업이 생성됩니다.
@@ -468,28 +481,18 @@
         </button>
       </div>
     </div>
-    <div style="font-size:11px;color:var(--text-mute);margin-top:8px;line-height:1.5;">
-      💡 본인 Google 계정으로 로그인 → <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code> 폴더에 자동 저장 · 이미지는 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">assets/</code>에 (drive.file 스코프, 본 앱이 만든 파일만 접근)<br>
-      Drive 폴더 이름은 기존 동기화를 유지하려고 <code style="background:var(--surface3);padding:1px 5px;border-radius:3px;">MindFlow</code>(이전 앱 이름) 그대로 둡니다.
-    </div>
-    <div style="font-size:11px;color:var(--yellow,#f5b400);background:rgba(245,180,0,0.08);border:1px solid rgba(245,180,0,0.25);border-radius:6px;padding:8px 10px;margin-top:6px;line-height:1.5;">
-      ⚠️ <strong>첨부 파일·이미지 프라이버시:</strong> 메모에 붙인 이미지·파일은 표시 속도와 다운로드를 위해 <strong>공개 링크</strong>(URL을 아는 사람만 접근)로 업로드돼요. 민감한 자료는 첨부 전 한 번 더 확인하세요. 메모 본문(.md)·마인드맵·타임블록 데이터는 본인 Drive에만 비공개로 저장됩니다.
-    </div>
-    <details style="margin-top:8px;font-size:11px;color:var(--text-mute);">
-      <summary style="cursor:pointer;color:var(--text-dim);font-weight:500;">⚙️ 고급: 본인 OAuth Client ID 사용</summary>
+          <div class="set-adv-label">본인 OAuth Client ID 사용</div>
       <div style="padding:10px 12px;background:var(--surface2);border-radius:8px;margin-top:6px;line-height:1.7;color:var(--text-dim);">
         기본 Client ID로 자동 연결됩니다. fork해서 자신의 Cloud 프로젝트로 쓰려면 아래 입력란에 직접 붙여넣고 [연결] 누르세요.
         <input type="text" id="drive-client-id-input" placeholder="xxx.apps.googleusercontent.com (선택)" style="margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:11px;width:100%;">
       </div>
-    </details>
-
-    <!-- Google Calendar 연동 (2026-06-05) -->
-    <div id="gcal-section" style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="color:var(--text-dim);font-size:13px;font-weight:600;">
-          <span class="mi mi-sm" style="vertical-align:-3px;">event</span>
-          Google Calendar 연동
         </div>
+      </details>
+    </div>
+
+    <div class="set-group" id="gcal-section">
+      <div class="set-sub-row">
+      <div class="set-sub"><span class="mi mi-sm">event</span>Google Calendar</div>
         <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;">
           <input type="checkbox" id="setting-gcal-enabled" onchange="onToggleGCalEnabled()" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
           <span style="font-size:11px;color:var(--text-mute);">사용</span>
@@ -514,11 +517,9 @@
       </div>
     </div>
 
-    <div style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);">
-      <div style="color:var(--text-dim);font-size:13px;font-weight:600;margin-bottom:10px;">
-        <span class="mi mi-sm" style="vertical-align:-3px;">tune</span>
-        화면 설정
-      </div>
+    <!-- ── 표시 ───────────────────────────────── -->
+    <div class="set-head"><span class="mi mi-sm">tune</span>표시</div>
+    <div class="set-group">
       <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;">
         <input type="checkbox" id="setting-ruled-lines" onchange="toggleRuledLines()" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;">
         <span style="flex:1;font-size:13px;color:var(--text);">메모 본문 밑줄 (노트북 라인)</span>
@@ -526,6 +527,9 @@
       </label>
     </div>
 
+    <!-- ── 데이터 ─────────────────────────────── -->
+    <div class="set-head"><span class="mi mi-sm">database</span>데이터</div>
+    <div class="set-group">
     <div id="storage-usage-section" style="margin-top:22px;padding-top:14px;border-top:1px solid var(--border);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <div style="color:var(--text-dim);font-size:13px;font-weight:600;">
@@ -543,12 +547,9 @@
         측정 중…
       </div>
     </div>
-
-    <details style="margin-top:22px;" id="backup-section">
-      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);list-style:none;">
-        🛟 자동 로컬 백업 <span style="color:var(--text-mute);font-weight:400;font-size:11px;" id="backup-summary-count"></span>
-        <span style="float:right;color:var(--text-mute);font-size:11px;">▸ 펼치기</span>
-      </summary>
+      <details class="set-adv" id="backup-section">
+        <summary>자동 로컬 백업 <span id="backup-summary-count"></span></summary>
+        <div class="set-adv-body">
       <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
         동기화 직전마다 이 기기의 모든 데이터를 IndexedDB에 자동 저장 (최근 10개 보관). 사고 시 복원 가능.
       </div>
@@ -561,27 +562,11 @@
           🔄 목록 새로고침
         </button>
       </div>
-    </details>
-
-    <details style="margin-top:22px;" id="area-diag-section" ontoggle="if(this.open)renderAreaDiag()">
-      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 화면 영역 진단 (safe-area)</summary>
-      <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
-        노치·홈바 여백이 이상할 때 실제 수치를 확인합니다. 이 화면을 캡처해서 전달하세요.
-      </div>
-      <div id="area-diag-out" style="margin-top:10px;font-size:12px;"></div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="tb-btn" onclick="renderAreaDiag()" style="flex:1;min-width:100px;justify-content:center;">
-          <span class="mi mi-sm">refresh</span> 다시 측정
-        </button>
-        <button class="tb-btn" onclick="toggleAreaOverlay()" style="flex:1;min-width:100px;justify-content:center;">
-          <span class="mi mi-sm">visibility</span> 영역 표시
-        </button>
-      </div>
-    </details>
-
-    <details style="margin-top:22px;">
-      <summary style="cursor:pointer;color:var(--text-dim);font-size:13px;font-weight:600;padding:10px 0;border-top:1px solid var(--border);">▸ 데이터 백업 (JSON)</summary>
-
+        </div>
+      </details>
+      <details class="set-adv">
+        <summary>JSON 내보내기 · 불러오기</summary>
+        <div class="set-adv-body">
     <label style="margin-top:18px;">📊 현재 데이터</label>
     <div id="sync-stats" style="background:var(--surface2);padding:12px 14px;border-radius:10px;font-size:13px;color:var(--text-dim);line-height:1.7;"></div>
 
@@ -602,8 +587,29 @@
       💡 iOS에서는 "공유" → "파일에 저장" → iCloud Drive 사용<br>
       ⚠️ JSON 불러오기는 현재 데이터를 덮어씁니다
     </div>
+        </div>
+      </details>
+    </div>
 
+    <!-- ── 진단 ───────────────────────────────── -->
+    <details class="set-adv set-adv-top" id="area-diag-section" ontoggle="if(this.open)renderAreaDiag()">
+      <summary>화면 영역 진단 (safe-area)</summary>
+      <div class="set-adv-body">
+      <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
+        노치·홈바 여백이 이상할 때 실제 수치를 확인합니다. 이 화면을 캡처해서 전달하세요.
+      </div>
+      <div id="area-diag-out" style="margin-top:10px;font-size:12px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+        <button class="tb-btn" onclick="renderAreaDiag()" style="flex:1;min-width:100px;justify-content:center;">
+          <span class="mi mi-sm">refresh</span> 다시 측정
+        </button>
+        <button class="tb-btn" onclick="toggleAreaOverlay()" style="flex:1;min-width:100px;justify-content:center;">
+          <span class="mi mi-sm">visibility</span> 영역 표시
+        </button>
+      </div>
+      </div>
     </details>
+
 
     <div class="modal-actions">
       <button onclick="closeSyncModal()">닫기</button>
@@ -812,9 +818,9 @@
 <script src="js/navigation.js?v=20260729a" defer></script>
 <script src="js/mindmap.js?v=20260606h" defer></script>
 <script src="js/timeblock.js?v=20260528e" defer></script>
-<script src="js/memo.js?v=20260729c" defer></script>
+<script src="js/memo.js?v=20260729d" defer></script>
 <!-- 홈 화면 — getAllNotes()(memo.js)에 의존하므로 반드시 그 뒤에 -->
-<script src="js/home.js?v=20260729d" defer></script>
+<script src="js/home.js?v=20260729e" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->
 <div class="m-bottom-tabs" id="m-bottom-tabs">
   <button class="m-tab-btn" data-page="home" aria-label="홈">
