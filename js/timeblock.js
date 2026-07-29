@@ -509,7 +509,7 @@ function openTbModal(hour) {
   tbEditingIdx = null;
   tbEditingKey = null;
   document.getElementById('tb-modal-title').textContent = '타임블록 추가';
-  document.getElementById('tb-date').value = dateKey(currentDate);
+  document.getElementById('tb-date-input').value = dateKey(currentDate);
   const delBtn = document.getElementById('tb-delete-btn');
   if (delBtn) delBtn.style.display = 'none';
   document.getElementById('tb-title').value = '';
@@ -539,7 +539,7 @@ function editTbBlock(key, idx) {
   // currentDate만 봤기 때문에, 날짜를 바꾸면 원래 날의 블록을 못 지웠다.
   tbEditingKey = key;
   document.getElementById('tb-modal-title').textContent = '타임블록 편집';
-  document.getElementById('tb-date').value = key;
+  document.getElementById('tb-date-input').value = key;
   const delBtn = document.getElementById('tb-delete-btn');
   if (delBtn) delBtn.style.display = '';
   document.getElementById('tb-title').value = block.title;
@@ -614,7 +614,7 @@ function saveTbBlock() {
   const end = document.getElementById('tb-end').value;
   if (!start || !end) { toast('시간을 설정하세요'); return; }
   // 날짜 입력값이 우선. 비어 있으면(구버전 캐시 등) 기존처럼 현재 날짜.
-  const key = document.getElementById('tb-date')?.value || dateKey(currentDate);
+  const key = document.getElementById('tb-date-input')?.value || dateKey(currentDate);
   if (!timeBlocks[key]) timeBlocks[key] = [];
 
   // 프리픽스가 있으면 현재 선택 색상을 해당 프리픽스에 저장 (수동 변경도 반영)
