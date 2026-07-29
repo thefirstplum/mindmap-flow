@@ -87,6 +87,23 @@ async function fetchGCalCalendarList() {
   return gcalCalendars;
 }
 
+// 방금 이 기기에서 만들거나 고친 일정.
+// Google의 events.list는 쓰기 직후 잠깐 그 일정을 안 돌려주는 경우가 있고
+// (eventual consistency), fetchGCalEvents는 캐시를 통째로 새로 만들기 때문에
+// 그 사이에 fetch가 끼면 방금 만든 일정이 화면에서 사라진다.
+// 최근 것만 잠깐 들고 있다가 fetch 결과에 없으면 다시 채워 넣는다.
+const _gcalRecentLocal = new Map();   // key → { ev, at }
+const GCAL_RECENT_TTL = 60_000;
+
+function _gcalMergeRecentLocal(map) {
+  const now = Date.now();
+  for (const [k, v] of _gcalRecentLocal) {
+    if (now - v.at > GCAL_RECENT_TTL) { _gcalRecentLocal.delete(k); continue; }
+    if (!map[k]) map[k] = v.ev;   // 서버가 아직 안 돌려준 것만 보충
+  }
+  return map;
+}
+
 // ──────────────────── 이벤트 fetch (선택된 모든 캘린더, 기간) ────────────────────
 async function fetchGCalEvents(timeMin, timeMax) {
   if (!gcalEnabled) return [];
@@ -112,9 +129,10 @@ async function fetchGCalEvents(timeMin, timeMax) {
       console.warn('[GCal] fetch failed for', calId, e.message);
     }
   }));
-  // 캐시 갱신
-  gcalEvents = {};
-  for (const ev of allEvents) gcalEvents[`${ev._calendarId}:${ev.id}`] = ev;
+  // 캐시 갱신 — 방금 만든 일정이 서버 응답에 아직 없으면 보충해서 되살린다
+  const next = {};
+  for (const ev of allEvents) next[`${ev._calendarId}:${ev.id}`] = ev;
+  gcalEvents = _gcalMergeRecentLocal(next);
   save('gcal_events_cache', gcalEvents);
   gcalLastFetchAt = Date.now();
   save('gcal_last_fetch_at', gcalLastFetchAt);
@@ -142,7 +160,9 @@ async function createGCalEvent(payload) {
   const created = await _gcalApi('POST', `/calendars/${encodeURIComponent(calId)}/events`, body);
   if (created) {
     created._calendarId = calId;
-    gcalEvents[`${calId}:${created.id}`] = created;
+    const k = `${calId}:${created.id}`;
+    gcalEvents[k] = created;
+    _gcalRecentLocal.set(k, { ev: created, at: Date.now() });
     save('gcal_events_cache', gcalEvents);
   }
   return created;
@@ -164,7 +184,9 @@ async function updateGCalEvent(calId, eventId, patch) {
   const updated = await _gcalApi('PATCH', `/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`, body);
   if (updated) {
     updated._calendarId = calId;
-    gcalEvents[`${calId}:${updated.id}`] = updated;
+    const k = `${calId}:${updated.id}`;
+    gcalEvents[k] = updated;
+    _gcalRecentLocal.set(k, { ev: updated, at: Date.now() });
     save('gcal_events_cache', gcalEvents);
   }
   return updated;
@@ -173,7 +195,10 @@ async function updateGCalEvent(calId, eventId, patch) {
 // 삭제
 async function deleteGCalEvent(calId, eventId) {
   await _gcalApi('DELETE', `/calendars/${encodeURIComponent(calId)}/events/${encodeURIComponent(eventId)}`);
-  delete gcalEvents[`${calId}:${eventId}`];
+  const k = `${calId}:${eventId}`;
+  delete gcalEvents[k];
+  // 최근 목록에서도 빼야 한다 — 안 그러면 다음 fetch에서 되살아난다
+  _gcalRecentLocal.delete(k);
   save('gcal_events_cache', gcalEvents);
 }
 
@@ -446,7 +471,11 @@ window._gcalEditorSave = async function() {
       toast('일정 생성됨', 'success');
     }
     _gcalEditorClose();
-    if (typeof renderCalendar === 'function') renderCalendar();
+    // 서버 기준으로 다시 읽어와 렌더한다. renderCalendar만 부르면 로컬 캐시만
+    // 그리므로 반복 일정 전개나 서버가 보정한 값이 반영되지 않는다.
+    // 방금 만든 건이 아직 목록에 안 잡혀도 _gcalRecentLocal이 채워 넣는다.
+    if (typeof refreshGCalEventsForVisibleWeek === 'function') await refreshGCalEventsForVisibleWeek();
+    else if (typeof renderCalendar === 'function') renderCalendar();
   } catch (e) {
     console.warn('[GCal] save failed:', e);
     toast('일정 저장 실패: ' + (e.message || ''), 'error');
@@ -461,7 +490,8 @@ window._gcalEditorDelete = async function() {
     await deleteGCalEvent(calId, eventId);
     toast('일정 삭제됨', 'success');
     _gcalEditorClose();
-    if (typeof renderCalendar === 'function') renderCalendar();
+    if (typeof refreshGCalEventsForVisibleWeek === 'function') await refreshGCalEventsForVisibleWeek();
+    else if (typeof renderCalendar === 'function') renderCalendar();
   } catch (e) {
     console.warn('[GCal] delete failed:', e);
     toast('삭제 실패: ' + (e.message || ''), 'error');
