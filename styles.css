@@ -278,11 +278,11 @@ body[data-theme="book"] h3 {
 /* (2) 행간 + (3) 한 줄 길이 — 종이책의 읽기 리듬.
    실제 편집기는 CodeMirror라서 .cm-content / .cm-line을 직접 잡아야 한다.
    (.bear-editor는 마운트 지점일 뿐이고 CM이 자체 font-size·max-width를 갖는다)
-   한 줄을 34em 안쪽으로 묶는 이유: 넓은 화면에서 글이 끝까지 늘어지면
+   한 줄을 46em 안쪽으로 묶는 이유: 넓은 화면에서 글이 끝까지 늘어지면
    다음 줄 첫 글자를 찾기 어려워 읽는 속도가 떨어진다. */
 body[data-theme="book"] #memo-live-editor .cm-content {
   font-size: 15.5px;
-  max-width: 34em;
+  max-width: 46em;
   padding: 34px 24px 80px;
   margin: 0 auto;
 }
@@ -296,7 +296,7 @@ body[data-theme="book"] .markdown-body {
   font-size: 15.5px;
   line-height: 2.0;
   padding: 34px 24px 60px;
-  max-width: 34em;
+  max-width: 46em;
   margin: 0 auto;
   width: 100%;
 }
