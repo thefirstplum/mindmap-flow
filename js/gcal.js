@@ -116,7 +116,7 @@ async function fetchGCalEvents(timeMin, timeMax) {
         timeMax: timeMax.toISOString(),
         singleEvents: 'true',   // 반복 일정도 개별 인스턴스로 펼침
         orderBy: 'startTime',
-        maxResults: '250',
+        maxResults: '2500',   // 월 단위로 받으므로 상한을 올린다 (Google 최대치)
         fields: 'items(id,summary,description,location,start,end,colorId,creator,htmlLink,recurringEventId,status)',
       });
       const items = (data && data.items) || [];
@@ -352,6 +352,8 @@ window.onGCalCalendarToggle = function(calId, checked) {
     gcalSelectedIds = gcalSelectedIds.filter(x => x !== calId);
   }
   save('gcal_selected_ids', gcalSelectedIds);
+  // 표시할 캘린더가 바뀌면 받아둔 기간 캐시는 더 이상 유효하지 않다
+  if (typeof invalidateGCalRange === 'function') invalidateGCalRange();
 };
 
 // 쓰기 대상 캘린더 변경
@@ -523,7 +525,8 @@ window._gcalEditorSave = async function() {
     // 서버 기준으로 다시 읽어와 렌더한다. renderCalendar만 부르면 로컬 캐시만
     // 그리므로 반복 일정 전개나 서버가 보정한 값이 반영되지 않는다.
     // 방금 만든 건이 아직 목록에 안 잡혀도 _gcalRecentLocal이 채워 넣는다.
-    if (typeof refreshGCalEventsForVisibleWeek === 'function') await refreshGCalEventsForVisibleWeek();
+    if (typeof invalidateGCalRange === "function") invalidateGCalRange();
+    if (typeof refreshGCalEventsForVisibleWeek === "function") await refreshGCalEventsForVisibleWeek({ force: true });
     else if (typeof renderCalendar === 'function') renderCalendar();
   } catch (e) {
     console.warn('[GCal] save failed:', e);
@@ -539,7 +542,8 @@ window._gcalEditorDelete = async function() {
     await deleteGCalEvent(calId, eventId);
     toast('일정 삭제됨', 'success');
     _gcalEditorClose();
-    if (typeof refreshGCalEventsForVisibleWeek === 'function') await refreshGCalEventsForVisibleWeek();
+    if (typeof invalidateGCalRange === "function") invalidateGCalRange();
+    if (typeof refreshGCalEventsForVisibleWeek === "function") await refreshGCalEventsForVisibleWeek({ force: true });
     else if (typeof renderCalendar === 'function') renderCalendar();
   } catch (e) {
     console.warn('[GCal] delete failed:', e);

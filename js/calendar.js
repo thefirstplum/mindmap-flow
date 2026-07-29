@@ -463,9 +463,43 @@ function setCalendarModeAndRefresh(mode) {
   }
 }
 
-// 보이는 주의 Google 이벤트 fetch + 다시 렌더
-async function refreshGCalEventsForVisibleWeek() {
+// 지금 화면이 필요로 하는 기간.
+// 예전엔 보이는 주 7일만 불러왔다. 그래서 미니 월간 달력의 점이 그 주에만
+// 찍히고, 주를 넘길 때마다 매번 다시 불러와야 했다.
+// 월 단위(+ 앞뒤 1주)로 넉넉히 받아 미니 월간 전체가 정확해지고 주 이동은
+// 대부분 이미 받아둔 범위 안에서 끝난다.
+function _gcalDesiredRange() {
+  const m = (typeof calViewMonth !== 'undefined') ? calViewMonth : new Date();
+  const mStart = new Date(m.getFullYear(), m.getMonth(), 1);
+  const mEnd = new Date(m.getFullYear(), m.getMonth() + 1, 0);
+  // 미니 월간 그리드는 앞뒤 달 일부를 함께 그리므로 1주씩 여유
+  let from = _calAddDays(mStart, -7);
+  let to = _calAddDays(mEnd, 7);
+  // 월은 그대로 두고 주만 넘긴 경우 주간 뷰가 범위 밖일 수 있다
+  const wStart = new Date(calWeekStart);
+  const wEnd = _calAddDays(calWeekStart, 7);
+  if (wStart < from) from = _calAddDays(wStart, -7);
+  if (wEnd > to) to = _calAddDays(wEnd, 7);
+  from.setHours(0, 0, 0, 0);
+  to.setHours(23, 59, 59, 999);
+  return { from, to };
+}
+
+// 이미 받아둔 기간. 이 안이면 다시 부르지 않는다.
+let _gcalFetchedRange = null;
+function invalidateGCalRange() { _gcalFetchedRange = null; }
+
+// 화면에 필요한 기간의 Google 이벤트 fetch + 다시 렌더
+async function refreshGCalEventsForVisibleWeek(opts) {
   if (typeof window.gcal === 'undefined' || !window.gcal.enabled) {
+    renderCalendar();
+    return;
+  }
+  const force = !!(opts && opts.force);
+  const { from, to } = _gcalDesiredRange();
+  // 이미 가진 범위 안이면 네트워크를 타지 않고 그리기만 한다
+  if (!force && _gcalFetchedRange
+      && from >= _gcalFetchedRange.from && to <= _gcalFetchedRange.to) {
     renderCalendar();
     return;
   }
@@ -475,11 +509,8 @@ async function refreshGCalEventsForVisibleWeek() {
     if (window.gcal.selectedIds.length === 0) {
       await window.gcal.fetchCalendarList();
     }
-    const start = new Date(calWeekStart);
-    start.setHours(0, 0, 0, 0);
-    const end = _calAddDays(calWeekStart, 7);
-    end.setHours(23, 59, 59);
-    await window.gcal.fetchEvents(start, end);
+    await window.gcal.fetchEvents(from, to);
+    _gcalFetchedRange = { from, to };
   } catch (e) {
     console.warn('[GCal] week fetch failed:', e);
     if (e.status === 401 || e.status === 403) {
@@ -857,14 +888,25 @@ function calSelectDay(key) {
   if (dateKey(ws) !== dateKey(calWeekStart)) calWeekStart = ws;
   renderCalendar();
 }
-function calPrevMonth() { calViewMonth.setMonth(calViewMonth.getMonth() - 1); _renderMiniCal(); }
-function calNextMonth() { calViewMonth.setMonth(calViewMonth.getMonth() + 1); _renderMiniCal(); }
+// 달을 넘기면 그 달 일정을 받아와야 미니 월간의 점이 채워진다.
+// (예전엔 주 단위로만 받아서 다른 주는 늘 비어 보였다)
+function calPrevMonth() {
+  calViewMonth.setMonth(calViewMonth.getMonth() - 1);
+  _renderMiniCal();
+  if (_shouldFetchGCal()) refreshGCalEventsForVisibleWeek();
+}
+function calNextMonth() {
+  calViewMonth.setMonth(calViewMonth.getMonth() + 1);
+  _renderMiniCal();
+  if (_shouldFetchGCal()) refreshGCalEventsForVisibleWeek();
+}
 function calGoToday() {
   const t = new Date();
   calViewMonth = new Date(t.getFullYear(), t.getMonth(), 1);
   calSelectedKey = dateKey(t);
   calWeekStart = _calStartOfWeek(t);
   renderCalendar();
+  if (_shouldFetchGCal()) refreshGCalEventsForVisibleWeek();
 }
 function calBackToGrid() {
   // 주간 뷰에선 별도 동작 없음 (호환용 stub)
