@@ -1005,8 +1005,10 @@ function renderMemoEditor() {
       </div>
       <button class="memo-tag-add-btn" onclick="focusMemoTagInput()">+ 태그</button>
       <input type="text" id="memo-tag-input" class="memo-tag-input" placeholder="태그명..."
+        oninput="renderTagSuggest()"
         onkeydown="if(event.key==='Enter'&&!event.isComposing){addMemoTagFromInput();} if(event.key==='Escape'){hideMemoTagInput();}"
         onblur="setTimeout(hideMemoTagInput,150)">
+      <div class="tag-suggest" id="memo-tag-suggest"></div>
     </div>
     <!-- 메타는 수정 시각 한 줄만. 예전엔 수정·작성·글자수·읽기시간·이미지·태그
          6개가 가운뎃점으로 이어져 제목 바로 밑에서 시선을 뺏었다.
@@ -1616,6 +1618,7 @@ function focusMemoTagInput() {
   if (!input) return;
   input.classList.add('visible');
   input.focus();
+  renderTagSuggest();
 }
 
 function addMemoTagFromInput() {
@@ -1631,6 +1634,51 @@ function hideMemoTagInput() {
   if (!input || document.activeElement === input) return;
   input.classList.remove('visible');
   input.value = '';
+  const box = document.getElementById('memo-tag-suggest');
+  if (box) box.innerHTML = '';
+}
+
+// =================== 태그 자동완성 ===================
+// 태그를 매번 손으로 정확히 쳐야 해서 '프로젝트/에뮬'과 '프로젝트/에뮬레이터'
+// 같은 유령 태그가 생기기 쉬웠다. 이미 쓰고 있는 태그를 보여주고 골라 쓰게 한다.
+// 새 태그를 막지는 않는다 — 그냥 엔터를 치면 그대로 만들어진다.
+function allExistingTags() {
+  const set = new Set();
+  for (const n of getAllNotes()) for (const t of (n.tags || [])) if (t) set.add(t);
+  return [...set];
+}
+
+function renderTagSuggest() {
+  const input = document.getElementById('memo-tag-input');
+  const box = document.getElementById('memo-tag-suggest');
+  if (!input || !box) return;
+  const q = input.value.trim().toLowerCase();
+  const memo = memos.find(m => m.id === activeMemoId);
+  const own = new Set((memo && memo.tags) || []);
+
+  const hits = allExistingTags()
+    .filter(t => !own.has(t))                       // 이미 붙은 건 제외
+    .filter(t => !q || t.toLowerCase().includes(q))
+    .sort((a, b) => {
+      // 입력값으로 시작하는 것을 먼저, 그 다음 사전순
+      const as = q && a.toLowerCase().startsWith(q) ? 0 : 1;
+      const bs = q && b.toLowerCase().startsWith(q) ? 0 : 1;
+      return as !== bs ? as - bs : a.localeCompare(b, 'ko');
+    })
+    .slice(0, 8);
+
+  box.innerHTML = hits.map(t =>
+    `<button class="tag-suggest-item" onmousedown="event.preventDefault()" onclick="pickTagSuggest(${JSON.stringify(t).replace(/"/g, '&quot;')})">${escapeHtml(t)}</button>`
+  ).join('');
+}
+
+// onmousedown에서 preventDefault를 걸어야 input의 blur가 먼저 터져
+// 목록이 사라지는 걸 막을 수 있다.
+function pickTagSuggest(tag) {
+  addMemoTag(tag);
+  const input = document.getElementById('memo-tag-input');
+  if (input) { input.value = ''; input.blur(); }
+  hideMemoTagInput();
 }
 
 renderMemoList();
