@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v33'; // Google 일정 월 단위 로드
+const CACHE_NAME = 'mindflow-cache-v34'; // maskable 아이콘 확대 + 북 테마 전자책화
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
