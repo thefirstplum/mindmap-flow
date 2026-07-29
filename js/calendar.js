@@ -39,11 +39,37 @@ function _timeToMin(t) {
 }
 
 function renderCalendar() {
+  _noteDayCache = null;   // 렌더 시작 시 한 번만 다시 만든다
   _renderMiniCal();
   _renderWeekGrid();
   _renderSummary();
   _renderMobileCal();
 }
+
+// ===== 날짜별 노트 흔적 =====
+// 캘린더를 "일정 관리"가 아니라 "시간 위에 흔적을 놓는" 화면으로 쓰기 위한 인덱스.
+// 일정이 없는 날에도 그날 무엇을 남겼는지 드러난다.
+// 기준은 수정일(updatedAt) — 오래된 메모를 오늘 고치면 오늘 흔적으로 잡힌다.
+let _noteDayCache = null;
+function _notesByDay() {
+  // renderCalendar가 하위 렌더 4개를 연달아 부르므로 그 사이엔 재사용한다.
+  if (_noteDayCache) return _noteDayCache;
+  const map = new Map();
+  if (typeof getAllNotes === 'function') {
+    for (const n of getAllNotes()) {
+      const iso = n.updatedAt || n.createdAt;
+      if (!iso) continue;
+      const d = new Date(iso);
+      if (isNaN(d)) continue;
+      const k = dateKey(d);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(n);
+    }
+  }
+  _noteDayCache = map;
+  return map;
+}
+function _notesOnDay(key) { return _notesByDay().get(key) || []; }
 
 // ===== 미니 월간 =====
 function _renderMiniCal() {
@@ -75,6 +101,7 @@ function _renderMiniCal() {
     const hasTb = (timeBlocks[key] || []).length > 0;
     const hasJournal = (journalEntries[key] && (journalEntries[key].mood || journalEntries[key].content));
     const hasGCal = _gcalHasEventsOnDay(date);
+    const hasNote = _notesOnDay(key).length > 0;
     const has = hasTb || hasJournal || hasGCal;
     const cls = [
       'mini-cal-cell',
@@ -83,6 +110,8 @@ function _renderMiniCal() {
       date.getDay() === 0 && inWeek(key) ? 'week-start' : '',
       date.getDay() === 6 && inWeek(key) ? 'week-end' : '',
       has ? 'has-event' : '',
+      // 일정 점과 구분되는 별도 표식 — 그날 메모를 남겼다는 뜻
+      hasNote ? 'has-note' : '',
     ].filter(Boolean).join(' ');
     html += `<div class="${cls}" onclick="calSelectDayMini('${key}')">${d}</div>`;
   }
@@ -540,6 +569,7 @@ function _renderMobileCal() {
       i === 6 ? 'sat' : '',
       has ? 'has-event' : '',
       hasGCal ? 'has-gcal' : '',
+      _notesOnDay(k).length > 0 ? 'has-note' : '',
     ].filter(Boolean).join(' ');
     slider += `<button class="${cls}" onclick="calSelectDay('${k}')">
       <span class="dow">${dows[i]}</span>
@@ -559,6 +589,7 @@ function _renderMobileCal() {
     if (d > 0) total += d;
     if (b.done) done++;
   }
+  const dayNotes = _notesOnDay(calSelectedKey);
   const head = `
     <div class="mob-day-head">
       <div class="mob-day-big">${m}월 ${dd}일 ${dowName}</div>
@@ -566,9 +597,29 @@ function _renderMobileCal() {
         <span class="pill accent">${blocks.length} 블록</span>
         ${blocks.length > 0 ? `<span class="pill">${done}/${blocks.length} 완료</span>` : ''}
         ${total > 0 ? `<span class="pill">${Math.floor(total/60)}h ${total%60}m</span>` : ''}
+        ${dayNotes.length > 0 ? `<span class="pill">메모 ${dayNotes.length}</span>` : ''}
       </div>
     </div>
   `;
+
+  // 그날 남긴 노트 — 일정과 별개로 "이날 무엇을 남겼나"를 보여준다.
+  // 클릭하면 해당 노트로 이동한다.
+  const notesSection = dayNotes.length ? `
+    <div class="mob-notes-sec">
+      <div class="mob-notes-head">이날 남긴 흔적 ${dayNotes.length}</div>
+      ${dayNotes
+        .slice()
+        .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+        .map(n => {
+          const t = new Date(n.updatedAt || n.createdAt);
+          const hh = isNaN(t) ? '' : `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
+          return `<div class="mob-note-row" onclick="openNote('${n.type}', ${n.id})">
+            <span class="mi mi-sm mob-note-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
+            <span class="mob-note-title">${_escapeHtml(n.title) || '제목 없음'}</span>
+            <span class="mob-note-time">${hh}</span>
+          </div>`;
+        }).join('')}
+    </div>` : '';
 
   // 1일 시간표
   const START_H = 7, END_H = 22;
@@ -678,6 +729,7 @@ function _renderMobileCal() {
     ${slider}
     ${head}
     <div class="mob-timeline">${timeCol}${dayCol}</div>
+    ${notesSection}
     ${journalSection}
   `;
 }

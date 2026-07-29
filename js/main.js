@@ -200,9 +200,13 @@ if (window.SyncEvents) {
     }
     // 홈은 메모·마인드맵을 모두 읽으므로 둘 중 하나만 바뀌어도 다시 그린다.
     // (홈에 머무는 동안 동기화가 도착하는 경우 — navigateTo는 안 불리므로 여기서)
-    if (currentPage === 'home' && typeof renderHome === 'function'
-        && (types.includes('memo') || types.includes('mindmap'))) {
+    const notesChanged = types.includes('memo') || types.includes('mindmap');
+    if (currentPage === 'home' && typeof renderHome === 'function' && notesChanged) {
       renderHome();
+    }
+    // 캘린더도 노트 수정일을 흔적으로 표시하므로 같이 갱신한다
+    if (currentPage === 'calendar' && typeof renderCalendar === 'function' && notesChanged) {
+      renderCalendar();
     }
     // Restore focus + selection after re-renders disrupted the DOM
     if (focusedEl && focusedEl.isConnected) {
