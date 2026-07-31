@@ -187,7 +187,13 @@ class DriveClient {
     if (this._refreshTimer) clearTimeout(this._refreshTimer);
     const lead = 5 * 60 * 1000;
     const delay = this.tokenExpires - Date.now() - lead;
-    if (delay <= 0) return;
+    // 이미 만료가 임박(또는 경과)했다면 예전엔 그냥 return이라 타이머가 아예
+    // 안 잡혔고, 그 뒤로는 아무도 갱신을 시도하지 않아 만료 상태로 남았다.
+    // 기기가 자고 일어난 뒤가 딱 이 경우다. 곧바로 한 번 갱신한다.
+    if (delay <= 0) {
+      this.refreshAccessToken().catch(e => console.warn('Immediate refresh failed:', e));
+      return;
+    }
     this._refreshTimer = setTimeout(() => {
       // Best effort; failure here is non-fatal because ensureToken will retry
       // synchronously the next time a request happens.

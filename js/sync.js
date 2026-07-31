@@ -2329,15 +2329,30 @@ async function driveImportFromFolder() {
   }
 }
 
+// 백그라운드에서 조용히 토큰만 새로 받아온다. 성공하면 true.
+// OAuth 팝업/리다이렉트는 절대 띄우지 않는다 — 사용자가 아무것도 안 하고
+// 있는데 인증 화면이 뜨면 안 되므로 silent 모드로만 시도한다.
+// 진짜로 재인증이 필요한 경우(refresh_token 없음/폐기)에만 false를 돌려준다.
+async function _driveTrySilentRefresh() {
+  if (typeof driveClient === 'undefined') return false;
+  try {
+    await driveClient.ensureToken({ silent: true });
+    return driveClient.hasValidToken();
+  } catch {
+    return false;
+  }
+}
+
 async function drivePoll(force = false) {
   if (!driveFolderId || isLoadingFromDrive || isPushingToDrive) return;
-  // Token miss is often transient (proactive refresh hasn't fired yet,
-  // network blip, tab was just unhidden). Skip this tick and let the next
-  // 15s try again — do NOT killing the polling timer permanently, which
-  // would silently stop background sync for the rest of the session.
+  // 토큰이 없는 건 대개 일시적이다 — 선제 갱신 타이머가 아직 안 돌았거나,
+  // 기기가 자고 일어나 setTimeout이 씹혔거나(iOS PWA에서 흔함), 네트워크가 잠깐
+  // 끊겼을 때. refresh_token이 있으면 조용히 새로 받아오면 되는 상황인데
+  // 예전엔 갱신을 시도하지도 않고 바로 error로 만들어, 15초마다 도는 폴링이
+  // "동기화 실패"를 깜빡이게 했다. 실제로는 아무 문제도 없는 경우가 대부분이다.
   if (!hasValidDriveToken()) {
-    setDriveStatus('error');
-    return;
+    if (!(await _driveTrySilentRefresh())) setDriveStatus('error');
+    return;   // 갱신했어도 이번 틱은 넘기고 다음 15초에 정상 경로로 돈다
   }
   if (!force && driveDirty) return; // don't poll while we have unpushed local changes — would overwrite
   if (!force && document.hidden) return;
@@ -2440,7 +2455,9 @@ function scheduleDriveSave() {
     clearTimeout(driveMaxDelayTimer); driveMaxDelayTimer = null;
     // Background flush must not trigger OAuth popup. Leave dirty=true; user will
     // re-auth on next manual "동기화" click and we'll push then.
-    if (!hasValidDriveToken()) {
+    // 다만 토큰 만료는 조용히 갱신하면 대부분 해결된다 — 갱신조차 실패할 때만
+    // 실패로 표시한다. (예전엔 만료되자마자 error라서 "동기화 실패"가 떴다)
+    if (!hasValidDriveToken() && !(await _driveTrySilentRefresh())) {
       setDriveStatus('error');
       return;
     }
@@ -2560,7 +2577,11 @@ function scheduleDriveRetry() {
   driveRetryTimer = setTimeout(async () => {
     if (!driveDirty || !driveFolderId) { driveRetryAttempt = 0; return; }
     // Background retry — same rule, no popup. Wait for user gesture.
-    if (!hasValidDriveToken()) { driveRetryAttempt = 0; return; }
+    // 여기서도 만료면 조용히 갱신을 먼저 시도한다. 예전엔 바로 포기하면서
+    // 재시도 카운터까지 리셋해, 밀린 변경이 계속 안 올라가는 상태가 됐다.
+    if (!hasValidDriveToken() && !(await _driveTrySilentRefresh())) {
+      driveRetryAttempt = 0; return;
+    }
     try {
       await drivePushAll();
       driveDirty = false;
