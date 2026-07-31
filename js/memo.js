@@ -29,7 +29,7 @@ function getAllNotes() {
       tags: m.tags || [],
       updatedAt: m.updatedAt || m.date,
       createdAt: m.date,
-      searchText: ((m.title || '') + ' ' + (m.content || '')).toLowerCase(),
+      searchText: _nfc(((m.title || '') + ' ' + (m.content || ''))).toLowerCase(),
       content: m.content || '',
       ref: m
     });
@@ -44,7 +44,7 @@ function getAllNotes() {
         tags: mm.tags || [],
         updatedAt: mm.updatedAt || mm.createdAt,
         createdAt: mm.createdAt,
-        searchText: ((mm.name || '') + ' ' + nodeText).toLowerCase(),
+        searchText: _nfc(((mm.name || '') + ' ' + nodeText)).toLowerCase(),
         nodeCount: (mm.nodes || []).length,
         edgeCount: (mm.edges || []).length,
         ref: mm
@@ -617,6 +617,13 @@ async function deleteMemo(id) {
 //   "exact phrase"  — substring with spaces
 //   -foo            — must NOT contain
 //   bare word       — substring
+// 한글은 눈에 같아 보여도 NFC(완성형 '한')와 NFD(자모분리 'ㅎ+ㅏ+ㄴ') 두 가지로
+// 저장될 수 있다. macOS 파일시스템이 NFD를 쓰기 때문에 Drive를 거쳐 들어온 옛
+// 메모 제목 일부가 NFD로 남아 있고(49개 중 19개), 코드포인트가 달라
+// includes/=== 비교가 전부 실패한다 — '까르보나라'를 검색해도 안 걸렸다.
+// 비교 전에 항상 NFC로 맞춘다.
+function _nfc(s) { return typeof s === 'string' ? s.normalize('NFC') : s; }
+
 function parseSearchQuery(raw) {
   const tokens = [];
   if (!raw) return tokens;
@@ -626,7 +633,7 @@ function parseSearchQuery(raw) {
   while ((m = re.exec(raw)) !== null) {
     const neg = m[1] === '-';
     const key = m[2] ? m[2].slice(0, -1).toLowerCase() : null; // strip ':'
-    const val = (m[3] !== undefined ? m[3] : m[4] || '').toLowerCase();
+    const val = _nfc(m[3] !== undefined ? m[3] : m[4] || '').toLowerCase();
     if (!val && !key) continue;
     tokens.push({ neg, key, val });
   }
@@ -635,13 +642,13 @@ function parseSearchQuery(raw) {
 
 function evalSearchQuery(note, tokens) {
   if (!tokens.length) return true;
-  const text = (note.searchText || ((note.title || '') + ' ' + (note.content || '')).toLowerCase());
+  const text = (note.searchText || _nfc(((note.title || '') + ' ' + (note.content || ''))).toLowerCase());
   for (const t of tokens) {
     let pass;
     if (t.key === 'tag') {
       const tag = t.val.replace(/^#/, '');
       pass = (note.tags || []).some(x => {
-        const lx = (x || '').toLowerCase();
+        const lx = _nfc(x || '').toLowerCase();
         return lx === tag || lx.startsWith(tag + '/');
       });
     } else if (t.key === 'type') {
@@ -666,7 +673,7 @@ function _escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
 // Build a preview snippet centered around the first matched bare token
 function previewSnippetWithMatch(content, tokens) {
-  const text = content.replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ');
+  const text = _nfc(content).replace(/^#+\s+.*$/gm, '').replace(/[*_`>#]/g, '').replace(/\n+/g, ' ');
   const word = tokens.find(t => !t.key && !t.neg && t.val)?.val;
   if (!word) return text.trim().slice(0, 90);
   const idx = text.toLowerCase().indexOf(word);
@@ -678,7 +685,8 @@ function previewSnippetWithMatch(content, tokens) {
 
 function highlightSearchMatch(html, tokens) {
   if (!tokens.length) return html;
-  let out = html;
+  // 표시용 이스케이프 텍스트라 정규화해도 화면 결과는 동일하다
+  let out = _nfc(html);
   for (const t of tokens) {
     if (t.key || t.neg || !t.val) continue;
     out = out.replace(new RegExp(`(${_escapeRegex(t.val)})`, 'gi'), '<mark>$1</mark>');
