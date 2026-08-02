@@ -110,50 +110,6 @@ function renderTimeBlocks() {
     <div class="stat"><div class="label">완료</div><div class="value">${blocks.filter(b=>b.done).length} / ${blocks.length}</div></div>
   </div>`;
 
-  // Ledger summary card — only when the ledger feature is enabled in settings
-  if (typeof appSettings !== 'undefined' && appSettings.ledgerEnabled && typeof ledgerEntries !== 'undefined') {
-    // Local-timezone match — entries' ISO timestamps are UTC, so slicing
-     // would mis-bucket morning-Korea entries. localDateKey converts back
-     // to local before comparing.
-    const dayKey = dateKey(currentDate);
-    const todays = ledgerEntries.filter(e => localDateKey(e.date) === dayKey);
-    let dayIncome = 0, dayExpense = 0;
-    todays.forEach(e => {
-      if (e.type === 'income') dayIncome += e.amount;
-      else dayExpense += e.amount;
-    });
-    const dayNet = dayIncome - dayExpense;
-    const recent = todays.slice(0, 3);
-    const winFmt = n => new Intl.NumberFormat('ko-KR').format(n) + '원';
-    const recentList = recent.length === 0
-      ? '<div class="tb-ledger-empty">이 날은 기록 없음</div>'
-      : recent.map(e => {
-          const time = localTimeHHMM(e.date);
-          const sign = e.type === 'income' ? '+' : '-';
-          const cls = e.type === 'income' ? 'income' : 'expense';
-          const label = e.category || (e.type === 'income' ? '수입' : '지출');
-          return `<div class="tb-ledger-line">
-            <span class="tb-ledger-time">${time}</span>
-            <span class="tb-ledger-label">${escapeHtml(label)}${e.note ? ' · ' + escapeHtml(e.note) : ''}</span>
-            <span class="tb-ledger-amt ${cls}">${sign}${winFmt(e.amount)}</span>
-          </div>`;
-        }).join('');
-
-    html += `<div class="tb-ledger-card" onclick="goToLedger()">
-      <div class="tb-ledger-header">
-        <div class="tb-ledger-title">💰 가계부</div>
-        <div class="tb-ledger-totals">
-          <span class="income">+${winFmt(dayIncome)}</span>
-          <span class="sep">·</span>
-          <span class="expense">-${winFmt(dayExpense)}</span>
-          <span class="net ${dayNet >= 0 ? 'income' : 'expense'}">잔액 ${dayNet >= 0 ? '+' : ''}${winFmt(dayNet)}</span>
-        </div>
-      </div>
-      <div class="tb-ledger-recent">${recentList}</div>
-      ${todays.length > 3 ? `<div class="tb-ledger-more">+ ${todays.length - 3}건 더</div>` : ''}
-    </div>`;
-  }
-
   const today = new Date();
   const isToday = isSameDay(currentDate, today);
   const nowH = today.getHours();

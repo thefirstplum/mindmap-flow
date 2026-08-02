@@ -1,18 +1,26 @@
 {
   "name": "Memo — 노트 · 마인드맵 · 캘린더",
   "short_name": "Memo",
-  "description": "마인드맵·메모·캘린더·루틴·일기·가계부를 한 곳에서. 옵시디언 친화 .md, Google Drive 자동 동기화, 100% 오프라인 PWA.",
+  "description": "메모·마인드맵·캘린더를 한 곳에서. 옵시디언 친화 .md, Google Drive 자동 동기화, 100% 오프라인 PWA.",
   "start_url": "./",
   "scope": "./",
   "id": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone"],
+  "display_override": [
+    "window-controls-overlay",
+    "standalone"
+  ],
   "background_color": "#0f1117",
   "theme_color": "#0f1117",
   "orientation": "any",
   "lang": "ko",
-  "categories": ["productivity", "utilities"],
-  "launch_handler": { "client_mode": "navigate-existing" },
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "icon.svg",
@@ -51,28 +59,39 @@
       "short_name": "메모",
       "description": "빈 메모를 바로 작성",
       "url": "./?action=new-memo",
-      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
     },
     {
       "name": "새 마인드맵",
       "short_name": "마인드맵",
       "description": "새 마인드맵 생성",
       "url": "./?action=new-mindmap",
-      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
     },
     {
       "name": "캘린더",
       "short_name": "캘린더",
       "description": "오늘 일정",
       "url": "./?page=calendar",
-      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "루틴",
-      "short_name": "루틴",
-      "description": "오늘 루틴 체크",
-      "url": "./?page=routine",
-      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
     }
   ],
   "share_target": {
