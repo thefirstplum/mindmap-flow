@@ -1,6 +1,6 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
 // 루틴 제거 (2026-06-05 사장님 결정)
-const pages = { home: '홈', memo: '노트', mindmap: '마인드맵', calendar: '캘린더', ledger: '가계부', journal: '감정일기' };
+const pages = { home: '홈', memo: '노트', mindmap: '마인드맵', calendar: '캘린더', journal: '감정일기' };
 
 // Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
 const headerActions = {
@@ -34,7 +34,6 @@ const headerActions = {
     if (typeof openTbModal === 'function') openTbModal('add');
   } },
   journal:  { label: '오늘',        fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
-  ledger:   { label: '추가',        fn: () => { const a = document.getElementById('ledger-amount'); if (a) a.focus(); } },
 };
 
 // Header search-pill placeholder per page
@@ -44,7 +43,6 @@ const headerSearchPlaceholder = {
   mindmap:  '마인드맵 검색…',
   calendar: '일정 검색…',
   journal:  '일기 검색…',
-  ledger:   '거래 검색…',
 };
 
 function applyHeaderForPage(page) {
@@ -135,7 +133,7 @@ let currentPage = 'memo';
 function navigateTo(page, opts) {
   opts = opts || {};
   if (!pages[page]) page = 'memo';
-  // Honour settings that hide a tab (e.g. ledger disabled)
+  // Honour settings that hide a tab
   const navBtn = document.querySelector(`.sidebar .nav-btn[data-page="${page}"]`);
   if (navBtn && navBtn.style.display === 'none') page = 'memo';
 
@@ -220,17 +218,6 @@ function navigateTo(page, opts) {
     // its canvas needs a resize once this page becomes visible.
     if (typeof resizeCanvas === 'function') requestAnimationFrame(resizeCanvas);
   }
-  if (page === 'ledger') {
-    renderLedger();
-    // iOS Safari only opens the keyboard if focus happens SYNCHRONOUSLY
-    // inside a user-gesture handler. setTimeout breaks that chain — so
-    // focus directly here (the page is already display:flex by now).
-    const amt = document.getElementById('ledger-amount');
-    if (amt) {
-      amt.focus();
-      try { amt.click(); } catch {}
-    }
-  }
   // Refresh the sidebar tag tree so its active-row highlight matches the
   // page we just switched to (highlight only shows on the notes view).
   if (typeof renderMemoList === 'function') renderMemoList();
@@ -283,11 +270,6 @@ function initRoute() {
 // Wrap in arrow so the reference is resolved at click time — sync.js loads
 // after navigation.js, so a bare reference to openSyncModal here would
 // throw ReferenceError and abort the rest of this file.
-// Programmatic page navigation (used by ledger summary card on timeblock)
-function goToLedger() {
-  const btn = document.querySelector('.sidebar .nav-btn[data-page="ledger"]');
-  if (btn && btn.style.display !== 'none') navigateTo('ledger');
-}
 
 // =================== MOBILE SIDEBAR DRAWER ===================
 // On mobile the sidebar is a slide-in drawer (no bottom tab bar). It's driven

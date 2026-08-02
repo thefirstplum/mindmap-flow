@@ -642,25 +642,9 @@ function localTimeHHMM(d) {
 }
 
 // =================== APP SETTINGS ===================
-const DEFAULT_LEDGER_METHODS = [
-  '현금', '체크카드', '지역화폐',
-  '신한카드', 'KB국민카드', '삼성카드', '현대카드',
-  '롯데카드', '하나카드', '우리카드', 'NH농협카드', 'BC카드'
-];
-let appSettings = load('settings', { ledgerEnabled: false, ledgerMethods: DEFAULT_LEDGER_METHODS });
-// Migrate older saved settings: empty list, or the old 4-entry default
-// that lumped all credit cards into "신용카드", expand to per-brand list.
-if (!appSettings.ledgerMethods || !Array.isArray(appSettings.ledgerMethods) || appSettings.ledgerMethods.length === 0) {
-  appSettings.ledgerMethods = DEFAULT_LEDGER_METHODS;
-}
-const OLD_GENERIC_DEFAULT = ['현금', '체크카드', '지역화폐', '신용카드'];
-if (
-  appSettings.ledgerMethods.length === OLD_GENERIC_DEFAULT.length &&
-  appSettings.ledgerMethods.every((v, i) => v === OLD_GENERIC_DEFAULT[i])
-) {
-  appSettings.ledgerMethods = DEFAULT_LEDGER_METHODS;
-  save('settings', appSettings);
-}
+// 가계부 제거(2026-08-03)로 ledgerEnabled/ledgerMethods 관련 설정도 함께 정리.
+// 기존 사용자의 settings에 남아 있는 옛 키는 그냥 무시된다.
+let appSettings = load('settings', {});
 
 function applySettings() {
   // 메모 ruled lines on/off — body 클래스로 토글 (CSS에서 .no-ruled로 라인 숨김)
@@ -668,29 +652,6 @@ function applySettings() {
   document.body.classList.toggle('no-ruled', appSettings.ruledLines === false);
   const ruledToggle = document.getElementById('setting-ruled-lines');
   if (ruledToggle) ruledToggle.checked = appSettings.ruledLines !== false;
-
-  // 가계부 nav 표시·숨김
-  const ledgerNav = document.querySelector('[data-page="ledger"]');
-  if (ledgerNav) {
-    ledgerNav.style.display = appSettings.ledgerEnabled ? '' : 'none';
-  }
-  // If ledger was disabled while user was on its page, switch to first available page
-  if (!appSettings.ledgerEnabled) {
-    const cur = document.querySelector('.page.active');
-    if (cur && cur.id === 'page-ledger') {
-      const firstNav = document.querySelector('.sidebar .nav-btn[data-page]:not([style*="none"])');
-      if (firstNav) firstNav.click();
-    }
-  }
-  // Sync the toggle state in the settings modal
-  const toggle = document.getElementById('setting-ledger-enabled');
-  if (toggle) toggle.checked = !!appSettings.ledgerEnabled;
-  // Sync the methods textarea
-  const methodsTa = document.getElementById('setting-ledger-methods');
-  if (methodsTa) methodsTa.value = (appSettings.ledgerMethods || []).join('\n');
-  // Toggle visibility of the ledger-specific settings group
-  const ledgerGroup = document.getElementById('settings-ledger-group');
-  if (ledgerGroup) ledgerGroup.style.display = appSettings.ledgerEnabled ? '' : 'none';
 }
 
 // 메모 ruled lines 토글 — ⌘K 액션 + 동기화 모달 토글에서 호출
@@ -703,25 +664,9 @@ function toggleRuledLines() {
   }
 }
 
-function saveLedgerMethods() {
-  const ta = document.getElementById('setting-ledger-methods');
-  if (!ta) return;
-  const list = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
-  if (list.length === 0) { toast('최소 1개 이상의 결제 수단이 필요합니다', 'error'); return; }
-  appSettings.ledgerMethods = list;
-  saveSettings();
-  // Refresh the dropdown in the ledger page
-  if (typeof updateMethodOptions === 'function') updateMethodOptions();
-  toast('결제 수단 저장됨', 'success');
-}
-
 function saveSettings() {
   save('settings', appSettings);
   applySettings();
-  // Refresh timeblock if visible so the ledger summary card appears/disappears
-  if (typeof renderTimeBlocks === 'function' && document.getElementById('page-timeblock')?.classList.contains('active')) {
-    renderTimeBlocks();
-  }
 }
 
 function setSetting(key, value) {

@@ -34,7 +34,6 @@ drawMindMap();
 
 // Apply settings (show/hide ledger tab etc.) and init ledger renderer
 applySettings();
-if (typeof initLedger === 'function') initLedger();
 
 // One-time: extract inline hashtags from existing memo content into tag chips
 if (typeof migrateHashtagsFromContent === 'function') {
