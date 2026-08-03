@@ -580,6 +580,18 @@ function _renderSummary() {
   _renderDayJournal();  // cal-side 하단 감정일기 패널
 }
 
+// 무드 버튼 한 줄. 데스크탑/모바일이 같은 마크업을 쓰도록 한 곳에서 만든다.
+// onmousedown preventDefault: 이게 없으면 버튼을 누르는 순간 textarea가 blur →
+// calJournalBlur가 화면을 다시 그려 버튼이 사라지고 click이 영영 안 온다.
+function _calMoodRowHtml() {
+  const journal = (typeof journalEntries !== 'undefined' && journalEntries[calSelectedKey]) || { mood:'', content:'' };
+  const moodList = (typeof MOODS !== 'undefined') ? MOODS
+    : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
+  return moodList.map(mo =>
+    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onmousedown="event.preventDefault()" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
+  ).join('');
+}
+
 // 선택일 감정일기 패널 (cal-side 안 — 데스크탑)
 function _renderDayJournal() {
   const host = document.getElementById('cal-day-journal');
@@ -589,18 +601,22 @@ function _renderDayJournal() {
   const date = new Date(y, m-1, d);
   const dows = ['일','월','화','수','목','금','토'];
   const journal = (typeof journalEntries !== 'undefined' && journalEntries[key]) || { mood:'', content:'' };
-  const moodList = (typeof MOODS !== 'undefined') ? MOODS
-    : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
-  const moodHtml = moodList.map(mo =>
-    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
-  ).join('');
+  const moodHtml = _calMoodRowHtml();
+  // 일기를 치는 중이면 textarea를 다시 만들지 않는다. innerHTML 교체는 기존
+  // textarea를 통째로 버리므로 포커스·커서 위치가 그 자리에서 날아간다.
+  // (동기화·구글캘린더 응답·자기 자신의 자동저장이 모두 renderCalendar를 부른다)
+  if (_calJournalTyping()) {
+    const row = host.querySelector('.cal-mood-row');
+    if (row) row.innerHTML = moodHtml;   // 무드 버튼만 갱신
+    return;
+  }
   host.innerHTML = `
     <div class="cal-side-sec-title cal-side-sec-title-with-date">
       <span>📔 감정일기</span>
       <span class="cal-side-day">${m}/${d} ${dows[date.getDay()]}</span>
     </div>
     <div class="cal-mood-row">${moodHtml}</div>
-    <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${_escapeHtml(journal.content || '')}</textarea>
+    <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.content || '')}</textarea>
   `;
 }
 
@@ -608,6 +624,10 @@ function _renderDayJournal() {
 function _renderMobileCal() {
   const el = document.getElementById('cal-mobile');
   if (!el) return;
+  // 모바일은 일기 textarea가 이 el의 innerHTML 안에 통째로 들어있어서,
+  // 입력 중 다시 그리면 포커스가 날아간다. 칠 동안은 갱신을 미루고
+  // blur 때(calJournalBlur) 한 번에 반영한다.
+  if (_calJournalTyping()) return;
   const todayKey = dateKey(new Date());
   const dows = ['일','월','화','수','목','금','토'];
 
@@ -734,16 +754,12 @@ function _renderMobileCal() {
 
   // 모바일 — 선택일 감정일기
   const journal = (typeof journalEntries !== 'undefined' && journalEntries[calSelectedKey]) || { mood:'', content:'' };
-  const moodList = (typeof MOODS !== 'undefined') ? MOODS
-    : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
-  const moodHtml = moodList.map(mo =>
-    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
-  ).join('');
+  const moodHtml = _calMoodRowHtml();
   const journalSection = `
     <div class="mob-journal-sec">
       <div class="mob-journal-head">📔 감정일기</div>
       <div class="cal-mood-row">${moodHtml}</div>
-      <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${_escapeHtml(journal.content || '')}</textarea>
+      <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.content || '')}</textarea>
     </div>
   `;
 
@@ -992,20 +1008,41 @@ function calSetMood(emoji) {
   save('journal_entries', journalEntries);
   renderCalendar();
   renderCalDetail();
+  // 일기를 치던 중이라면 위 렌더러들이 일기 패널을 건너뛰었으므로(포커스 보호)
+  // 무드 버튼 상태만 직접 반영한다.
+  if (_calJournalTyping()) {
+    document.querySelectorAll('.cal-mood-row').forEach(r => { r.innerHTML = _calMoodRowHtml(); });
+  }
 }
+// 지금 감정일기 textarea에 커서가 있는가. 렌더러들이 이걸 보고 자기 자신을
+// 다시 그릴지 결정한다 — 입력 중 DOM 교체를 막는 단일 기준점.
+function _calJournalTyping() {
+  const ae = document.activeElement;
+  return !!(ae && ae.id === 'cal-journal-ta');
+}
+
+// 저장만 한다(렌더 없음). 입력 중에는 화면을 건드리지 않는 게 원칙.
+function _calJournalSave() {
+  const ta = document.getElementById('cal-journal-ta');
+  if (!ta) return;
+  const key = calSelectedKey;
+  if (!journalEntries[key]) journalEntries[key] = { mood:'', content:'' };
+  journalEntries[key].content = ta.value;
+  journalEntries[key].updatedAt = new Date().toISOString();
+  if (!journalEntries[key].mood && !journalEntries[key].content.trim()) delete journalEntries[key];
+  save('journal_entries', journalEntries);
+}
+
 function calJournalInput() {
   clearTimeout(_calJournalTimer);
-  _calJournalTimer = setTimeout(() => {
-    const ta = document.getElementById('cal-journal-ta');
-    if (!ta) return;
-    const key = calSelectedKey;
-    if (!journalEntries[key]) journalEntries[key] = { mood:'', content:'' };
-    journalEntries[key].content = ta.value;
-    journalEntries[key].updatedAt = new Date().toISOString();
-    if (!journalEntries[key].mood && !journalEntries[key].content.trim()) delete journalEntries[key];
-    save('journal_entries', journalEntries);
-    renderCalendar();  // 셀의 무드/표시 갱신 (textarea는 안 건드림)
-  }, 600);
+  _calJournalTimer = setTimeout(_calJournalSave, 600);
+}
+
+// 입력을 마치면 그때 한 번 저장 + 전체 갱신 (달력 셀의 일기 표시 등)
+function calJournalBlur() {
+  clearTimeout(_calJournalTimer);
+  _calJournalSave();
+  renderCalendar();
 }
 
 // timeblock.js가 블록을 저장/삭제하면 이 훅으로 캘린더를 갱신한다.
