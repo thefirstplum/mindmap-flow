@@ -5198,6 +5198,16 @@ select:focus:not(:focus-visible),
 .mini-cal-cell.has-event.has-note::before { transform: translateX(60%); }
 .mini-cal-cell.today.has-note::before { background: #fff; opacity: 0.7; }
 
+/* 일기를 남긴 날 — 감정 이모지를 셀 우상단에 얹는다. 일반 메모 흔적(점)과
+   달리 "그날 기분이 어땠는지"까지 한눈에 보이게 하는 게 목적. */
+.mini-cal-mood {
+  position: absolute; top: -1px; right: 0;
+  font-size: 9px; line-height: 1;
+  pointer-events: none;
+}
+/* 감정 없이 일기만 쓴 날 — 이모지가 없으므로 점을 하나 더 준다 */
+.mini-cal-cell.has-diary { position: relative; }
+
 .cal-side-sec-title {
   font-size: var(--fs-mini); font-weight: 700;
   color: var(--text-mute);
@@ -5329,6 +5339,16 @@ select:focus:not(:focus-visible),
 .day-note-time {
   flex-shrink: 0; font-size: 11px; color: var(--text-mute);
   font-variant-numeric: tabular-nums;
+}
+/* 일기 행 — 다른 메모와 섞이지 않게 아이콘 색을 살리고 감정을 붙인다 */
+.day-note-row.is-diary .day-note-icon { color: var(--accent2, var(--accent)); }
+.day-note-mood { flex-shrink: 0; font-size: 13px; line-height: 1; }
+/* 모바일 요일 슬라이더 — 날짜 위에 감정 */
+.mob-day { position: relative; }
+.mob-day-mood {
+  position: absolute; top: 1px; right: 3px;
+  font-size: 9px; line-height: 1;
+  pointer-events: none;
 }
 
 /* 홈 카드(.home-card)와 같은 14px 라운드로 통일 */
