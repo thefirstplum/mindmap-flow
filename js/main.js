@@ -40,6 +40,12 @@ if (typeof migrateHashtagsFromContent === 'function') {
   try { migrateHashtagsFromContent(); } catch (e) { console.warn('hashtag migration failed:', e); }
 }
 
+// One-time: 감정일기(journal_entries 사일로) → #일기 메모로 흡수.
+// 해시태그 마이그레이션 뒤에 둔다 — 새로 만드는 일기는 이미 태그가 붙어 있다.
+if (typeof migrateJournalToMemos === 'function') {
+  try { migrateJournalToMemos(); } catch (e) { console.warn('journal migration failed:', e); }
+}
+
 // Daily backup (idle, runs at most once per 24h)
 if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});
