@@ -1,7 +1,8 @@
-// =================== CALENDAR (timeblock + journal 통합 뷰) ===================
+// =================== CALENDAR (timeblock + 감정일기 통합 뷰) ===================
 // 월 달력 그리드 + 선택일 상세(그날 타임블록 + 감정일기).
-// 타임블록은 기존 모달(openTbModal/editTbBlock/saveTbBlock)을 재활용하고,
-// 일기는 journalEntries를 직접 읽고 쓴다. 의존: timeblock.js, journal.js.
+// 타임블록은 기존 모달(openTbModal/editTbBlock/saveTbBlock)을 재활용한다.
+// 감정일기는 별도 사일로(journal.json)를 버리고 `#일기` 태그가 붙은 일반 메모로
+// 저장한다 — 기능은 그대로, 저장 위치만 .md. 아래 "감정일기" 섹션 참고.
 
 let calViewMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calSelectedKey = dateKey(new Date());
@@ -81,9 +82,14 @@ function _dayNotesCard(key) {
     .map(n => {
       const t = new Date(n.updatedAt || n.createdAt);
       const hh = isNaN(t) ? '' : `${t.getHours().toString().padStart(2,'0')}:${t.getMinutes().toString().padStart(2,'0')}`;
-      return `<div class="day-note-row" onclick="openNote('${n.type}', ${n.id})">
-        <span class="mi mi-sm day-note-icon">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
+      // 일기는 아이콘과 감정으로 다른 메모와 구분한다
+      const diary = _isDiaryNote(n);
+      const mood = diary ? _noteMood(n) : '';
+      const icon = diary ? 'menu_book' : (n.type === 'mindmap' ? 'account_tree' : 'edit_note');
+      return `<div class="day-note-row${diary ? ' is-diary' : ''}" onclick="openNote('${n.type}', ${n.id})">
+        <span class="mi mi-sm day-note-icon">${icon}</span>
         <span class="day-note-title">${_escapeHtml(n.title) || '제목 없음'}</span>
+        ${mood ? `<span class="day-note-mood">${mood}</span>` : ''}
         <span class="day-note-time">${hh}</span>
       </div>`;
     }).join('');
@@ -121,10 +127,12 @@ function _renderMiniCal() {
     const date = new Date(year, month, d);
     const key = dateKey(date);
     const hasTb = (timeBlocks[key] || []).length > 0;
-    const hasJournal = (journalEntries[key] && (journalEntries[key].mood || journalEntries[key].content));
     const hasGCal = _gcalHasEventsOnDay(date);
-    const hasNote = _notesOnDay(key).length > 0;
-    const has = hasTb || hasJournal || hasGCal;
+    const dayNotes = _notesOnDay(key);
+    const hasNote = dayNotes.length > 0;
+    // 일기는 "수정된 날"에 뜬다 — 다른 메모 흔적과 같은 규칙이되 표식을 따로 준다.
+    const diary = dayNotes.find(_isDiaryNote);
+    const has = hasTb || hasGCal;
     const cls = [
       'mini-cal-cell',
       key === todayKey ? 'today' : '',
@@ -134,8 +142,12 @@ function _renderMiniCal() {
       has ? 'has-event' : '',
       // 일정 점과 구분되는 별도 표식 — 그날 메모를 남겼다는 뜻
       hasNote ? 'has-note' : '',
+      diary ? 'has-diary' : '',
     ].filter(Boolean).join(' ');
-    html += `<div class="${cls}" onclick="calSelectDayMini('${key}')">${d}</div>`;
+    // 감정이 있으면 이모지를, 없으면 일기 표식만 (CSS ::after 점)
+    const mood = diary ? _noteMood(diary) : '';
+    const moodTag = mood ? `<span class="mini-cal-mood">${mood}</span>` : '';
+    html += `<div class="${cls}" onclick="calSelectDayMini('${key}')">${d}${moodTag}</div>`;
   }
   // 다음 달
   const total = startDow + daysInMonth;
@@ -584,11 +596,11 @@ function _renderSummary() {
 // onmousedown preventDefault: 이게 없으면 버튼을 누르는 순간 textarea가 blur →
 // calJournalBlur가 화면을 다시 그려 버튼이 사라지고 click이 영영 안 온다.
 function _calMoodRowHtml() {
-  const journal = (typeof journalEntries !== 'undefined' && journalEntries[calSelectedKey]) || { mood:'', content:'' };
+  const cur = _diaryMood(calSelectedKey);
   const moodList = (typeof MOODS !== 'undefined') ? MOODS
     : [{e:'😊',l:'좋음'},{e:'🙂',l:'괜찮음'},{e:'😐',l:'보통'},{e:'😟',l:'별로'},{e:'😢',l:'안좋음'}];
   return moodList.map(mo =>
-    `<button class="cal-mood-btn${journal.mood===mo.e?' active':''}" onmousedown="event.preventDefault()" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
+    `<button class="cal-mood-btn${cur===mo.e?' active':''}" onmousedown="event.preventDefault()" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
   ).join('');
 }
 
@@ -600,7 +612,7 @@ function _renderDayJournal() {
   const [y, m, d] = key.split('-').map(Number);
   const date = new Date(y, m-1, d);
   const dows = ['일','월','화','수','목','금','토'];
-  const journal = (typeof journalEntries !== 'undefined' && journalEntries[key]) || { mood:'', content:'' };
+  const journal = _diaryParse(_diaryMemo(key));
   const moodHtml = _calMoodRowHtml();
   // 일기를 치는 중이면 textarea를 다시 만들지 않는다. innerHTML 교체는 기존
   // textarea를 통째로 버리므로 포커스·커서 위치가 그 자리에서 날아간다.
@@ -616,7 +628,7 @@ function _renderDayJournal() {
       <span class="cal-side-day">${m}/${d} ${dows[date.getDay()]}</span>
     </div>
     <div class="cal-mood-row">${moodHtml}</div>
-    <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.content || '')}</textarea>
+    <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.body || '')}</textarea>
   `;
 }
 
@@ -639,6 +651,9 @@ function _renderMobileCal() {
     const hasTb = (timeBlocks[k] || []).length > 0;
     const hasGCal = _gcalHasEventsOnDay(d);
     const has = hasTb || hasGCal;
+    const dayNotes = _notesOnDay(k);
+    const diary = dayNotes.find(_isDiaryNote);
+    const mood = diary ? _noteMood(diary) : '';
     const cls = [
       'mob-day',
       k === calSelectedKey ? 'active' : '',
@@ -646,11 +661,13 @@ function _renderMobileCal() {
       i === 6 ? 'sat' : '',
       has ? 'has-event' : '',
       hasGCal ? 'has-gcal' : '',
-      _notesOnDay(k).length > 0 ? 'has-note' : '',
+      dayNotes.length > 0 ? 'has-note' : '',
+      diary ? 'has-diary' : '',
     ].filter(Boolean).join(' ');
     slider += `<button class="${cls}" onclick="calSelectDay('${k}')">
       <span class="dow">${dows[i]}</span>
       <span class="num">${d.getDate()}</span>
+      ${mood ? `<span class="mob-day-mood">${mood}</span>` : ''}
     </button>`;
   }
   slider += '</div>';
@@ -753,13 +770,13 @@ function _renderMobileCal() {
   dayCol += '</div>';
 
   // 모바일 — 선택일 감정일기
-  const journal = (typeof journalEntries !== 'undefined' && journalEntries[calSelectedKey]) || { mood:'', content:'' };
+  const journal = _diaryParse(_diaryMemo(calSelectedKey));
   const moodHtml = _calMoodRowHtml();
   const journalSection = `
     <div class="mob-journal-sec">
       <div class="mob-journal-head">📔 감정일기</div>
       <div class="cal-mood-row">${moodHtml}</div>
-      <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.content || '')}</textarea>
+      <textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()" onblur="calJournalBlur()">${_escapeHtml(journal.body || '')}</textarea>
     </div>
   `;
 
@@ -789,109 +806,6 @@ function _renderMobileCal() {
     ${notesSection}
     ${journalSection}
   `;
-}
-
-function renderCalDetail() {
-  const el = document.getElementById('calendar-detail-body');
-  if (!el) return;
-  const key = calSelectedKey;
-  const [y, m, d] = key.split('-').map(Number);
-  const date = new Date(y, m-1, d);
-  const titleEl = document.getElementById('calendar-detail-title');
-  if (titleEl) {
-    const isToday = key === dateKey(new Date());
-    titleEl.innerHTML = `${m}월 ${d}일 <span class="cal-detail-dow">${dayNames[date.getDay()]}요일</span>`
-      + (isToday ? '<span class="cal-detail-today">오늘</span>' : '');
-  }
-
-  // Keep the real array index alongside each block so edit/toggle hit the
-  // right element even if the stored array isn't perfectly sorted.
-  const blocks = (timeBlocks[key] || [])
-    .map((b, origIdx) => ({ b, origIdx }))
-    .sort((x, z) => x.b.start.localeCompare(z.b.start));
-  const journal = journalEntries[key] || { mood:'', content:'' };
-
-  // ── 요약 카드 ──
-  let totalMin = 0;
-  (timeBlocks[key] || []).forEach(b => {
-    const dur = minutesFromTime(b.end) - minutesFromTime(b.start);
-    if (dur > 0) totalMin += dur;
-  });
-  const blockCount = (timeBlocks[key] || []).length;
-  const doneCount = (timeBlocks[key] || []).filter(b => b.done).length;
-  const fmtDur = mm => mm >= 60 ? `${Math.floor(mm/60)}시간${mm%60 ? ' ' + (mm%60) + '분' : ''}` : `${mm}분`;
-  let summaryHtml = '';
-  if (blockCount > 0) {
-    summaryHtml = `<div class="cal-summary">
-      <div class="cal-summary-stat"><div class="v">${blockCount}</div><div class="l">블록</div></div>
-      <div class="cal-summary-stat"><div class="v">${fmtDur(totalMin)}</div><div class="l">계획 시간</div></div>
-      <div class="cal-summary-stat"><div class="v">${doneCount}/${blockCount}</div><div class="l">완료</div></div>
-    </div>`;
-  }
-
-  // ── 타임블록 섹션 (투두 포함) ──
-  let tbHtml = `<div class="cal-sec-head"><span>⏱ 타임블록</span>
-    <button class="cal-add-btn" onclick="calAddBlock()">+ 상세 추가</button></div>`;
-  if (blocks.length === 0) {
-    tbHtml += `<div class="cal-empty-mini">계획된 블록이 없어요</div>`;
-  } else {
-    tbHtml += `<div class="cal-tb-list">` + blocks.map(({ b, origIdx }) => {
-      const todos = b.todos || [];
-      const todoDone = todos.filter(t => t.done).length;
-      const todoHtml = todos.length
-        ? `<div class="cal-tb-todos">` + todos.map((t, j) => `
-            <div class="cal-tb-todo${t.done ? ' done' : ''}" onclick="event.stopPropagation();calToggleTodo(${origIdx},${j})">
-              <span class="cal-tb-todo-check">${t.done ? '✓' : ''}</span>
-              <span class="cal-tb-todo-text">${escapeHtml(t.text)}</span>
-            </div>`).join('') + `</div>`
-        : '';
-      return `<div class="cal-tb-item${b.done ? ' done' : ''}" style="border-left-color:${tbHex(b.color)}">
-        <div class="cal-tb-row" onclick="calEditBlock(${origIdx})">
-          <button class="cal-tb-check" onclick="event.stopPropagation();calToggleBlock(${origIdx})">${b.done ? '✓' : ''}</button>
-          <span class="cal-tb-time">${b.start}~${b.end}</span>
-          <span class="cal-tb-title">${escapeHtml(b.title)}</span>
-          ${todos.length ? `<span class="cal-tb-todo-badge">${todoDone}/${todos.length} ✓</span>` : ''}
-        </div>
-        ${todoHtml}
-      </div>`;
-    }).join('') + `</div>`;
-  }
-  // 빠른 추가 — 제목만 입력하면 바로 블록 생성
-  tbHtml += `<div class="cal-quick-add">
-    <input type="text" id="cal-quick-input" placeholder="제목 입력 후 Enter — 빠른 추가"
-      onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();calQuickAddBlock();}">
-    <button onclick="calQuickAddBlock()">추가</button>
-  </div>`;
-
-  // ── 감정일기 섹션 ──
-  let jHtml = `<div class="cal-sec-head"><span>📔 감정일기</span></div>`;
-  jHtml += `<div class="cal-mood-row">` + MOODS.map(mo =>
-    `<button class="cal-mood-btn${journal.mood === mo.e ? ' active' : ''}" onclick="calSetMood('${mo.e}')" title="${mo.l}">${mo.e}</button>`
-  ).join('') + `</div>`;
-  jHtml += `<textarea class="cal-journal-ta" id="cal-journal-ta" placeholder="오늘 하루를 기록해보세요..." oninput="calJournalInput()">${escapeHtml(journal.content || '')}</textarea>`;
-
-  // ── 그날의 노트 ──
-  let notesHtml = '';
-  if (typeof getAllNotes === 'function') {
-    const dayNotes = getAllNotes()
-      .filter(n => dateKey(new Date(n.updatedAt || n.createdAt)) === key)
-      .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
-    notesHtml = `<div class="cal-sec-head"><span><span class="mi mi-sm" style="vertical-align:-3px;margin-right:4px">edit_note</span>이 날 수정한 노트</span></div>`;
-    if (dayNotes.length === 0) {
-      notesHtml += `<div class="cal-empty-mini">이 날 작성·수정한 노트가 없어요</div>`;
-    } else {
-      notesHtml += `<div class="cal-note-list">` + dayNotes.map(n =>
-        `<div class="cal-note-item" onclick="calOpenNote('${n.type}', ${n.id})">
-          <span class="cal-note-icon mi mi-sm">${n.type === 'mindmap' ? 'account_tree' : 'edit_note'}</span>
-          <span class="cal-note-title">${escapeHtml(n.title) || '제목 없음'}</span>
-        </div>`).join('') + `</div>`;
-    }
-  }
-
-  el.innerHTML = summaryHtml
-    + `<div class="cal-sec">${tbHtml}</div>`
-    + `<div class="cal-sec">${jHtml}</div>`
-    + (notesHtml ? `<div class="cal-sec">${notesHtml}</div>` : '');
 }
 
 // ── 네비게이션 ── (주간 시간표용 업데이트)
@@ -997,15 +911,145 @@ function calOpenNote(type, id) {
   if (typeof selectNote === 'function') selectNote(type, id);
 }
 
-// ── 감정일기 (journalEntries 직접) ──
+// ── 감정일기 = #일기 태그가 붙은 일반 메모 ────────────────────────────
+// 기능(무드 15개·본문·캘린더 표시)은 그대로. 저장 위치만 별도 사일로였던
+// journal.json → .md 메모로 옮겼다. 그래서 이제 일기도 드라이브에 .md로 남고
+// 검색·태그·홈·흔적 표시에 자동으로 엮인다.
+//
+// 규약 — 제목 `YYYY-MM-DD 일기`, 태그 `일기`, 본문 첫 줄이 무드 이모지 1개.
+//   😊
+//
+//   오늘 본문...
+//
+//   #일기
+const DIARY_TAG = '일기';
+const DIARY_TAIL = '#' + DIARY_TAG;
+
+function _diaryTitle(key) { return `${key} 일기`; }
+
+// 그 날짜의 일기 메모. 제목 앞 10자(YYYY-MM-DD)가 키.
+function _diaryMemo(key) {
+  if (typeof memos === 'undefined' || !Array.isArray(memos)) return null;
+  return memos.find(m =>
+    (m.tags || []).includes(DIARY_TAG) && (m.title || '').slice(0, 10) === key
+  ) || null;
+}
+
+// 본문 → { mood, body }. 사용자에게는 무드 줄과 꼬리 해시태그를 감춘다.
+function _diaryParse(memo) {
+  if (!memo) return { mood: '', body: '' };
+  const text = String(memo.content || '').replace(/\n*#일기[ \t]*$/, '');
+  const lines = text.split('\n');
+  let mood = '';
+  const first = (lines[0] || '').trim();
+  if (first && typeof MOODS !== 'undefined' && MOODS.some(mo => mo.e === first)) {
+    mood = first;
+    lines.shift();
+    while (lines.length && !lines[0].trim()) lines.shift();
+  }
+  return { mood, body: lines.join('\n').replace(/\s+$/, '') };
+}
+
+// { mood, body } → 메모에 반영. 둘 다 비면 빈 껍데기를 남기지 않고 지운다.
+// (deleteMemo는 확인창을 띄우고 화면을 이동시키므로 여기선 조용히 처리)
+function _diaryWrite(key, mood, body) {
+  const existing = _diaryMemo(key);
+  const clean = String(body || '').replace(/\s+$/, '');
+  const now = new Date().toISOString();
+
+  if (!mood && !clean.trim()) {
+    if (existing) {
+      const tombs = load('memo_tombstones', {});
+      tombs[existing.id] = now;
+      save('memo_tombstones', tombs);
+      memos = memos.filter(m => m.id !== existing.id);
+      if (typeof activeMemoId !== 'undefined' && activeMemoId === existing.id) activeMemoId = null;
+      saveMemos();
+      if (typeof renderMemoList === 'function') renderMemoList();
+    }
+    return;
+  }
+
+  const content = (mood ? mood + '\n\n' : '') + clean + '\n\n' + DIARY_TAIL;
+  let target = existing;
+  if (target) {
+    if (target.content === content) return;   // 실제 변화 없으면 updated를 흔들지 않는다
+    target.content = content;
+    target.updatedAt = now;
+  } else {
+    // createdAt은 그 날짜로 — 일기는 "그날에 대한" 기록이다.
+    const created = new Date(`${key}T09:00:00`);
+    target = {
+      id: newMemoId(),
+      title: _diaryTitle(key),
+      content,
+      date: (isNaN(created) ? new Date() : created).toISOString(),
+      updatedAt: now,
+      tags: []
+    };
+    memos.unshift(target);
+  }
+  if (typeof syncMemoHashtags === 'function') syncMemoHashtags(target);
+  saveMemos();
+  if (typeof renderMemoList === 'function') renderMemoList();
+}
+
+// 그 날짜 일기의 무드(없으면 ''). 캘린더 표시용.
+function _diaryMood(key) { return _diaryParse(_diaryMemo(key)).mood; }
+
+// 1회 마이그레이션 — 옛 journal_entries(별도 사일로) → #일기 메모.
+// 원본 localStorage는 지우지 않는다(안전망). 같은 날짜 일기가 이미 있으면 건너뛰므로
+// 여러 기기가 각자 돌려도 중복이 생기지 않는다.
+function migrateJournalToMemos() {
+  const KEY = 'mindflow_journal_to_memo_v1';
+  try { if (localStorage.getItem(KEY)) return; } catch { return; }
+  if (typeof memos === 'undefined' || !Array.isArray(memos)) return;
+  const src = (typeof journalEntries !== 'undefined' && journalEntries) || {};
+  let made = 0;
+  for (const key of Object.keys(src).sort()) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    const e = src[key] || {};
+    const mood = e.mood || '';
+    const body = String(e.content || '').replace(/\s+$/, '');
+    if (!mood && !body.trim()) continue;
+    if (_diaryMemo(key)) continue;                    // 이미 옮겨짐
+    const created = new Date(`${key}T09:00:00`);
+    // 그날의 흔적으로 남도록 수정일을 원래 날짜에 둔다 (전부 오늘로 몰리면 안 됨)
+    let upd = e.updatedAt && !isNaN(new Date(e.updatedAt)) ? new Date(e.updatedAt) : null;
+    if (!upd || dateKey(upd) !== key) upd = new Date(`${key}T21:00:00`);
+    memos.unshift({
+      id: newMemoId(),
+      title: _diaryTitle(key),
+      content: (mood ? mood + '\n\n' : '') + body + '\n\n' + DIARY_TAIL,
+      date: (isNaN(created) ? upd : created).toISOString(),
+      updatedAt: upd.toISOString(),
+      tags: [DIARY_TAG]
+    });
+    made++;
+  }
+  if (made) {
+    saveMemos();
+    if (typeof renderMemoList === 'function') renderMemoList();
+    if (typeof toast === 'function') toast(`감정일기 ${made}개를 메모로 옮겼어요`, 'success');
+  }
+  try { localStorage.setItem(KEY, new Date().toISOString()); } catch {}
+}
+
+// ── getAllNotes() 서술자 기준 판정 — 캘린더 흔적 표시가 쓴다 ──
+function _isDiaryNote(n) { return !!n && (n.tags || []).includes(DIARY_TAG); }
+function _noteMood(n) {
+  if (!_isDiaryNote(n)) return '';
+  return _diaryParse({ content: n.content }).mood;
+}
+
 let _calJournalTimer = null;
 function calSetMood(emoji) {
   const key = calSelectedKey;
-  if (!journalEntries[key]) journalEntries[key] = { mood:'', content:'' };
-  journalEntries[key].mood = journalEntries[key].mood === emoji ? '' : emoji;
-  journalEntries[key].updatedAt = new Date().toISOString();
-  if (!journalEntries[key].mood && !(journalEntries[key].content || '').trim()) delete journalEntries[key];
-  save('journal_entries', journalEntries);
+  const cur = _diaryParse(_diaryMemo(key));
+  // 입력 중이면 화면의 textarea가 최신 — 저장 안 된 글자를 잃지 않게 그걸 쓴다
+  const ta = document.getElementById('cal-journal-ta');
+  const body = ta ? ta.value : cur.body;
+  _diaryWrite(key, cur.mood === emoji ? '' : emoji, body);
   renderCalendar();
   renderCalDetail();
   // 일기를 치던 중이라면 위 렌더러들이 일기 패널을 건너뛰었으므로(포커스 보호)
@@ -1026,11 +1070,7 @@ function _calJournalSave() {
   const ta = document.getElementById('cal-journal-ta');
   if (!ta) return;
   const key = calSelectedKey;
-  if (!journalEntries[key]) journalEntries[key] = { mood:'', content:'' };
-  journalEntries[key].content = ta.value;
-  journalEntries[key].updatedAt = new Date().toISOString();
-  if (!journalEntries[key].mood && !journalEntries[key].content.trim()) delete journalEntries[key];
-  save('journal_entries', journalEntries);
+  _diaryWrite(key, _diaryParse(_diaryMemo(key)).mood, ta.value);
 }
 
 function calJournalInput() {
