@@ -1,6 +1,7 @@
 // =================== PAGE NAVIGATION / ROUTER ===================
 // 루틴 제거 (2026-06-05 사장님 결정)
-const pages = { home: '홈', memo: '노트', mindmap: '마인드맵', calendar: '캘린더', journal: '감정일기' };
+// 감정일기 독립 페이지 제거(2026-08-03) — 캘린더 안 패널로 흡수됨
+const pages = { home: '홈', memo: '노트', mindmap: '마인드맵', calendar: '캘린더' };
 
 // Header primary pill (mockup: + 새 노트 / + 노드 / + 일정 …)
 const headerActions = {
@@ -33,7 +34,6 @@ const headerActions = {
     }
     if (typeof openTbModal === 'function') openTbModal('add');
   } },
-  journal:  { label: '오늘',        fn: () => (typeof journalGoToday === 'function' && journalGoToday()) },
 };
 
 // Header search-pill placeholder per page
@@ -42,7 +42,6 @@ const headerSearchPlaceholder = {
   memo:     '메모, 태그, 액션 검색…',
   mindmap:  '마인드맵 검색…',
   calendar: '일정 검색…',
-  journal:  '일기 검색…',
 };
 
 function applyHeaderForPage(page) {

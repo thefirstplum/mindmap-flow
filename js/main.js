@@ -190,13 +190,6 @@ if (window.SyncEvents) {
       // Skip editor redraw if user is actively editing — would clobber cursor
       if (editingMemoId == null && typeof renderMemoEditor === 'function') renderMemoEditor();
     }
-    if (types.includes('timeblock')) {
-      if (typeof renderTimeBlocks === 'function') renderTimeBlocks();
-      if (typeof renderTimeblockList === 'function') renderTimeblockList();
-    }
-    if (types.includes('journal') && typeof renderJournalList === 'function') {
-      renderJournalList();
-    }
     // 홈은 메모·마인드맵을 모두 읽으므로 둘 중 하나만 바뀌어도 다시 그린다.
     // (홈에 머무는 동안 동기화가 도착하는 경우 — navigateTo는 안 불리므로 여기서)
     const notesChanged = types.includes('memo') || types.includes('mindmap');

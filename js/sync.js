@@ -84,7 +84,6 @@ function applyData(data) {
     save('journal_entries', merged);
     if (typeof journalEntries !== 'undefined') {
       Object.assign(journalEntries, merged);
-      if (typeof renderJournalList === 'function') renderJournalList();
     }
   }
   if (data.tbPrefixColors) {

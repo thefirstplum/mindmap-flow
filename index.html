@@ -169,40 +169,6 @@
         </div>
       </div>
 
-      <!-- ===== TIME BLOCK PAGE ===== -->
-      <div class="page" id="page-timeblock">
-        <div class="timeblock-page" id="timeblock-page-root">
-          <aside class="timeblock-list">
-            <div class="tb-list-header">
-              <div class="memo-list-title-row">
-                <div class="title">일정</div>
-                <div class="count" id="tb-count">0</div>
-                <button class="panel-collapse-btn" onclick="togglePanel('timeblock-page-root')" title="목록 닫기" style="margin-left:6px;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-              </div>
-              <button class="today-jump-btn" onclick="goToday()">
-                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                오늘로 이동
-              </button>
-            </div>
-            <div class="timeblock-items" id="timeblock-items"></div>
-          </aside>
-          <div class="tb-main">
-            <div class="timeblock-header">
-              <button class="panel-reopen-btn" onclick="togglePanel('timeblock-page-root')" title="목록 열기">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-              <button class="tb-back-btn" onclick="backToTbList()" aria-label="목록으로">‹</button>
-              <button class="nav-arrow" onclick="prevDay()">‹</button>
-              <div class="date-display" id="tb-date">—</div>
-              <button class="nav-arrow" onclick="nextDay()">›</button>
-            </div>
-            <div class="timeblock-body" id="timeblock-body"></div>
-          </div>
-        </div>
-      </div>
-
       <!-- ===== NOTES PAGE (memo + mindmap unified) ===== -->
       <div class="page active" id="page-memo">
         <div class="memo-page" id="memo-page">
@@ -289,42 +255,6 @@
                 <span class="mi mi-sm">delete</span>
                 <span>삭제</span>
               </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ===== JOURNAL PAGE ===== -->
-      <div class="page" id="page-journal">
-        <div class="journal-page" id="journal-page-root">
-          <aside class="journal-list-panel">
-            <div class="journal-list-header">
-              <div class="memo-list-title-row">
-                <div class="title">감정일기</div>
-                <div class="count" id="journal-count">0</div>
-                <button class="j-today-mini-btn" onclick="journalGoToday()" title="오늘로 이동">오늘</button>
-                <button class="panel-collapse-btn" onclick="togglePanel('journal-page-root')" title="목록 닫기" style="margin-left:4px;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-                </button>
-              </div>
-              <div class="journal-stats-row" id="journal-stats-row"></div>
-            </div>
-            <div class="journal-items" id="journal-items"></div>
-          </aside>
-          <div class="journal-main">
-            <div class="journal-nav-header">
-              <button class="panel-reopen-btn" onclick="togglePanel('journal-page-root')" title="목록 열기">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-              </button>
-              <button class="tb-back-btn" onclick="backToJournalList()" aria-label="목록으로">‹</button>
-              <button class="nav-arrow" onclick="journalPrevDay()">‹</button>
-              <div class="date-display" id="journal-date">—</div>
-              <button class="nav-arrow" onclick="journalNextDay()">›</button>
-              <button class="today-jump-btn" id="journal-today-btn" onclick="journalGoToday()" title="오늘로 이동" style="display:none">오늘</button>
-            </div>
-            <div class="journal-body">
-              <div class="mood-picker" id="journal-mood-picker"></div>
-              <textarea class="journal-textarea" id="journal-textarea" placeholder="오늘 어떤 하루였나요?&#10;감정을 자유롭게 기록해보세요..."></textarea>
             </div>
           </div>
         </div>
@@ -787,9 +717,9 @@
 <script src="js/drive-client.js?v=20260731a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
-<script src="js/navigation.js?v=20260803a" defer></script>
+<script src="js/navigation.js?v=20260803b" defer></script>
 <script src="js/mindmap.js?v=20260606h" defer></script>
-<script src="js/timeblock.js?v=20260803a" defer></script>
+<script src="js/timeblock.js?v=20260803b" defer></script>
 <script src="js/memo.js?v=20260731a" defer></script>
 <!-- 홈 화면 — getAllNotes()(memo.js)에 의존하므로 반드시 그 뒤에 -->
 <script src="js/home.js?v=20260729e" defer></script>
@@ -817,12 +747,12 @@
   </button>
 </div>
 
-<script src="js/journal.js?v=20260509a" defer></script>
-<script src="js/calendar.js?v=20260729c" defer></script>
+<script src="js/journal.js?v=20260803a" defer></script>
+<script src="js/calendar.js?v=20260803a" defer></script>
 <script src="js/drawing.js?v=20260616d" defer></script>
-<script src="js/sync.js?v=20260731a" defer></script>
+<script src="js/sync.js?v=20260803a" defer></script>
 <script src="js/gcal.js?v=20260729d" defer></script>
-<script src="js/main.js?v=20260803a" defer></script>
+<script src="js/main.js?v=20260803b" defer></script>
 
 </body>
 </html>

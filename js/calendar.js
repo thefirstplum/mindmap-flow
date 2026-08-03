@@ -929,7 +929,7 @@ function calEditBlock(idx) {
   editTbBlock(calSelectedKey, idx);
 }
 function calToggleBlock(idx) {
-  toggleTbDone(calSelectedKey, idx);  // renderTimeBlocks → _calRefreshHook
+  toggleTbDone(calSelectedKey, idx);
 }
 
 // 블록 안의 투두 항목 체크 토글
@@ -940,7 +940,6 @@ function calToggleTodo(blockIdx, todoIdx) {
   todo.done = !todo.done;
   save('tb_blocks', timeBlocks);
   updateTbMeta(calSelectedKey);
-  if (typeof renderTimeBlocks === 'function') renderTimeBlocks();
   renderCalDetail();
 }
 
@@ -970,8 +969,6 @@ function calQuickAddBlock() {
   save('tb_blocks', timeBlocks);
   updateTbMeta(key);
   input.value = '';
-  if (typeof renderTimeBlocks === 'function') renderTimeBlocks();
-  if (typeof renderTimeblockList === 'function') renderTimeblockList();
   renderCalendar();
   renderCalDetail();
   // 연속 추가가 편하도록 입력칸 다시 포커스
@@ -993,7 +990,6 @@ function calSetMood(emoji) {
   journalEntries[key].updatedAt = new Date().toISOString();
   if (!journalEntries[key].mood && !(journalEntries[key].content || '').trim()) delete journalEntries[key];
   save('journal_entries', journalEntries);
-  if (typeof renderJournalList === 'function') renderJournalList();
   renderCalendar();
   renderCalDetail();
 }
@@ -1008,7 +1004,6 @@ function calJournalInput() {
     journalEntries[key].updatedAt = new Date().toISOString();
     if (!journalEntries[key].mood && !journalEntries[key].content.trim()) delete journalEntries[key];
     save('journal_entries', journalEntries);
-    if (typeof renderJournalList === 'function') renderJournalList();
     renderCalendar();  // 셀의 무드/표시 갱신 (textarea는 안 건드림)
   }, 600);
 }
