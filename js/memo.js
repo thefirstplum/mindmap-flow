@@ -995,6 +995,9 @@ function renderMemoEditor() {
           <span class="mi mi-sm">brush</span>
         </button>
       -->
+      <button class="memo-icon-btn" onclick="startPomodoroForActiveMemo()" title="이 노트에 집중 (타이머 시작)">
+        <span class="mi mi-sm">timer</span>
+      </button>
       <button class="memo-icon-btn" onclick="triggerImageUpload()" title="이미지 업로드 (또는 메모에 붙여넣기/드래그)">
         <span class="mi mi-sm">image</span>
       </button>
