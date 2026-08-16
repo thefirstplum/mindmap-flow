@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v41'; // 감정일기를 #일기 메모로 흡수
+const CACHE_NAME = 'mindflow-cache-v42'; // 집중 타이머(포모도로) 추가
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -64,6 +64,18 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached;
       throw e;
     }
+  })());
+});
+
+// 집중 타이머 알림을 탭하면 이미 열린 창으로 포커스 (없으면 새로 연다)
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of clients) {
+      if ('focus' in c) return c.focus();
+    }
+    if (self.clients.openWindow) return self.clients.openWindow('./');
   })());
 });
 

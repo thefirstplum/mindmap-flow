@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=20260804b">
+<link rel="stylesheet" href="styles.css?v=20260816a">
 </head>
 <body>
 <div class="app">
@@ -709,6 +709,38 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- ===== 집중 타이머 ===== -->
+<!-- 어느 페이지에 있든 떠 있는 플로팅 바. 내용은 renderPomodoroBar()가 채운다.
+     탭으로 안 만든 이유: 타이머는 다른 일을 하는 동안 보여야 쓸모가 있다. -->
+<div class="pomo-bar-host" id="pomo-bar-host"></div>
+
+<!-- 시작 모달 — 집중 대상 없이는 시작 못 한다 ("무엇을"이 이 기능의 핵심) -->
+<div class="modal-overlay" id="pomo-start-modal" onclick="if(event.target===this)closePomoStart()">
+  <div class="modal pomo-modal">
+    <h3>무엇에 집중하나요?</h3>
+    <input type="text" id="pomo-subject" placeholder="집중할 일 입력…" autocomplete="off"
+      oninput="renderPomoRecent()"
+      onkeydown="if(event.key==='Enter'&&!event.isComposing){event.preventDefault();confirmPomoStart();}">
+    <div class="pomo-recent" id="pomo-recent"></div>
+    <label>목표 시간</label>
+    <div class="pomo-presets" id="pomo-presets"></div>
+    <div class="modal-actions">
+      <button onclick="closePomoStart()">취소</button>
+      <button class="primary" onclick="confirmPomoStart()">시작</button>
+    </div>
+  </div>
+</div>
+
+<!-- 복귀 확인 — 목표를 넘긴 채 백그라운드에서 돌아왔을 때.
+     앱은 실제로 집중했는지 알 수 없으므로 아는 척하지 않고 묻는다. -->
+<div class="modal-overlay" id="pomo-return-modal">
+  <div class="modal pomo-modal">
+    <h3>🍅 집중 시간이 지났어요</h3>
+    <div class="pomo-return-sub" id="pomo-return-sub"></div>
+    <div class="pomo-return-btns" id="pomo-return-btns"></div>
+  </div>
+</div>
+
 <!-- CodeMirror 6 bundle (local, no CDN) -->
 <script src="js/vendor/cm6.bundle.js?v=20260605e" defer></script>
 <!-- App scripts (order = dependency order) -->
@@ -720,9 +752,11 @@
 <script src="js/navigation.js?v=20260803b" defer></script>
 <script src="js/mindmap.js?v=20260606h" defer></script>
 <script src="js/timeblock.js?v=20260803b" defer></script>
-<script src="js/memo.js?v=20260731a" defer></script>
+<script src="js/memo.js?v=20260816a" defer></script>
 <!-- 홈 화면 — getAllNotes()(memo.js)에 의존하므로 반드시 그 뒤에 -->
 <script src="js/home.js?v=20260729e" defer></script>
+<!-- 집중 타이머 — utils(save/toast) · timeblock(dateKey/escapeHtml) · memo(memos) 뒤 -->
+<script src="js/pomodoro.js?v=20260816a" defer></script>
 <!-- 모바일 하단 floating capsule 탭바 (≤768px에서만 표시) -->
 <div class="m-bottom-tabs" id="m-bottom-tabs">
   <button class="m-tab-btn" data-page="home" aria-label="홈">
@@ -752,7 +786,7 @@
 <script src="js/drawing.js?v=20260616d" defer></script>
 <script src="js/sync.js?v=20260803a" defer></script>
 <script src="js/gcal.js?v=20260729d" defer></script>
-<script src="js/main.js?v=20260804b" defer></script>
+<script src="js/main.js?v=20260816a" defer></script>
 
 </body>
 </html>
