@@ -46,6 +46,12 @@ if (typeof migrateJournalToMemos === 'function') {
   try { migrateJournalToMemos(); } catch (e) { console.warn('journal migration failed:', e); }
 }
 
+// 집중 타이머 — 앱을 껐다 켜도, 배포 자동 새로고침이 껴들어도 이어붙는다.
+// (시작 시각만 저장하므로 그동안 JS가 멈춰 있었어도 경과가 정확하다)
+if (typeof restorePomodoro === 'function') {
+  try { restorePomodoro(); } catch (e) { console.warn('pomodoro restore failed:', e); }
+}
+
 // Daily backup (idle, runs at most once per 24h)
 if (typeof BackupService !== 'undefined') {
   BackupService.maybeDaily().catch(() => {});
