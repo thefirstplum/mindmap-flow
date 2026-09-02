@@ -198,10 +198,11 @@ function renderHome() {
       </div>
       ${generalHtml}
     </section>
+    ${groupHtml ? `
     <section class="home-sec">
       <div class="home-sec-head"><span>묶음</span></div>
       <div class="home-groups">${groupHtml}</div>
-    </section>`;
+    </section>` : ''}`;
 }
 
 // 프로젝트에 속한 노트들에서 카드에 쓸 수치를 뽑는다.
