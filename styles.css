@@ -500,6 +500,18 @@ body[data-theme="sunset"] {
 @media (min-width: 769px) {
   .app { padding-bottom: var(--safe-bot); }
 }
+
+/* 소프트 키보드가 올라온 동안 — --kb는 main.js의 visualViewport 리스너가 넣는다.
+   min-height를 반드시 0으로 눌러야 한다. 위 .app의 min-height(100vh /
+   -webkit-fill-available)가 살아 있으면 height만 줄여봐야 그게 이겨서
+   .app이 그대로 남고, 고쳐도 아무 변화가 없다. */
+body.kb-open .app {
+  height: calc(100dvh - var(--kb, 0px));
+  min-height: 0;
+}
+/* 탭바는 fixed bottom:0이라 어차피 키보드 뒤에 깔린다. 켜두면 스크롤 끝에서
+   반쯤 비쳐 보여 지저분하므로 키보드가 떠 있는 동안은 숨긴다. */
+body.kb-open .m-bottom-tabs { display: none !important; }
 .main {
   flex: 1;
   display: flex;
