@@ -2743,6 +2743,78 @@ async function initDrive() {
 }
 
 
+// =================== DRIVE 인증 진단 ===================
+// "왜 로그인이 자꾸 풀리나"를 추측이 아니라 간격으로 판정하기 위한 패널.
+// 클라이언트 인증 코드(선제 갱신·401 재시도·silent refresh)는 정상이므로,
+// 남는 원인은 refresh_token이 서버 쪽에서 죽는 것이다. 어느 쪽인지는
+// '연결 → 실패까지 걸린 시간'이 거의 다 말해준다:
+//   ~7일     → Google OAuth 동의 화면이 '테스트 중' 상태 (구글 정책상 7일 만료)
+//   불규칙·짧음 → Worker KV 만료/증발, 또는 계정 보안 이벤트로 인한 폐기
+function _authAgo(iso) {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (isNaN(t)) return null;
+  return (Date.now() - t) / 86400000;   // 일 단위
+}
+
+function _authFmt(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d)) return '—';
+  const days = _authAgo(iso);
+  const stamp = `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (days < 1) return `${stamp} (${Math.round(days * 24)}시간 전)`;
+  return `${stamp} (${days.toFixed(1)}일 전)`;
+}
+
+function renderAuthDiag() {
+  const out = document.getElementById('auth-diag-out');
+  if (!out) return;
+  const log = (typeof readDriveAuthLog === 'function') ? readDriveAuthLog() : {};
+  const connected = (typeof hasValidDriveToken === 'function') ? hasValidDriveToken() : false;
+  const hasRt = (() => { try { return !!localStorage.getItem('mindflow_drive_connected'); } catch { return false; } })();
+
+  const rows = [
+    ['현재 상태', connected ? '토큰 유효' : (hasRt ? '토큰 만료 (갱신 가능)' : '연결 끊김 — 재로그인 필요')],
+    ['마지막 연결(재로그인)', _authFmt(log.connectedAt)],
+    ['마지막 갱신 성공', _authFmt(log.lastOkAt)],
+    ['마지막 갱신 실패', _authFmt(log.failAt)],
+    ['실패 사유', log.failReason || '—'],
+    ['재로그인이 필요한 실패였나', log.failAt ? (log.failFatal ? '예' : '아니오 (일시적)') : '—'],
+  ];
+
+  // 자동 판정 — 연결부터 치명적 실패까지 걸린 시간으로 원인을 지목한다
+  const verdict = [];
+  if (!log.connectedAt) {
+    verdict.push('아직 기록이 없습니다. 이 계측은 다음 재로그인부터 쌓입니다 — 한 번 연결한 뒤 다시 보세요.');
+  } else if (log.failAt && log.failFatal) {
+    const span = (new Date(log.failAt) - new Date(log.connectedAt)) / 86400000;
+    if (span >= 6 && span <= 8) {
+      verdict.push(`연결 후 ${span.toFixed(1)}일 만에 폐기됨 — <b>Google OAuth 동의 화면이 '테스트 중' 상태</b>일 때 나타나는 7일 만료 패턴입니다. Cloud Console에서 '앱 게시'(프로덕션)로 바꾸면 사라집니다.`);
+    } else if (span < 6) {
+      verdict.push(`연결 후 ${span.toFixed(1)}일 만에 폐기됨 — 7일 패턴이 아닙니다. Worker의 KV 보관 기간(expirationTtl)이나 계정 보안 이벤트를 확인하세요.`);
+    } else {
+      verdict.push(`연결 후 ${span.toFixed(1)}일 유지됨 — 7일 만료는 아닙니다. Worker KV 또는 Google 계정 쪽 폐기로 보입니다.`);
+    }
+  } else if (log.failAt && !log.failFatal) {
+    verdict.push('마지막 실패는 일시적(네트워크·서버)이었고 토큰은 살아 있습니다. 재로그인과는 무관합니다.');
+  } else {
+    const alive = _authAgo(log.connectedAt);
+    verdict.push(`연결 후 ${alive.toFixed(1)}일째 유지 중 — 아직 폐기 기록이 없습니다.`
+      + (alive >= 6 && alive < 8 ? ' (7일 경계 구간입니다. 여기서 끊기면 테스트 모드 만료가 확정됩니다.)' : ''));
+  }
+
+  let h = '<table style="width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;">';
+  for (const [k, v] of rows) {
+    h += `<tr><td style="padding:4px 4px;border-bottom:1px solid var(--border-light);color:var(--text-mute);">${k}</td>`
+       + `<td style="padding:4px 4px;border-bottom:1px solid var(--border-light);text-align:right;font-weight:700;">${v}</td></tr>`;
+  }
+  h += '</table>';
+  h += '<div style="margin-top:12px;font-size:11px;color:var(--accent2);font-weight:800;letter-spacing:.06em;">자동 판정</div>';
+  h += `<div style="margin-top:6px;font-size:11.5px;line-height:1.6;">${verdict.join('<br>')}</div>`;
+  out.innerHTML = h;
+}
+
 // =================== SAFE-AREA 진단 ===================
 // iOS(특히 iPad)에서 상단 상태바 겹침 / 하단 잔여 여백을 진단하기 위한 패널.
 // 별도 테스트 페이지 대신 앱 안에 두는 이유:

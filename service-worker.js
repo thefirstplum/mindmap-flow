@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v45'; // 모바일 키보드 가림 수정
+const CACHE_NAME = 'mindflow-cache-v46'; // 인증 진단 계측
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
