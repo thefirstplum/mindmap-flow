@@ -224,6 +224,40 @@ if (window.SyncEvents) {
   });
 }
 
+// ── 모바일 소프트 키보드 대응 ────────────────────────────────────
+// iOS는 키보드가 올라와도 레이아웃 뷰포트를 줄이지 않는다. 키보드는 화면 위에
+// 겹쳐 뜨고 100dvh는 그대로다. 게다가 html/body가 overflow:hidden이라 캐럿을
+// 보이게 스크롤할 여지도 없어서, 메모 아래쪽을 치면 입력 지점이 키보드에 가렸다.
+//
+// visualViewport로 '키보드가 먹은 높이'를 재서 --kb에 넣는다. CSS가 .app을
+// 그만큼 줄이면, 줄어든 영역 안에서 CodeMirror의 스크롤러가 캐럿을 자기
+// 화면 안으로 끌어온다 — 캐럿 위치를 직접 계산하지 않아도 되는 이유다.
+(function initKeyboardInset() {
+  const vv = window.visualViewport;
+  if (!vv) return;   // 미지원 환경은 기존 동작 그대로 (기능 저하만, 깨지지 않음)
+
+  // 키보드로 볼 최소 높이. 사파리 주소창 접힘·입력 액세서리 바만으로도
+  // 수십 px이 움직이는데, 그걸 키보드로 오인하면 화면이 들썩인다.
+  const MIN_KB = 60;
+  let raf = 0;
+
+  function apply() {
+    raf = 0;
+    // 레이아웃 높이 − (보이는 높이 + 위로 밀린 양) = 아래쪽이 가려진 양
+    const occluded = window.innerHeight - vv.height - vv.offsetTop;
+    const kb = occluded >= MIN_KB ? Math.round(occluded) : 0;
+    document.documentElement.style.setProperty('--kb', kb + 'px');
+    document.body.classList.toggle('kb-open', kb > 0);
+  }
+
+  // resize/scroll이 키보드 애니메이션 동안 연속으로 터진다. 프레임당 1회로 묶는다.
+  const schedule = () => { if (!raf) raf = requestAnimationFrame(apply); };
+
+  vv.addEventListener('resize', schedule);
+  vv.addEventListener('scroll', schedule);
+  apply();
+})();
+
 // Initialize Drive sync (silently re-auths and pulls if connected before)
 // 유일한 동기화 경로. 폴더 vault(initFolder)와 Gist(initGist)는 제거됨.
 initDrive();
