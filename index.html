@@ -495,7 +495,23 @@
     </div>
 
     <!-- ── 진단 ───────────────────────────────── -->
-    <details class="set-adv set-adv-top" id="area-diag-section" ontoggle="if(this.open)renderAreaDiag()">
+    <details class="set-adv set-adv-top" id="auth-diag-section" ontoggle="if(this.open)renderAuthDiag()">
+      <summary>동기화 인증 진단</summary>
+      <div class="set-adv-body">
+      <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
+        로그인이 풀렸을 때 <b>얼마 만에</b> 풀렸는지로 원인을 판정합니다.
+        연결 후 7일쯤이면 Google 동의 화면이 '테스트 중' 상태라는 뜻입니다.
+      </div>
+      <div id="auth-diag-out" style="margin-top:10px;font-size:12px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="tb-btn" onclick="renderAuthDiag()" style="flex:1;justify-content:center;">
+          <span class="mi mi-sm">refresh</span> 다시 확인
+        </button>
+      </div>
+      </div>
+    </details>
+
+    <details class="set-adv" id="area-diag-section" ontoggle="if(this.open)renderAreaDiag()">
       <summary>화면 영역 진단 (safe-area)</summary>
       <div class="set-adv-body">
       <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
@@ -746,7 +762,7 @@
 <!-- App scripts (order = dependency order) -->
 <script src="js/utils.js?v=20260803a" defer></script>
 <script src="js/backup.js?v=20260509a" defer></script>
-<script src="js/drive-client.js?v=20260731a" defer></script>
+<script src="js/drive-client.js?v=20260902a" defer></script>
 <script src="js/sync-adapters.js?v=20260509a" defer></script>
 <script src="js/swipe-panel.js?v=20260528c" defer></script>
 <script src="js/navigation.js?v=20260803b" defer></script>
@@ -784,7 +800,7 @@
 <script src="js/journal.js?v=20260803a" defer></script>
 <script src="js/calendar.js?v=20260804b" defer></script>
 <script src="js/drawing.js?v=20260616d" defer></script>
-<script src="js/sync.js?v=20260803a" defer></script>
+<script src="js/sync.js?v=20260902a" defer></script>
 <script src="js/gcal.js?v=20260729d" defer></script>
 <script src="js/main.js?v=20260902b" defer></script>
 
