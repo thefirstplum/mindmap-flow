@@ -31,9 +31,19 @@ html, body {
   height: 100%; overflow: hidden; overscroll-behavior: none;
   background: var(--bg);  /* iOS Safari에서 .app 밖 영역(safe-area·홈바)에도 색 채움 */
 }
+/* 기본 서체 — 고운바탕(명조). 한글을 앱이 직접 고른 첫 서체다.
+   예전 스택은 'Inter'가 앞이었는데 Inter에는 한글 글리프가 없어서, 한글은
+   폴백인 시스템 고딕으로 그려지고 Inter는 영문·숫자에만 걸렸다. 그래서
+   한 문단 안에 서체가 둘 섞였다.
+   고운바탕은 400/700만 있다. 앱이 쓰는 500은 400으로, 600·800은 700으로
+   스냅된다(합성 볼드 없음 — 측정 확인). 500을 쓰는 20곳은 400과 구분이
+   사라지지만 원래도 약한 강조라 영향이 작다.
+   .mi(Material Symbols)는 자체 규칙을 가져 상속을 이기므로 아이콘은 안전하고,
+   code·pre는 아래에서 ui-monospace를 따로 지정한다.
+   book·handwritten 테마는 더 구체적인 선택자라 각자 서체를 그대로 유지한다. */
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
-               'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+  font-family: 'Gowun Batang', 'Apple SD Gothic Neo', -apple-system,
+               BlinkMacSystemFont, 'Segoe UI', Roboto, serif;
   background: var(--bg);
   color: var(--text);
   font-size: 14px;
@@ -58,10 +68,16 @@ button { cursor: pointer; font-family: inherit; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
 
-/* 본문 폰트 — mockup과 통일 (Crimson Pro 세리프 → Inter sans, 한 톤) */
-.bear-editor, .memo-editor textarea, .markdown-body, .memo-editor-header input {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display',
-               'Segoe UI', Roboto, 'Apple SD Gothic Neo', sans-serif;
+/* 본문 폰트 — body와 같은 고운바탕.
+   .cm-content / .cm-line을 반드시 함께 잡아야 한다. 실제 편집기는 CodeMirror라
+   자체 테마가 .cm-content에 monospace를 박아두는데, 그건 상속을 이긴다.
+   예전엔 이 목록에 .cm-content가 빠져 있어서 편집기 본문만 monospace로 남았고
+   (한글은 monospace 글리프가 없어 시스템 고딕으로 폴백) 영문·숫자와 한글이
+   서로 다른 서체로 그려졌다. */
+.bear-editor, .memo-editor textarea, .markdown-body, .memo-editor-header input,
+.cm-content, .cm-line {
+  font-family: 'Gowun Batang', 'Apple SD Gothic Neo', -apple-system,
+               BlinkMacSystemFont, 'Segoe UI', Roboto, serif;
   letter-spacing: -0.005em;
 }
 
