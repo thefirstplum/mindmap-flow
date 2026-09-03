@@ -12,6 +12,23 @@ const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 const DRIVE_TOKEN_STORAGE_KEY = 'mindflow_drive_tok';
 const DRIVE_CONNECTED_KEY = 'mindflow_drive_connected';
+const DRIVE_AUTHLOG_KEY = 'mindflow_drive_authlog';
+
+// 인증 사건 기록 — "왜 로그인이 풀렸나"를 추측하지 않기 위한 최소 계측.
+// 지금까지 연결 시각을 아무도 남기지 않아서 '며칠 만에 풀렸는지'를 잴 수 없었고,
+// 갱신 실패 사유는 console.warn으로만 나가 폰(PWA)에서는 그대로 사라졌다.
+// 남기는 건 시각과 사유뿐이다 — 토큰 값은 절대 넣지 않는다.
+function _driveAuthLog(patch) {
+  try {
+    const cur = JSON.parse(localStorage.getItem(DRIVE_AUTHLOG_KEY) || '{}');
+    localStorage.setItem(DRIVE_AUTHLOG_KEY, JSON.stringify({ ...cur, ...patch }));
+  } catch {}
+}
+
+function readDriveAuthLog() {
+  try { return JSON.parse(localStorage.getItem(DRIVE_AUTHLOG_KEY) || '{}'); }
+  catch { return {}; }
+}
 const DRIVE_PKCE_VERIFIER_KEY = 'mindflow_drive_pkce_v';
 const DRIVE_AUTH_STATE_KEY = 'mindflow_drive_auth_state';
 
@@ -137,6 +154,10 @@ class DriveClient {
     if (!r.ok) throw new Error('토큰 교환 실패: ' + (data.error || r.status));
     this._saveToken(data.access_token, data.expires_in);
     try { localStorage.setItem(DRIVE_CONNECTED_KEY, '1'); } catch {}
+    // 새 refresh_token이 발급된 시점 = 만료 시계가 새로 시작하는 시점.
+    // 다음 실패까지의 간격을 재려면 이 값이 반드시 있어야 한다.
+    const now = new Date().toISOString();
+    _driveAuthLog({ connectedAt: now, lastOkAt: now, failAt: null, failReason: null });
     return true;
   }
 
@@ -156,16 +177,31 @@ class DriveClient {
   async refreshAccessToken() {
     if (this._refreshInFlight) return this._refreshInFlight;
     this._refreshInFlight = (async () => {
-      const r = await fetch(DRIVE_WORKER_URL + '/refresh', { method: 'POST' });
-      const data = await r.json().catch(() => ({}));
+      let r, data;
+      try {
+        r = await fetch(DRIVE_WORKER_URL + '/refresh', { method: 'POST' });
+        data = await r.json().catch(() => ({}));
+      } catch (netErr) {
+        // 네트워크 자체가 안 된 경우 — 토큰이 죽은 것과 전혀 다른 사건이다.
+        // 둘을 구분해 기록해야 다음에 원인을 헷갈리지 않는다.
+        _driveAuthLog({ failAt: new Date().toISOString(), failReason: 'network', failFatal: false });
+        throw netErr;
+      }
       if (!r.ok) {
-        if (r.status === 401 || data.error === 'invalid_grant' || data.error === 'no_refresh_token') {
+        const fatal = r.status === 401 || data.error === 'invalid_grant' || data.error === 'no_refresh_token';
+        if (fatal) {
           // Refresh token gone / revoked — force the user to re-consent.
           try { localStorage.removeItem(DRIVE_CONNECTED_KEY); } catch {}
         }
+        _driveAuthLog({
+          failAt: new Date().toISOString(),
+          failReason: (data.error || ('HTTP ' + r.status)),
+          failFatal: fatal,          // true면 재로그인이 필요한 진짜 만료·폐기
+        });
         throw new Error('토큰 갱신 실패: ' + (data.error || r.status));
       }
       this._saveToken(data.access_token, data.expires_in);
+      _driveAuthLog({ lastOkAt: new Date().toISOString() });
     })();
     try { return await this._refreshInFlight; }
     finally { this._refreshInFlight = null; }
