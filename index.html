@@ -495,7 +495,27 @@
     </div>
 
     <!-- ── 진단 ───────────────────────────────── -->
-    <details class="set-adv set-adv-top" id="auth-diag-section" ontoggle="if(this.open)renderAuthDiag()">
+    <details class="set-adv set-adv-top" id="editor-diag-section" ontoggle="if(this.open)renderEditorDiag()">
+      <summary>에디터 계측 (임시)</summary>
+      <div class="set-adv-body">
+      <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
+        입력이 밀리거나 화살표에 공백이 생겼을 때 그 순간을 기록합니다.
+        <b>정상 동작은 남기지 않으므로</b>, 여기 뭔가 찍혔다면 그게 버그입니다.
+        기록은 이 기기에만 있고 Drive로 올라가지 않습니다.
+      </div>
+      <div id="editor-diag-out" style="margin-top:10px;font-size:12px;"></div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="tb-btn" onclick="renderEditorDiag()" style="flex:1;justify-content:center;">
+          <span class="mi mi-sm">refresh</span> 다시 확인
+        </button>
+        <button class="tb-btn" onclick="clearEditorDiag()" style="flex:1;justify-content:center;">
+          <span class="mi mi-sm">delete</span> 기록 비우기
+        </button>
+      </div>
+      </div>
+    </details>
+
+    <details class="set-adv" id="auth-diag-section" ontoggle="if(this.open)renderAuthDiag()">
       <summary>동기화 인증 진단</summary>
       <div class="set-adv-body">
       <div style="font-size:12px;color:var(--text-mute);margin-top:4px;line-height:1.5;">
@@ -802,6 +822,9 @@
 <script src="js/drawing.js?v=20260616d" defer></script>
 <script src="js/sync.js?v=20260902a" defer></script>
 <script src="js/gcal.js?v=20260729d" defer></script>
+<!-- 임시 계측 — sync.js 뒤/main.js 앞이어야 동기화 직전 상태를 찍을 수 있다.
+     원인이 특정되면 이 줄과 js/editor-diag.js, 설정의 details를 함께 지운다. -->
+<script src="js/editor-diag.js?v=20260911a" defer></script>
 <script src="js/main.js?v=20260902b" defer></script>
 
 </body>
