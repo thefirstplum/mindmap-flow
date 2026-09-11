@@ -1,114 +1,103 @@
 #!/usr/bin/env python3
-"""MindFlow 아이콘 세트 생성기 — 코드가 곧 원본이다.
+"""icon-src.png 에서 PWA 아이콘 세트를 만든다.
 
-옛 tools/gen-icons.js는 손으로 만든 icon-src.png(유리 재질 3D) 안에서 타일 위치를
-좌표로 박아두고 잘라내는 구조였다. 아트가 바뀌면 그 좌표가 전부 틀어져서 못 쓴다.
-지금 아이콘(레이어드 카드)은 순수 도형이라 아예 그려서 만든다. 색이나 비율을
-바꾸고 싶으면 아래 상수만 고치고 다시 돌리면 된다.
+  python3 tools/make-icons.py        (어디서 실행하든 프로젝트 루트를 찾는다)
 
-  python3 tools/make-icons.py      (프로젝트 루트에서)
+원본은 정사각형 full-bleed 불투명 이미지여야 한다. 그 전제가 지켜지면 출력은
+크기별 리사이즈가 전부다 — 옛 tools/gen-icons.js가 하던 '투명 배경을 앱
+배경색으로 합성'과 '유리 타일 좌표로 크롭'이 모두 불필요해졌다. 그 스크립트는
+특정 아트의 픽셀 좌표(x236-785 등)가 박혀 있어 아트가 바뀌면 못 쓰는 물건이었다.
 
-full-bleed 불투명 배경이라 출력은 크기별 리사이즈가 전부다. 옛 스크립트가 하던
-'투명 배경을 앱 배경색으로 합성'과 'maskable용 축소 배치'가 필요 없어졌다:
-  - iOS는 투명 아이콘을 지원하지 않는데, 이제 배경이 불투명이라 문제가 없다.
-  - 안드로이드 maskable은 지름 80% 원으로 잘라내는데, 아트가 이미 중앙 55%
-    안에 있어 그 원 안에 들어간다(아래 SAFE 검사가 매번 확인한다).
+전제가 깨지면 조용히 이상한 아이콘이 나오므로, 만들기 전에 검사한다:
+  1) 정사각형인가
+  2) 네 모서리가 불투명인가 — 투명하면 iOS가 검정으로 합성해 테두리가 생긴다
+  3) 둥근 모서리를 그려 넣지 않았는가 — iOS가 또 마스킹해서 '액자 속 액자'가 된다
+  4) 밝은 아트가 안드로이드 maskable 안전원(지름 80%) 안에 있는가
 """
-from PIL import Image, ImageDraw
+from PIL import Image
 import math, os, sys
 
-# ── 디자인 상수 (1024 기준) ──────────────────────────────────────
-S = 1024
-SS = 4                      # 슈퍼샘플 배율 — 4096에서 그려 1024로 줄인다
-
-BG_FROM = (0x6E, 0x5B, 0xD0)   # 좌상단 바이올렛
-BG_TO   = (0xB8, 0x5E, 0x94)   # 우하단 로즈 (앱 --accent와 동일)
-CARD    = (0xFF, 0xFF, 0xFF)
-FRONT   = (0xFF, 0xFC, 0xF6)   # 앞 카드는 살짝 크림 — 앱 --surface 결
-LINE    = (0xB8, 0x5E, 0x94)   # 앞 카드 위의 줄
-
-# (x0, y0, x1, y1, 반지름, 알파)  뒤 → 앞 순서
-CARDS = [
-    (300, 240, 756, 540, 52, 0.32),
-    (264, 336, 760, 656, 56, 0.55),
-    (228, 444, 796, 788, 60, 1.00),
-]
-LINES = [((304, 572), (660, 572)), ((304, 688), (504, 688))]
-LINE_W = 44
+SRC = 'icon-src.png'
+MASTER = 1024
 
 OUTPUTS = [
-    ('icon-src.png',              1024),   # 마스터 — 다른 도구용 원본
-    ('icon-512.png',               512),
-    ('icon-192.png',               192),
-    ('icon-512-maskable.png',      512),
-    ('icon-192-maskable.png',      192),
-    ('apple-touch-icon-180.png',   180),
+    ('icon-512.png',             512),
+    ('icon-192.png',             192),
+    ('icon-512-maskable.png',    512),
+    ('icon-192-maskable.png',    192),
+    ('apple-touch-icon-180.png', 180),
 ]
 
 
-def check_safe_zone():
-    """아트가 안드로이드 maskable 안전 원(지름 80%) 안에 있는지 검사.
+def check(im):
+    """원본이 아이콘으로 쓸 수 있는 상태인지. 치명적이면 False."""
+    ok = True
+    W, H = im.size
+    print(f'  원본 {W}x{H}')
+    if W != H:
+        print('  ! 정사각형이 아닙니다 — 리사이즈에서 찌그러집니다', file=sys.stderr)
+        ok = False
 
-    상수를 건드린 뒤 조용히 모서리가 잘리는 걸 막는다. 카드는 모서리가 둥글어
-    실제로는 조금 더 여유가 있지만, 보수적으로 사각 꼭짓점으로 잰다.
-    """
-    c = S / 2
-    safe_r = S * 0.80 / 2
-    worst = 0.0
-    for x0, y0, x1, y1, *_ in CARDS:
-        for px, py in ((x0, y0), (x1, y0), (x0, y1), (x1, y1)):
-            worst = max(worst, math.hypot(px - c, py - c))
-    ok = worst <= safe_r
-    print(f'  안전원 검사: 최대 반경 {worst:.0f} / 허용 {safe_r:.0f}  → {"OK" if ok else "넘침!"}')
-    if not ok:
-        print('  ! 안드로이드에서 카드 모서리가 잘립니다. CARDS를 안쪽으로 옮기세요.', file=sys.stderr)
+    px = im.load()
+    pts = {'좌상': (2, 2), '우상': (W - 3, 2), '좌하': (2, H - 3), '우하': (W - 3, H - 3)}
+    alphas = [px[x, y][3] for x, y in pts.values()]
+    if min(alphas) < 255:
+        print('  ! 모서리가 투명합니다 — iOS가 검정으로 합성해 테두리가 생깁니다', file=sys.stderr)
+        ok = False
+    else:
+        # 모서리가 불투명이어도 '둥근 사각형을 그려 넣은' 경우가 있다.
+        # 모서리 색이 그 대각 안쪽(5% 지점) 색과 크게 다르면 의심한다.
+        for name, (x, y) in pts.items():
+            ix = min(max(int(W * .05), 0), W - 1) if x < W / 2 else min(int(W * .95), W - 1)
+            iy = min(max(int(H * .05), 0), H - 1) if y < H / 2 else min(int(H * .95), H - 1)
+            d = sum(abs(a - b) for a, b in zip(px[x, y][:3], px[ix, iy][:3]))
+            if d > 150:
+                print(f'  ! {name} 모서리가 안쪽과 많이 다릅니다 — 둥근 모서리를 '
+                      f'그려 넣었는지 확인하세요 (차이 {d})', file=sys.stderr)
+
+    # 밝은 아트의 범위 → maskable 안전원 검사
+    s = im.convert('RGB').resize((256, 256), Image.LANCZOS)
+    sp = s.load()
+    xs, ys = [], []
+    for y in range(256):
+        for x in range(256):
+            r, g, b = sp[x, y]
+            if r > 225 and g > 215 and b > 210:
+                xs.append(x); ys.append(y)
+    if xs:
+        x0, x1 = min(xs) / 256 * W, max(xs) / 256 * W
+        y0, y1 = min(ys) / 256 * H, max(ys) / 256 * H
+        c = W / 2
+        worst = max(math.hypot(px_ - c, py_ - c) for px_ in (x0, x1) for py_ in (y0, y1))
+        safe = W * 0.80 / 2
+        mark = 'OK' if worst <= safe else '넘침!'
+        print(f'  아트 폭 {(x1 - x0) / W * 100:.1f}% · 안전원 {worst:.0f}/{safe:.0f} → {mark}')
+        if worst > safe:
+            print('  ! 안드로이드 원형 크롭에서 모서리가 잘립니다. 아트를 더 작게 그리세요.',
+                  file=sys.stderr)
+    else:
+        print('  아트 범위를 못 찾았습니다 (밝은 영역 없음) — 안전원 검사 건너뜀')
     return ok
-
-
-def make_master():
-    n = S * SS
-
-    # 대각 그라디언트 — 작게 만들고 확대한다 (부드러워서 손실이 없다)
-    g = 96
-    grad = Image.new('RGB', (g, g))
-    gp = grad.load()
-    for y in range(g):
-        for x in range(g):
-            t = (x + y) / (2 * (g - 1))
-            gp[x, y] = tuple(round(a + (b - a) * t) for a, b in zip(BG_FROM, BG_TO))
-    img = grad.resize((n, n), Image.BICUBIC).convert('RGBA')
-
-    # 카드 — 반투명이라 각자 레이어에 그려 알파 합성한다
-    for x0, y0, x1, y1, r, alpha in CARDS:
-        layer = Image.new('RGBA', (n, n), (0, 0, 0, 0))
-        d = ImageDraw.Draw(layer)
-        rgb = FRONT if alpha >= 1.0 else CARD
-        d.rounded_rectangle(
-            [x0 * SS, y0 * SS, x1 * SS, y1 * SS], radius=r * SS,
-            fill=(*rgb, round(255 * alpha)))
-        img = Image.alpha_composite(img, layer)
-
-    # 앞 카드 위의 줄 — 둥근 끝
-    d = ImageDraw.Draw(img)
-    for (ax, ay), (bx, by) in LINES:
-        d.line([ax * SS, ay * SS, bx * SS, by * SS],
-               fill=(*LINE, 255), width=LINE_W * SS)
-        for px, py in ((ax, ay), (bx, by)):   # 둥근 캡
-            rr = LINE_W * SS / 2
-            d.ellipse([px * SS - rr, py * SS - rr, px * SS + rr, py * SS + rr],
-                      fill=(*LINE, 255))
-
-    return img.resize((S, S), Image.LANCZOS).convert('RGB')
 
 
 if __name__ == '__main__':
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     os.chdir(root)
-    print('MindFlow 아이콘 생성')
-    check_safe_zone()
-    master = make_master()
+    if not os.path.exists(SRC):
+        sys.exit(f'{SRC} 가 없습니다. 1024x1024 정사각형 PNG를 그 이름으로 두세요.')
+
+    print(f'MindFlow 아이콘 생성 ({SRC})')
+    im = Image.open(SRC).convert('RGBA')
+    if not check(im):
+        sys.exit('원본 검사 실패 — 중단합니다.')
+
+    # 마스터를 1024로 정규화해 되쓴다 (원본이 더 크면 줄이고, 그 결과로 파생본을 만든다)
+    if im.size != (MASTER, MASTER):
+        im = im.resize((MASTER, MASTER), Image.LANCZOS)
+        im.convert('RGB').save(SRC, optimize=True)
+        print(f'  {SRC} 를 {MASTER}x{MASTER} 로 정규화')
+
+    master = im.convert('RGB')
     for name, size in OUTPUTS:
-        out = master if size == S else master.resize((size, size), Image.LANCZOS)
-        out.save(name, optimize=True)
-        kb = os.path.getsize(name) / 1024
-        print(f'  {name:<26} {size}x{size}  {kb:6.1f} KB')
+        master.resize((size, size), Image.LANCZOS).save(name, optimize=True)
+        print(f'  {name:<26} {size}x{size}  {os.path.getsize(name) / 1024:6.1f} KB')
