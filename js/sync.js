@@ -2887,6 +2887,16 @@ function renderAreaDiag() {
     ['-webkit-fill-available', fill.toFixed(1) + ' px'],
     ['visualViewport.height', window.visualViewport ? window.visualViewport.height.toFixed(1) + ' px' : '—'],
 
+    ['SEC', '키보드 감지 — 입력 중이 아닌데 켜져 있으면 오작동'],
+    ['--kb (앱을 줄이는 양)', getComputedStyle(document.documentElement).getPropertyValue('--kb').trim() || '0px'],
+    ['kb-open 켜짐?', document.body.classList.contains('kb-open') ? '예' : '아니오'],
+    ['지금 입력 중인 요소', (() => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return '없음';
+      const editable = el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName);
+      return (el.tagName.toLowerCase() + (el.id ? '#' + el.id : '')) + (editable ? ' (편집가능)' : '');
+    })()],
+
     ['SEC', '헤더 — 상태바 영역을 덮는가'],
     ['높이', hdr ? hdr.getBoundingClientRect().height.toFixed(1) + ' px' : '—'],
     ['padding-top', hdrCS ? hdrCS.paddingTop : '—'],
