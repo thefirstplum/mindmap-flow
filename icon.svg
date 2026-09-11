@@ -1,26 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Memo">
-  <!-- 파비콘/탭 아이콘용 평면 버전. icon-*.png(유리 재질 3D)와 같은 모티프지만
-       16~32px에서 뭉개지지 않도록 그라디언트·광택을 뺀 단색으로 그린다.
-       색은 icon-src.png에서 실제로 추출한 값.
-       PNG와 동일하게 유리 타일이 캔버스 가장자리까지 닿는 구도. -->
-  <rect width="512" height="512" rx="112" fill="#0f1117"/>
+  <!-- 파비콘·탭 아이콘용. tools/make-icons.py가 그리는 PNG와 같은 도형·같은 색이고,
+       좌표는 그쪽 1024 기준을 2로 나눈 값이다. 한쪽만 고치면 어긋나므로 함께 고칠 것.
 
-  <!-- 유리 타일 — 가장자리에 붙임 (테두리만 암시) -->
-  <rect x="7" y="7" width="498" height="498" rx="108" fill="none" stroke="#9ea3b1" stroke-width="14" opacity="0.55"/>
+       16~32px에서는 줄 2개가 거의 사라지지만, 카드 3장이 겹친 실루엣은 남는다.
+       그래서 줄보다 카드의 단 차이(겹침 위치)를 우선해서 잡았다. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6E5BD0"/>
+      <stop offset="1" stop-color="#B85E94"/>
+    </linearGradient>
+  </defs>
 
-  <!-- 메모지 — 우상단 모서리가 접힌 형태 -->
-  <path d="M132 48 H350 L440 138 V428 Q440 468 400 468 H132 Q92 468 92 428 V88 Q92 48 132 48 Z"
-        fill="#e7e4df"/>
-  <!-- 접힌 플랩 -->
-  <path d="M350 48 L440 138 H350 Z" fill="#eaaf29"/>
+  <rect width="512" height="512" fill="url(#bg)"/>
 
-  <!-- 본문 줄 2개 -->
-  <g stroke="#ababa7" stroke-width="23" stroke-linecap="round">
-    <line x1="136" y1="220" x2="396" y2="220"/>
-    <line x1="136" y1="288" x2="396" y2="288"/>
+  <!-- 뒤로 갈수록 작고 투명한 카드 — 쌓인 노트 -->
+  <rect x="150" y="120" width="228" height="150" rx="26" fill="#FFFFFF" opacity="0.32"/>
+  <rect x="132" y="168" width="248" height="160" rx="28" fill="#FFFFFF" opacity="0.55"/>
+  <rect x="114" y="222" width="284" height="172" rx="30" fill="#FFFCF6"/>
+
+  <!-- 앞 카드의 글줄 -->
+  <g stroke="#B85E94" stroke-width="22" stroke-linecap="round">
+    <line x1="152" y1="286" x2="330" y2="286"/>
+    <line x1="152" y1="344" x2="252" y2="344"/>
   </g>
-
-  <!-- 손글씨 물결선 -->
-  <path d="M138 362 Q182 334 222 358 Q262 382 302 358 Q342 334 394 354"
-        fill="none" stroke="#dd9f19" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
