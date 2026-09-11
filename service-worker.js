@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v49'; // 아이콘 원본 교체
+const CACHE_NAME = 'mindflow-cache-v50'; // any 아이콘 모서리 깎음
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
