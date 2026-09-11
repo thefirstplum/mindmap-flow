@@ -236,16 +236,27 @@ if (window.SyncEvents) {
   const vv = window.visualViewport;
   if (!vv) return;   // 미지원 환경은 기존 동작 그대로 (기능 저하만, 깨지지 않음)
 
-  // 키보드로 볼 최소 높이. 사파리 주소창 접힘·입력 액세서리 바만으로도
-  // 수십 px이 움직이는데, 그걸 키보드로 오인하면 화면이 들썩인다.
-  const MIN_KB = 60;
+  // 키보드로 볼 최소 높이. 실제 소프트 키보드는 화면의 30~45%(수백 px)를 먹는다.
+  // 브라우저 주소창·툴바는 보통 50~110px이라 그 위로 잡는다.
+  const MIN_KB = 120;
   let raf = 0;
+
+  // ★ 결정적인 가드 — 키보드는 '입력 중일 때만' 올라온다.
+  // 편집 가능한 요소에 포커스가 없다면 뷰포트가 줄어든 건 키보드가 아니라
+  // 브라우저 주소창·툴바가 접힌 것이다. 이 가드가 없으면 안드로이드에서
+  // 스크롤만 해도 .app이 줄고 하단 탭바가 사라져 화면이 깨져 보인다.
+  function editableFocused() {
+    const el = document.activeElement;
+    if (!el || el === document.body) return false;
+    return el.isContentEditable
+      || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT';
+  }
 
   function apply() {
     raf = 0;
     // 레이아웃 높이 − (보이는 높이 + 위로 밀린 양) = 아래쪽이 가려진 양
     const occluded = window.innerHeight - vv.height - vv.offsetTop;
-    const kb = occluded >= MIN_KB ? Math.round(occluded) : 0;
+    const kb = (editableFocused() && occluded >= MIN_KB) ? Math.round(occluded) : 0;
     document.documentElement.style.setProperty('--kb', kb + 'px');
     document.body.classList.toggle('kb-open', kb > 0);
   }
@@ -255,6 +266,10 @@ if (window.SyncEvents) {
 
   vv.addEventListener('resize', schedule);
   vv.addEventListener('scroll', schedule);
+  // 포커스가 들고 날 때도 다시 판단한다. blur 직후엔 뷰포트가 아직 안 돌아와
+  // 있을 수 있으므로 한 박자 뒤에 한 번 더 본다.
+  document.addEventListener('focusin', schedule, true);
+  document.addEventListener('focusout', () => { schedule(); setTimeout(apply, 300); }, true);
   apply();
 })();
 
