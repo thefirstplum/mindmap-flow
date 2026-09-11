@@ -17,7 +17,11 @@
     </linearGradient>
   </defs>
 
-  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- 모서리를 깎고 바깥은 투명으로 둔다. 이 파일은 manifest에서 purpose=any 라
+       플랫폼이 마스킹하지 않고 그린 그대로 쓴다 — 각진 사각형이면 안드로이드
+       스플래시(배경 #FDF6E3)에 보라 사각형이 그대로 얹힌다. 반지름 22.37%는
+       icon-512.png 와 같은 값(tools/make-icons.py의 RADIUS). -->
+  <rect width="512" height="512" rx="114.5" fill="url(#bg)"/>
 
   <!-- 뒤로 갈수록 좁고 투명한 카드 — 쌓인 노트 -->
   <rect x="154" y="126" width="204" height="120" rx="26" fill="#FFFFFF" opacity="0.34"/>

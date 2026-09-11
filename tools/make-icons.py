@@ -20,13 +20,36 @@ import math, os, sys
 SRC = 'icon-src.png'
 MASTER = 1024
 
+# (파일명, 크기, 모서리를 둥글게 깎을 것인가)
+#
+# purpose=any 만 깎는다. 이 아이콘은 플랫폼이 마스킹하지 않고 **그린 그대로** 쓰인다.
+# 안드로이드 스플래시가 대표적인데, background_color(크림) 위에 이 그림을 얹으므로
+# 각진 불투명 사각형이면 보라색 사각형 덩어리가 그대로 보인다(사장님 제보).
+# 둥글게 깎고 바깥을 투명으로 두면 앱 아이콘처럼 떠 보인다.
+#
+# maskable 은 반대다 — 플랫폼이 원/스퀘어클로 잘라내므로 가장자리까지 꽉 차야 한다.
+# apple-touch 도 깎지 않는다. iOS는 투명을 검정으로 합성하고, 어차피 자체 마스크를
+# 씌우므로 깎아두면 모서리에 검은 자국이 남는다.
+RADIUS = 0.2237          # iOS 스퀘어클과 같은 비율
 OUTPUTS = [
-    ('icon-512.png',             512),
-    ('icon-192.png',             192),
-    ('icon-512-maskable.png',    512),
-    ('icon-192-maskable.png',    192),
-    ('apple-touch-icon-180.png', 180),
+    ('icon-512.png',             512, True),
+    ('icon-192.png',             192, True),
+    ('icon-512-maskable.png',    512, False),
+    ('icon-192-maskable.png',    192, False),
+    ('apple-touch-icon-180.png', 180, False),
 ]
+
+
+def round_corners(im):
+    """모서리를 둥글게 깎고 바깥을 투명으로. 4배 슈퍼샘플로 계단 제거."""
+    from PIL import ImageDraw
+    n = im.size[0]
+    mask = Image.new('L', (n * 4, n * 4), 0)
+    ImageDraw.Draw(mask).rounded_rectangle(
+        [0, 0, n * 4 - 1, n * 4 - 1], radius=int(n * 4 * RADIUS), fill=255)
+    out = im.convert('RGBA')
+    out.putalpha(mask.resize((n, n), Image.LANCZOS))
+    return out
 
 
 def check(im):
@@ -98,6 +121,10 @@ if __name__ == '__main__':
         print(f'  {SRC} 를 {MASTER}x{MASTER} 로 정규화')
 
     master = im.convert('RGB')
-    for name, size in OUTPUTS:
-        master.resize((size, size), Image.LANCZOS).save(name, optimize=True)
-        print(f'  {name:<26} {size}x{size}  {os.path.getsize(name) / 1024:6.1f} KB')
+    for name, size, rounded in OUTPUTS:
+        out = master.resize((size, size), Image.LANCZOS)
+        if rounded:
+            out = round_corners(out)
+        out.save(name, optimize=True)
+        shape = '둥근 모서리' if rounded else 'full-bleed'
+        print(f'  {name:<26} {size}x{size}  {shape:<10} {os.path.getsize(name) / 1024:6.1f} KB')
