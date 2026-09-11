@@ -1,0 +1,80 @@
+# Material Symbols Rounded — 이 앱이 쓰는 아이콘 이름 (fonts/material-symbols-rounded.woff2 의 서브셋 목록)
+#
+# 이 파일이 진실원이다. 아이콘을 새로 쓰면 여기에 추가하고 폰트를 다시 받아야 한다.
+# 빠뜨리면 리거처가 안 걸려서 이름이 글자로 화면에 노출된다 (실제로 겪음).
+#
+# [다시 받는 법]
+#   NAMES=$(grep -v '^#' tools/icon-names.txt | grep -v '^$' | sort -u | paste -sd, -)
+#   curl -A "Mozilla/5.0 Chrome/130.0" \
+#     "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,-25..200&icon_names=${NAMES}"
+#   → 응답의 src url(...) 을 fonts/material-symbols-rounded.woff2 로 내려받는다
+#
+# [검증] 정규식만 믿지 말 것. tile('check_box', ...) 처럼 함수 인자로 넘어가는
+# 아이콘은 <span class="mi"> 안에 없어서 정적 추출에 안 잡힌다. 실제로 앱을 띄워
+# 모든 화면을 돌며 .mi 의 textContent 를 모으고, 캔버스로 폭을 재서 글리프 하나
+# (24px 안팎)로 합쳐지는지 확인하는 쪽이 확실하다. 26px을 넘으면 폰트에 없는 것.
+
+account_tree
+add
+attach_file
+bolt
+brush
+calendar_month
+check
+check_box
+checklist
+chevron_left
+chevron_right
+cleaning_services
+close
+cloud
+cloud_done
+content_copy
+database
+delete
+delete_sweep
+description
+draw
+edit
+edit_note
+event
+event_note
+expand_less
+expand_more
+fit_screen
+fitness_center
+format_ink_highlighter
+grid_on
+history
+home
+horizontal_rule
+image
+imagesmode
+ink_eraser
+ink_pen
+label
+label_off
+line_weight
+link
+link_off
+menu
+more_horiz
+north_east
+palette
+pan_tool
+pause
+play_arrow
+push_pin
+redo
+refresh
+restart_alt
+schedule
+search
+stylus_note
+swap_vert
+sync
+timer
+today
+tune
+undo
+visibility
