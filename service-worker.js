@@ -8,7 +8,7 @@
 //   - 사장님 PWA에서 옛 SW가 캐시 잡고 있던 케이스 대응: install·activate 시 ALL 캐시
 //     삭제 + 클라이언트에 reload 메시지 전송 (controllerchange 발생 시 main.js가 reload)
 
-const CACHE_NAME = 'mindflow-cache-v50'; // any 아이콘 모서리 깎음
+const CACHE_NAME = 'mindflow-cache-v51'; // 아이콘 폰트 self-host
 
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
@@ -43,7 +43,25 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
-  // Don't intercept Google APIs (Drive, fonts, GSI) — they handle their own caching
+  // 구글 폰트는 캐시 우선으로 잡는다.
+  // 예전엔 교차 출처를 통째로 넘겨서 폰트가 하나도 캐시되지 않았다. 그래서
+  // 네트워크가 어긋나면 본문 한글이 시스템 폰트로 떨어졌다. 아이콘 폰트는
+  // 더 심각해서(이름이 글자로 노출) 아예 직접 호스팅으로 옮겼고, 본문
+  // 고운바탕은 한글 서브셋이 수십 개라 CDN을 쓰되 여기서 캐시한다.
+  // 폰트 파일은 URL에 버전이 박혀 있어 내용이 바뀌면 URL도 바뀐다 → 캐시 우선이 안전.
+  if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const hit = await cache.match(req);
+      if (hit) return hit;
+      const fresh = await fetch(req);
+      if (fresh && fresh.ok) cache.put(req, fresh.clone()).catch(() => {});
+      return fresh;
+    })());
+    return;
+  }
+
+  // 나머지 교차 출처(Drive, GSI 등)는 그대로 통과 — 자체 캐싱을 한다
   if (url.origin !== self.location.origin) return;
 
   // Don't cache the manifest or anything dynamic — pure passthrough
