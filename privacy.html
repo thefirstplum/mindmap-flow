@@ -88,10 +88,10 @@
 
 <main>
   <h1>개인정보 처리방침</h1>
-  <p class="updated">최종 업데이트: 2026년 4월 26일</p>
+  <p class="updated">최종 업데이트: 2026년 9월 28일</p>
 
   <div class="summary">
-    <p><strong>요약:</strong> Memo는 사용자의 메모·마인드맵·일정 데이터를 사용자의 브라우저(localStorage)에 저장합니다. 사용자가 직접 연결한 Google Drive 외에는 <strong>어떠한 외부 서버로도 데이터가 전송되지 않습니다</strong>. 회원가입·광고·추적이 없습니다.</p>
+    <p><strong>요약:</strong> Memo는 사용자의 메모·마인드맵·일정 데이터를 사용자의 브라우저(localStorage)에 저장합니다. 사용자가 직접 연결한 Google Drive, Google Calendar 외에는 <strong>외부 서버로 데이터가 전송되지 않습니다</strong>. 로그인 유지용 토큰만 토큰 교환 서버에 보관됩니다. 회원가입·광고·추적이 없습니다.</p>
   </div>
 
   <h2>1. 수집하는 정보</h2>
@@ -110,15 +110,15 @@
   </ul>
   <p>개발자, 호스팅 제공자(GitHub Pages), 또는 제3자가 사용자 데이터에 접근할 수 없습니다.</p>
 
-  <h2>3. Google Drive 연동</h2>
-  <p>사용자가 Google Drive 동기화를 활성화한 경우:</p>
+  <h2>3. Google Drive, Google Calendar 연동</h2>
+  <p>사용자가 Google 계정을 연결한 경우:</p>
   <ul>
     <li>OAuth 2.0 표준을 통해 사용자가 직접 권한을 부여합니다</li>
-    <li>최소 권한 스코프 <code>drive.file</code> 사용 — <strong>본 앱이 만든 파일만</strong> 접근 가능. 사용자의 다른 Drive 파일·폴더는 접근하지 않습니다</li>
-    <li>액세스 토큰은 사용자의 브라우저 메모리에만 일시적으로 저장되며, 외부로 전송되지 않습니다</li>
+    <li>요청하는 권한은 <code>drive</code>(Google Drive)와 <code>calendar</code>(Google Calendar 일정 읽기·쓰기)입니다. 앱은 Drive의 <code>MindFlow</code> 폴더와 첨부 파일, 캘린더 일정만 읽고 씁니다</li>
+    <li>액세스 토큰은 사용자의 브라우저에만 보관합니다. 로그인을 유지하기 위한 갱신 토큰(refresh token)은 토큰 교환 서버(Cloudflare Workers)에 저장되며, 연결을 해제하면 폐기를 요청합니다. 메모 등 사용자 데이터는 이 서버를 거치지 않습니다</li>
     <li>사용자는 언제든 <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google 계정 → 보안 → 제3자 앱</a>에서 권한을 취소할 수 있습니다</li>
   </ul>
-  <p><strong>⚠️ 첨부 파일·이미지 관련 중요 사항</strong>: 메모에 첨부하는 이미지·파일(PDF·문서·압축 등)은 빠른 표시·다운로드를 위해 <strong>공개 공유 링크</strong>(URL을 아는 사람만 접근)로 Drive에 업로드됩니다. 이는 보안 위험이 될 수 있으므로 민감한 사진·개인정보·내부 문서 등의 첨부는 피해주세요. 메모 본문(.md)·마인드맵·타임블록 데이터는 비공개로 본인 Drive에만 저장됩니다.</p>
+  <p><strong>첨부 파일·이미지 관련 중요 사항</strong>: 메모에 첨부하는 이미지·파일(PDF·문서·압축 등)은 빠른 표시·다운로드를 위해 <strong>공개 공유 링크</strong>(URL을 아는 사람만 접근)로 Drive에 업로드됩니다. 이는 보안 위험이 될 수 있으므로 민감한 사진·개인정보·내부 문서 등의 첨부는 피해주세요. 메모 본문(.md)·마인드맵·타임블록 데이터는 비공개로 본인 Drive에만 저장됩니다.</p>
 
   <h2>4. 정보 공유</h2>
   <p>Memo는 사용자의 데이터를 <strong>어떤 제3자와도 공유하지 않습니다</strong>. Google Drive에 저장된 데이터는 Google의 개인정보 정책을 따릅니다.</p>
@@ -132,7 +132,7 @@
   </ul>
 
   <h2>6. 보안</h2>
-  <p>Memo는 정적 웹 애플리케이션으로 자체 서버를 운영하지 않습니다. GitHub Pages를 통해 HTTPS로 제공되며, Google Drive와의 통신도 모두 HTTPS로 암호화됩니다. 사용자의 기기 보안과 Google 계정 보안은 사용자가 직접 관리해야 합니다.</p>
+  <p>Memo는 정적 웹 애플리케이션으로 사용자 데이터를 저장하는 서버를 운영하지 않습니다. GitHub Pages를 통해 HTTPS로 제공되며, Google API와 토큰 교환 서버와의 통신도 모두 HTTPS로 암호화됩니다. 사용자의 기기 보안과 Google 계정 보안은 사용자가 직접 관리해야 합니다.</p>
 
   <h2>7. 어린이 개인정보</h2>
   <p>본 서비스는 만 14세 미만 어린이로부터 의도적으로 정보를 수집하지 않습니다. 어린이가 본 서비스를 사용한 정황이 발견되면 즉시 보호자에게 통지하고 관련 데이터를 삭제하도록 안내합니다.</p>
