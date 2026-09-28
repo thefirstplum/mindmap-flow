@@ -595,7 +595,7 @@ function backToList() {
 }
 
 async function deleteMemo(id) {
-  if (!(await confirmDialog('이 메모를 삭제하시겠습니까?', { danger: true, okText: '삭제' }))) return;
+  if (!(await confirmDialog('이 메모를 삭제하시겠습니까?', { danger: true, okText: '삭제' }))) return false;
   // Record deletion so Drive pull can't resurrect it
   const tombs = load('memo_tombstones', {});
   tombs[id] = new Date().toISOString();
@@ -607,6 +607,7 @@ async function deleteMemo(id) {
   renderMemoEditor();
   backToList();
   toast('삭제되었습니다');
+  return true;
 }
 
 // =================== SEARCH QUERY PARSER ===================
@@ -2224,7 +2225,8 @@ const _origDeleteMemo = typeof deleteMemo === 'function' ? deleteMemo : null;
 if (_origDeleteMemo) {
   window.deleteMemo = async function(id) {
     const res = await _origDeleteMemo(id);
-    mhDeleteAllForMemo(id).catch(() => {});
+    // 확인창에서 취소하면 버전 기록은 남긴다
+    if (res) mhDeleteAllForMemo(id).catch(() => {});
     return res;
   };
 }
